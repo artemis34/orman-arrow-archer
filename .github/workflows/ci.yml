@@ -6,14 +6,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
-  group: pages-${{ github.ref }}
+  group: publish-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-latest
+    outputs:
+      pages_enabled: ${{ steps.pages.outputs.result }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,18 +23,76 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+      - name: Check optional GitHub Pages configuration
+        id: pages
         if: github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.repos.getPages({ owner: context.repo.owner, repo: context.repo.repo });
+              return true;
+            } catch (error) {
+              if (error.status === 404 || error.status === 403) {
+                core.notice('Pages is not enabled. The free CDN edition is published independently.');
+                return false;
+              }
+              throw error;
+            }
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outputs.result == 'true'
         with:
           path: dist
-  deploy:
+  static:
     if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+      - name: Publish immutable static assets
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          publish_branch: gh-pages
+          force_orphan: true
+      - name: Verify public CDN deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          site_commit=$(git ls-remote origin refs/heads/gh-pages | cut -f1)
+          test -n "$site_commit"
+          site_url="https://rawcdn.githack.com/${GITHUB_REPOSITORY}/${site_commit}/index.html"
+          curl --fail --location --retry 8 --retry-delay 5 --retry-all-errors "$site_url" -o /tmp/live-index.html
+          grep -q 'Wildbow' /tmp/live-index.html
+          asset_path=$(sed -n 's/.*src="\.\/\([^"]*\.js\)".*/\1/p' /tmp/live-index.html | head -1)
+          test -n "$asset_path"
+          curl --fail --location --retry 4 --retry-delay 3 "${site_url%index.html}${asset_path}" -o /tmp/live-entry.js
+          test -s /tmp/live-entry.js
+          echo "### Live practice edition" >> "$GITHUB_STEP_SUMMARY"
+          echo "$site_url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified HTML and JavaScript assets over HTTPS. Online multiplayer requires a separately hosted Node server." >> "$GITHUB_STEP_SUMMARY"
+          echo "LIVE_SITE_URL=$site_url"
+  pages:
+    if: github.event_name != 'pull_request' && needs.validate.outputs.pages_enabled == 'true'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Publish to Pages (enable GitHub Actions in Settings → Pages first)
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v4
