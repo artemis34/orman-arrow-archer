@@ -25,6 +25,10 @@ async function join(name) {
 try {
   const a = await join("Network A"),
     b = await join("Network B");
+  // Drawing reveals an archer, so shared-world assertions also work when a
+  // safe spawn happens to be inside a camouflage bush. Keep all game rules on.
+  a.socket.emit("input", { charge: true });
+  b.socket.emit("input", { charge: true });
   await wait(150);
   assert.ok(a.state().players.some((p) => p.id === b.id));
   assert.ok(b.state().players.some((p) => p.id === a.id));
@@ -35,6 +39,7 @@ try {
     position: { x: 999, z: 999 },
     hp: 999,
     damage: 999,
+    charge: true,
     seq: 1,
   });
   await wait(100);
