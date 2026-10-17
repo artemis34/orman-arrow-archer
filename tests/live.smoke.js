@@ -29,7 +29,7 @@ try {
       isMobile: mobile,
       hasTouch: mobile,
     });
-    const page = (activePage = await context.newPage());
+    let page = (activePage = await context.newPage());
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("requestfailed", (req) => {
       if (req.failure()?.errorText !== "net::ERR_ABORTED")
@@ -40,6 +40,19 @@ try {
     });
     const response = await page.goto(url, { waitUntil: "networkidle" });
     assert.equal(response.status(), 200);
+    if ((await page.title()) === "External Content Notice | rawgit.hack") {
+      // Follow the host's normal first-visit flow; do not bypass its notice.
+      let opened;
+      const onPage = (p) => {
+        opened = p;
+      };
+      context.on("page", onPage);
+      await page.getByText("Open the page", { exact: true }).click();
+      context.off("page", onPage);
+      if (opened) page = activePage = opened;
+      await page.waitForLoadState("networkidle");
+      console.log("HOST_NOTICE_ACKNOWLEDGED", page.url());
+    }
     await expect(page.locator("#lobby")).toBeVisible();
     await page.locator("#player-name").fill("Live Smoke");
     await page.locator("#play").click();
