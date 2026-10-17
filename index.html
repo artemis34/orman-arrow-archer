@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-D1PtHsHq.js"></script>
+    <script type="module" crossorigin src="./assets/index-CfjeG8gh.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-IqHgUDwE.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-BZGB8obN.css">
+    <link rel="stylesheet" crossorigin href="./assets/index--1ZSUJcc.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -155,7 +155,7 @@
         </div>
         <div class="health-track">
           <div id="health-fill"></div>
-          <span id="health-text">100 / 100</span>
+          <span id="health-text">150 / 150</span>
         </div>
         <div class="xp-track"><div id="xp-fill"></div></div>
         <div class="player-stats">
@@ -198,7 +198,7 @@
           class="joystick aim-stick"
           aria-label="Nişan ve atış joystick"
         >
-          <span class="stick-label">NİŞAN / BIRAK</span>
+          <span class="stick-label">DOKUN: OTO ATIŞ</span>
           <div class="stick-knob"></div>
         </div>
       </div>
@@ -240,7 +240,9 @@
             <b>02 / NİŞAN & ATIŞ</b>
             <p>
               Fareyle nişan al; sol tuşu basılı tutarak yayı ger, bırakınca at.
-              Mobilde sağ joystick’i çek ve bırak.
+              Mobilde ekrana veya sağ joystick’e kısa dokun: en yakın açık
+              hedefe otomatik atış. Sağ joystick’i çekip bırakarak elle nişan
+              al; hafif nişan yardımı uygulanır.
             </p>
           </div>
           <div>
@@ -268,8 +270,9 @@
           <div>
             <b>06 / YENİDEN DENE</b>
             <p>
-              İlk 2 saniye korunursun. Elenirsen 3 saniye sonra yeniden
-              doğabilirsin; gelişim sıfırlanır, skorun kalır.
+              150 can ve 4 saniye korumayla başlarsın; ilk atış korumayı
+              bitirir. Elenirsen 3 saniye sonra yeniden doğabilirsin; gelişim
+              sıfırlanır, skorun kalır.
             </p>
           </div>
         </div>
