@@ -1,6 +1,6 @@
 # Wildbow · Archer.io
 
-[Ücretsiz botlu arenayı oyna](https://rawcdn.githack.com/artemis34/orman-arrow-archer/650d71063b7e05af1de8f927e15c1ace5014544f/index.html) · [Çok oyunculu sunucuyu Render’da kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer)
+[Ücretsiz botlu arenayı oyna](https://rawcdn.githack.com/artemis34/orman-arrow-archer/149f5470de0852c4044dfcaa1f629ac131c330ae/index.html) · [Çok oyunculu sunucuyu Render’da kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer)
 
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
 
