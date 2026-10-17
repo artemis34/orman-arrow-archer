@@ -1,3 +1,4 @@
+import { annotateFailure } from "./report.js";
 import { io } from "socket.io-client";
 import assert from "node:assert/strict";
 const url = process.env.TEST_SERVER_URL || "http://127.0.0.1:3000";
@@ -71,6 +72,9 @@ try {
   console.log(
     "Network smoke passed: two real clients, shared state, authoritative movement/charge, forged data rejection, disconnect cleanup, health check.",
   );
+} catch (error) {
+  annotateFailure(error, "Two-client network validation");
+  throw error;
 } finally {
   for (const s of sockets) s.disconnect();
 }

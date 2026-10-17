@@ -1,3 +1,4 @@
+import { annotateFailure } from "./report.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
@@ -93,6 +94,9 @@ try {
   console.log(
     `LIVE_BROWSER_OK ${url}: desktop and mobile joined, charged/released arrows, WebGL active, all assets loaded.`,
   );
+} catch (error) {
+  annotateFailure(error, "Published game validation");
+  throw error;
 } finally {
   await browser.close();
 }
