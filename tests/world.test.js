@@ -217,3 +217,13 @@ test("forest breath heals on authority and cannot bypass cooldown", () => {
   assert.ok(p.hp < 66);
   assert.ok(w.snapshot("a").players[0].healCd > 13);
 });
+test("poison rewards total damage rather than granting XP for every tiny tick", () => {
+  const w = world(),
+    a = w.addPlayer("a"),
+    b = w.addPlayer("b");
+  position(a, 0, 0);
+  position(b, 4, 0);
+  for (let i = 0; i < 90; i++) w.damage(b, 4 / 30, "a");
+  assert.equal(a.score, 4);
+  assert.ok(b.hp > 87);
+});

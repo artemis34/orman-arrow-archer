@@ -169,6 +169,7 @@ export class World {
     if (!p.alive || p.spawnShield > 0) return;
     const source = this.players.get(owner);
     if (source && !this.mode.canDamage(source, p)) return;
+    const dealt = Math.min(p.hp, amount);
     p.hp -= amount;
     this.events.push({
       type: "hit",
@@ -179,8 +180,14 @@ export class World {
       amount: Math.round(amount),
     });
     const attacker = this.players.get(owner);
-    if (attacker && attacker !== p && attacker.alive)
-      this.gain(attacker, Math.max(1, Math.floor(amount / 3)));
+    if (attacker && attacker !== p && attacker.alive) {
+      attacker.damageXpCarry = (attacker.damageXpCarry || 0) + dealt / 3;
+      const earned = Math.floor(attacker.damageXpCarry + 1e-8);
+      if (earned > 0) {
+        attacker.damageXpCarry -= earned;
+        this.gain(attacker, earned);
+      }
+    }
     if (p.hp <= 0) {
       p.hp = 0;
       p.alive = false;
