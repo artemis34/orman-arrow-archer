@@ -174,7 +174,7 @@ export class World {
       p.xp -= p.level * 55;
       p.level++;
       p.pending++;
-      p.hp = Math.min(p.maxHp, p.hp + 18);
+      if (p.alive) p.hp = Math.min(p.maxHp, p.hp + 18);
     }
     if (p.pending && !p.choices.length) this.offer(p);
   }
@@ -233,6 +233,7 @@ export class World {
       maxHp: 100,
       level: 1,
       xp: 0,
+      damageXpCarry: 0,
       upgrades: {},
       choices: [],
       pending: 0,

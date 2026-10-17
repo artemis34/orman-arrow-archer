@@ -49,3 +49,15 @@ test("mode tick events are retained in the snapshot", () => {
   w.step();
   assert.ok(w.snapshot().events.some((e) => e.type === "match"));
 });
+test("a posthumous elimination retains kill credit without healing the dead attacker", () => {
+  const w = empty(),
+    a = w.addPlayer("attacker"),
+    b = w.addPlayer("victim");
+  Object.assign(a, { alive: false, hp: 0, xp: 50 });
+  Object.assign(b, { spawnShield: 0, hp: 1 });
+  w.damage(b, 2, a.id);
+  assert.equal(a.kills, 1);
+  assert.ok(a.score >= 65);
+  assert.equal(a.alive, false);
+  assert.equal(a.hp, 0);
+});
