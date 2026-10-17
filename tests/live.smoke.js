@@ -19,6 +19,9 @@ const browser = await chromium.launch({
   ],
 });
 const errors = [];
+const gameOrigins = new Set([new URL(url).origin]);
+// All game assets are self-hosted. The host's notice also loads unrelated ads.
+const isGameAsset = (address) => gameOrigins.has(new URL(address).origin);
 let activePage;
 try {
   for (const mobile of [false, true]) {
@@ -32,11 +35,15 @@ try {
     let page = (activePage = await context.newPage());
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("requestfailed", (req) => {
-      if (req.failure()?.errorText !== "net::ERR_ABORTED")
+      if (
+        isGameAsset(req.url()) &&
+        req.failure()?.errorText !== "net::ERR_ABORTED"
+      )
         errors.push(`${req.url()}: ${req.failure()?.errorText}`);
     });
     page.on("response", (res) => {
-      if (res.status() >= 400) errors.push(`${res.status()} ${res.url()}`);
+      if (isGameAsset(res.url()) && res.status() >= 400)
+        errors.push(`${res.status()} ${res.url()}`);
     });
     const response = await page.goto(url, { waitUntil: "networkidle" });
     assert.equal(response.status(), 200);
@@ -51,6 +58,7 @@ try {
       context.off("page", onPage);
       if (opened) page = activePage = opened;
       await page.waitForLoadState("networkidle");
+      gameOrigins.add(new URL(page.url()).origin);
       console.log("HOST_NOTICE_ACKNOWLEDGED", page.url());
     }
     await expect(page.locator("#lobby")).toBeVisible();
@@ -106,10 +114,10 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    `LIVE_BROWSER_OK ${url}: desktop and mobile joined, charged/released arrows, WebGL active, all assets loaded.`,
+    `LIVE_BROWSER_OK ${url}: desktop and mobile joined, charged/released arrows, WebGL active, game assets loaded.`,
   );
 } catch (error) {
-  if (activePage) {
+  if (activePage && !activePage.isClosed()) {
     const diagnostics = await activePage
       .evaluate(() => ({
         url: location.href,
