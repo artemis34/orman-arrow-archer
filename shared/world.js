@@ -1,3 +1,4 @@
+import { FreeForAll } from "./modes.js";
 import { RULES, UPGRADES, cleanInput, clamp, moveBody } from "./config.js";
 import { SpatialGrid, segmentFraction, Pool } from "./spatial.js";
 const names = [
@@ -11,7 +12,8 @@ const names = [
   "Sage",
 ];
 export class World {
-  constructor({ bots = 7, seed = 7821 } = {}) {
+  constructor({ bots = 7, seed = 7821, mode = new FreeForAll() } = {}) {
+    this.mode = mode;
     this.seed = seed;
     this.time = 0;
     this.players = new Map();
@@ -165,6 +167,8 @@ export class World {
   }
   damage(p, amount, owner) {
     if (!p.alive || p.spawnShield > 0) return;
+    const source = this.players.get(owner);
+    if (source && !this.mode.canDamage(source, p)) return;
     p.hp -= amount;
     this.events.push({
       type: "hit",
@@ -186,6 +190,7 @@ export class World {
         attacker.kills++;
         this.gain(attacker, 65);
       }
+      this.mode.onElimination(this, attacker, p);
       this.events.push({
         type: "kill",
         name: p.name,
@@ -326,6 +331,7 @@ export class World {
   step(dt = 1 / RULES.tick) {
     dt = clamp(dt, 0, 0.05);
     this.time += dt;
+    this.mode.step(this, dt);
     this.events = [];
     this.grid.clear();
     this.orbGrid.clear();
@@ -446,6 +452,8 @@ export class World {
           if (
             !p.alive ||
             p.id === a.owner ||
+            (this.players.has(a.owner) &&
+              !this.mode.canDamage(this.players.get(a.owner), p)) ||
             a.hits.has(p.id) ||
             p.dashTime > 0
           )

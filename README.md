@@ -1,5 +1,7 @@
 # Wildbow · Archer.io
 
+[Ücretsiz botlu arenayı oyna](https://rawcdn.githack.com/artemis34/orman-arrow-archer/650d71063b7e05af1de8f927e15c1ace5014544f/index.html) · [Çok oyunculu sunucuyu Render’da kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer)
+
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
 
 ## Çalıştırma
@@ -19,6 +21,8 @@ npm start
 `PORT` varsayılan 3000. İsteğe bağlı `ALLOWED_ORIGINS=https://site.example,https://diger.example` çevrimiçi istemci origin listesini sınırlar; varsayılan açık CORS, genel arena içindir. Uygulama veri tabanı, API anahtarı veya ücretli servis istemez. Oyuncu bilgileri bellektedir; sunucu yeniden başlarsa sıfırlanır.
 
 ## Ücretsiz yayın
+
+**Hemen oynanabilir CDN sürümü:** Yukarıdaki botlu arena bağlantısı ücretsiz raw.githack CDN üzerinde yayımlanmıştır; hesap gerekmez. Her main push’unda GitHub Actions üretim paketini `gh-pages` dalına gönderir ve sabit commit bağlantısının HTML/JS dosyalarını HTTPS üzerinden kontrol eder. Statik sürümde botlu antrenman çalışır; gerçek oyuncular için Socket.io sunucusu gerekir. CDN bir üçüncü taraf ücretsiz hizmetidir; hizmet sürekliliği garantisi yoktur.
 
 **Tam çok oyunculu oyun — Render:** [Render Blueprint ile kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer). Ücretsiz hesabında depoyu bağla; `render.yaml` içindeki Free web service planını seçerek kurulumu tamamla. Build `npm ci --include=dev && npm run build`, start `npm start`, sağlık kontrolü `/health`. Verilen HTTPS adresi hem siteyi hem Socket.io sunucusunu sunar. Menüde Çok oyunculu seç; kendi site adresi otomatik dolacaktır. Aynı adrese bağlanan oyuncular aynı arenada buluşur. Free plan boşta uyuyabilir; ilk açılış gecikebilir. Sağlayıcının güncel ücretsiz kota ve koşulları geçerlidir. Bu dosya servisi otomatik oluşturmaz ve kart/ücret gerektiren plana yükseltmez.
 
@@ -62,7 +66,7 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ### Genişletme noktaları
 
-`LocalTransport` ve `SocketTransport` aynı `connect/step/choose/respawn/close` sözleşmesini kullanır. Yeni binary taşıma adaptörü render kodundan bağımsız eklenebilir. Botların gather/fight durumu World'de yalıtılmıştır. `SKINS` veri tablosu render modelinin renk/pelerin seçimlerini belirler. `server/modes.js` FFA/TDM/BR kural sözleşmesini tanımlar; çalışan oyun modu FFA'dır. Takımlar ve daralan çember ileride bu sözleşmeye eklenebilir, bu sürümde oynanabilir mod değildir.
+`LocalTransport` ve `SocketTransport` aynı `connect/step/choose/respawn/close` sözleşmesini kullanır. Yeni binary taşıma adaptörü render kodundan bağımsız eklenebilir. Botların gather/fight durumu World'de yalıtılmıştır. `shared/cosmetics.json` içindeki `SKINS` veri tablosu render modelinin renk/pelerin seçimlerini belirler. `shared/modes.js` FFA/TDM/BR kural sözleşmesini tanımlar; çalışan oyun modu FFA'dır. Takımlar ve daralan çember ileride bu sözleşmeye eklenebilir, bu sürümde oynanabilir mod değildir.
 
 ## Doğrulama
 

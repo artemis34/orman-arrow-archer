@@ -49,7 +49,10 @@ const initialServer =
   new URLSearchParams(location.search).get("server") ||
   localStorage.getItem("wildbow-server") ||
   import.meta.env.VITE_SERVER_URL ||
-  (!location.hostname.endsWith("github.io") ? location.origin : "");
+  (["localhost", "127.0.0.1"].includes(location.hostname) ||
+  location.hostname.endsWith(".onrender.com")
+    ? location.origin
+    : "");
 $("server-url").value = initialServer;
 $("player-name").value = localStorage.getItem("wildbow-name") || "Gezgin";
 for (const [i, s] of SKINS.entries()) {

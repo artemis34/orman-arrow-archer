@@ -1,0 +1,30 @@
+[
+  {
+    "id": "fern",
+    "name": "Orman",
+    "body": 7458720,
+    "cape": 2378562,
+    "trail": "leaf"
+  },
+  {
+    "id": "ember",
+    "name": "Kor",
+    "body": 15968882,
+    "cape": 9059640,
+    "trail": "spark"
+  },
+  {
+    "id": "iris",
+    "name": "İris",
+    "body": 12100079,
+    "cape": 5457017,
+    "trail": "arcane"
+  },
+  {
+    "id": "tide",
+    "name": "Gelgit",
+    "body": 8047074,
+    "cape": 2644075,
+    "trail": "mist"
+  }
+]

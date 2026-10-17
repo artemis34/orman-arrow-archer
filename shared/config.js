@@ -1,3 +1,4 @@
+import skins from "./cosmetics.json" with { type: "json" };
 /** Shared rules: client movement prediction and the server use these same constants. */
 export const RULES = Object.freeze({
   size: 84,
@@ -56,12 +57,7 @@ export const UPGRADES = Object.freeze({
     max: 4,
   },
 });
-export const SKINS = [
-  { id: "fern", name: "Orman", body: 0x71cfa0, cape: 0x244b42 },
-  { id: "ember", name: "Kor", body: 0xf3aa72, cape: 0x8a3d38 },
-  { id: "iris", name: "İris", body: 0xb8a1ef, cape: 0x534479 },
-  { id: "tide", name: "Gelgit", body: 0x7ac9e2, cape: 0x28586b },
-];
+export const SKINS = Object.freeze(skins);
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export function cleanInput(data = {}) {
   const num = (v) => (Number.isFinite(v) ? v : 0);
