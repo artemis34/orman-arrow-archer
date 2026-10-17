@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10251f"><meta name="description" content="Wildbow — Archer.io. Ormanın kalbinde okunu ger, rakiplerinden sıyrıl ve arenanın efsanesi ol. Ücretsiz 3D okçuluk arenası."><title>Wildbow — Archer.io</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"></head>
+<body>
+<canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
+<div class="vignette"></div>
+<div id="loading"><span class="brand-mark">↗</span><p>ORMAN UYANIYOR<span class="dots">…</span></p></div>
+<div id="lobby" class="screen hidden">
+ <header class="lobby-header"><a class="wordmark" href="./"><span class="brand-mark">↗</span> WILDBOW<span class="edition">ARCHER.IO</span></a><button class="icon-button sound-button" aria-label="Sesi aç veya kapat">♫</button></header>
+ <main class="lobby-main">
+  <div class="lobby-copy"><div class="eyebrow"><span class="live-dot"></span> ORMANIN YENİ BİR EFSANEYE İHTİYACI VAR</div><h1>Nişan al.<br>İzini <em>bırak.</em></h1><p class="intro">Bir yay. Sonsuz ihtimal.<br>Topla, güçlen ve orman arenasına hükmet.</p><div class="feature-chips"><span>↗ Şarjlı atış</span><span>✧ Evrilen yetenekler</span><span>◎ Canlı arena</span></div></div>
+  <section class="play-card" aria-label="Oyuna katıl"><div class="card-topline"><span class="eyebrow">ARENA SENİ BEKLİYOR</span><span class="version">SEZON 01</span></div><h2>Ormana adım at.</h2><p class="card-sub">İsmini seç. Hikâyeni sen yaz.</p>
+   <label for="player-name">OKÇU ADIN</label><input id="player-name" maxlength="16" placeholder="Gezgin" autocomplete="nickname" value="Gezgin">
+   <label>RENGİNİ SEÇ</label><div id="skins" class="skins"></div>
+   <div class="mode-switch" role="group" aria-label="Oyun modu"><button id="practice-mode" class="selected">✧ Antrenman</button><button id="online-mode">◎ Çok oyunculu</button></div>
+   <div id="server-field" class="hidden"><label for="server-url">SUNUCU ADRESİ</label><input id="server-url" type="url" placeholder="https://sunucun.onrender.com"><p class="field-note">Aynı adrese bağlanan arkadaşlarınla oyna.</p></div>
+   <button id="play" class="primary">Arenaya katıl <span>↗</span></button><p id="join-status" class="join-status" aria-live="polite">Botlarla anında oyna · Hesap gerekmez</p>
+   <div class="card-footer"><span class="live-dot"></span> <span id="server-label">Yerel arena • 7 bot rakip</span><span>30 TICK</span></div>
+  </section>
+ </main>
+ <footer class="lobby-footer"><span>HER ATIŞ BİR HİKÂYE.</span><button id="help-open">Nasıl oynanır <span>↗</span></button><span class="desktop-note">MASAÜSTÜ & MOBİL İÇİN TASARLANDI</span></footer>
+</div>
+<div id="hud" class="hidden">
+ <div class="hud-top"><div class="hud-brand"><span class="brand-mark">↗</span><div>WILDBOW<small id="mode-label">ANTRENMAN ARENASI</small></div></div><div class="session-meta"><span class="live-dot"></span><span id="connection">YEREL</span><span id="ping">30 HZ</span><button class="icon-button sound-button" aria-label="Sesi aç veya kapat">♫</button><button id="exit" class="icon-button" aria-label="Arenadan çık">✕</button></div></div>
+ <aside class="leaderboard"><div class="panel-heading"><span>ARENA LİDERLERİ</span><span>♛</span></div><div id="leaders"></div><div class="leader-footer"><span id="population">8 OKÇU</span><span>HERKES TEK</span></div></aside>
+ <div id="kill-feed" aria-live="polite"></div>
+ <div class="minimap-wrap"><canvas id="minimap" width="160" height="160" aria-label="Arena haritası"></canvas><span>ORMAN VADİSİ</span></div>
+ <div class="player-panel"><div class="player-title"><div class="player-avatar">↗</div><div><strong id="hud-name">Gezgin</strong><small id="player-status">İZİNİ BIRAK</small></div><div class="level-badge">SV <b id="level">1</b></div></div><div class="health-track"><div id="health-fill"></div><span id="health-text">100 / 100</span></div><div class="xp-track"><div id="xp-fill"></div></div><div class="player-stats"><span>✧ <b id="xp-text">0 / 55</b> XP</span><span>◎ <b id="kills">0</b> ELEME</span></div></div>
+ <div class="abilities"><button id="dash" class="ability"><span>ϟ</span><b id="dash-time">HAZIR</b><small>SPACE</small></button><div class="charge-display"><div class="charge-heading"><span>YAY GERİLİMİ</span><b id="charge-percent">0%</b></div><div class="charge-track"><div id="charge-fill"></div></div><small id="charge-hint">BASILI TUT · BIRAK VE AT</small></div></div>
+ <div id="upgrade-tray"></div><div id="toast" class="hidden" aria-live="polite"></div>
+ <div class="desktop-controls"><span><kbd>W A S D</kbd> hareket</span><span><kbd>FARE</kbd> nişan & atış</span><span><kbd>SPACE</kbd> atılma</span><button id="game-help">?</button></div>
+ <div id="touch-controls"><div id="move-stick" class="joystick" aria-label="Hareket joystick"><span class="stick-label">HAREKET</span><div class="stick-knob"></div></div><div id="aim-stick" class="joystick aim-stick" aria-label="Nişan ve atış joystick"><span class="stick-label">NİŞAN / BIRAK</span><div class="stick-knob"></div></div></div>
+</div>
+<div id="upgrades" class="modal hidden"><section class="upgrade-content"><div class="eyebrow">✧ YENİ BİR GÜÇ UYANIYOR</div><h2>Bir sonraki hamlen?</h2><p>Seviye atladın. Tarzına uygun bir yetenek seç.</p><div id="upgrade-options"></div><small>Arena devam ediyor. Hızlı karar ver!</small></section></div>
+<div id="death" class="modal hidden"><section class="death-card"><div class="eyebrow">HER SON YENİ BİR BAŞLANGIÇ</div><div class="death-icon">↗</div><h2>Orman seni hatırlayacak.</h2><p id="death-summary"></p><button id="respawn" class="primary">Yeniden doğ <span>↗</span></button><button id="back-lobby" class="text-button">Ana menüye dön</button></section></div>
+<div id="help" class="modal hidden"><section class="help-card"><button id="help-close" class="close-modal" aria-label="Kapat">✕</button><div class="eyebrow">ORMAN REHBERİ</div><h2>İlk okunu atmadan.</h2><div class="help-grid"><div><b>01 / HAREKET</b><p>WASD veya ok tuşlarıyla hareket et. Mobilde sol joystick’i kullan.</p></div><div><b>02 / NİŞAN & ATIŞ</b><p>Fareyle nişan al; sol tuşu basılı tutarak yayı ger, bırakınca at. Mobilde sağ joystick’i çek ve bırak.</p></div><div><b>03 / SIYRIL</b><p>Space, sağ tık veya ϟ butonuyla atıl. Atılırken oklar sana işlemez. 3 saniyede yenilenir.</p></div><div><b>04 / GÜÇLEN</b><p>Kristalleri topla, rakiplerini vur. Seviye atladığında üç yetenekten birini seç.</p></div><div><b>05 / SİPER AL</b><p>Ağaçlar ve kayalar okları durdurur. Çalıya girince uzaktaki rakiplerden gizlenirsin; yayını germek seni açığa çıkarır.</p></div><div><b>06 / YENİDEN DENE</b><p>İlk 2 saniye korunursun. Elenirsen 3 saniye sonra yeniden doğabilirsin; gelişim sıfırlanır, skorun kalır.</p></div></div></section></div>
+<script type="module" src="/client/main.js"></script>
+</body></html>

@@ -1,0 +1,75 @@
+# Wildbow · Archer.io
+
+Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
+
+## Çalıştırma
+
+```sh
+npm ci
+npm run dev
+# http://localhost:3000
+```
+
+```sh
+npm test
+npm run build
+npm start
+```
+
+`PORT` varsayılan 3000. İsteğe bağlı `ALLOWED_ORIGINS=https://site.example,https://diger.example` çevrimiçi istemci origin listesini sınırlar; varsayılan açık CORS, genel arena içindir. Uygulama veri tabanı, API anahtarı veya ücretli servis istemez. Oyuncu bilgileri bellektedir; sunucu yeniden başlarsa sıfırlanır.
+
+## Ücretsiz yayın
+
+**Tam çok oyunculu oyun — Render:** [Render Blueprint ile kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer). Ücretsiz hesabında depoyu bağla; `render.yaml` içindeki Free web service planını seçerek kurulumu tamamla. Build `npm ci --include=dev && npm run build`, start `npm start`, sağlık kontrolü `/health`. Verilen HTTPS adresi hem siteyi hem Socket.io sunucusunu sunar. Menüde Çok oyunculu seç; kendi site adresi otomatik dolacaktır. Aynı adrese bağlanan oyuncular aynı arenada buluşur. Free plan boşta uyuyabilir; ilk açılış gecikebilir. Sağlayıcının güncel ücretsiz kota ve koşulları geçerlidir. Bu dosya servisi otomatik oluşturmaz ve kart/ücret gerektiren plana yükseltmez.
+
+**Sunucusuz antrenman — GitHub Pages:** Deponun Settings → Pages bölümünde Source: **GitHub Actions** seç. `.github/workflows/ci.yml` test, build ve Pages dağıtımını içerir. Main'e push veya Actions → Run workflow sonrası adres `https://artemis34.github.io/orman-arrow-archer/` olur. Bu adres, Pages etkinleştirilip dağıtım başarıyla tamamlanmadan canlı kabul edilmez. Statik Pages Node sunucusu çalıştırmaz; botlu antrenman doğrudan çalışır. Çok oyunculu için Render sunucusunu menüde gir veya `?server=https://sunucun.onrender.com` parametresiyle link paylaş. HTTPS sayfasında HTTPS sunucu kullan.
+
+## Kontroller ve kurallar
+
+- WASD / ok tuşları: hareket. Fare: nişan. Sol tık basılı tut/bırak: şarjlı atış.
+- Space / sağ tık / ϟ butonu: atılma, 3 saniye bekleme ve kısa ok dokunulmazlığı.
+- Mobil: sol joystick hareket; sağ joystick nişan/germe, bırakınca atış. ϟ atılma.
+- Kristaller ve isabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
+- Ağaç ve kaya siperleri okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
+- Doğuş kalkanı 2 saniye. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
+- Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Uyumlu cihazlarda isabette hafif titreşim.
+
+## Mimari
+
+```text
+client/
+  main.js         Menü, HUD, uygulama yaşam döngüsü
+  scene.js        Three.js sahnesi, havuzlanmış ok/EXP/efekt görselleri
+  controls.js     Klavye/fare ve bağımsız pointer yakalamalı çift joystick
+  transport.js    Yerel antrenman / Socket.io adaptörleri, prediction & interpolation
+  audio.js        Web Audio sentezi
+  style.css       Masaüstü ve mobil arayüz
+shared/
+  config.js       Kurallar, doğrulama, ortak hareket ve kozmetik tanımları
+  spatial.js      Uniform grid, swept segment-circle testleri, sınırlı nesne havuzu
+  world.js        Otoriter simülasyon, FSM botlar, yetenekler, görünürlük
+server/index.js   Express, Socket.io, 30 Hz döngü, bağlantı/mesaj sınırları
+public/           Statik varlıklar
+ tests/           Simülasyon, ağ ve Chromium testleri
+render.yaml       Tek servis ücretsiz sunucu dağıtım tanımı
+```
+
+### Ağ ve güvenlik sınırları
+
+Çevrimiçi istemci yalnızca normalize edilen hareket/nişan/tuş girdisi ve yetenek isteği yollar. Konum, hasar, şarj, öldürme, XP ve beklemeler sunucuda hesaplanır. İstemci hareket tahmini son onaylanan sequence'e geri uzlaştırılır; uzak aktörler 90 ms tamponla lineer interpolasyon kullanır. Gizlenen oyuncular uzak istemcilerin snapshot'larından çıkarılır. Kontroller ve sunucu payload/mesaj oranı sınırlıdır; en çok 16 insan + 7 bot, tek arena. Dünya içinde ok/EXP sayısı ve havuzları sınırlıdır. Arrow swept testleri hızlı okların hedeflerin içinden atlamasını engeller. Hareket her eksende sınırlandırılır, diagonal hız normalize edilir.
+
+Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-cheat garantisi taşımaz. Bu sürümde sunucu geçmişine geri sarılan hitbox lag compensation, yatay sunucu ölçekleme, kalıcı hesaplar veya sıralama veritabanı yoktur. İnternet ölçeğinde üretim için kimlik, gözlemleme, DDoS koruması ve oda yönlendirme gerekir.
+
+### Genişletme noktaları
+
+`LocalTransport` ve `SocketTransport` aynı `connect/step/choose/respawn/close` sözleşmesini kullanır. Yeni binary taşıma adaptörü render kodundan bağımsız eklenebilir. Botların gather/fight durumu World'de yalıtılmıştır. `SKINS` veri tablosu render modelinin renk/pelerin seçimlerini belirler. `server/modes.js` FFA/TDM/BR kural sözleşmesini tanımlar; çalışan oyun modu FFA'dır. Takımlar ve daralan çember ileride bu sözleşmeye eklenebilir, bu sürümde oynanabilir mod değildir.
+
+## Doğrulama
+
+`npm test`: otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+
+`npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
+
+`npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
+
+Harita seed'i sabittir. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, WebGL instancing, takım/BR modları ve erişilebilir oyun seçenekleri.
