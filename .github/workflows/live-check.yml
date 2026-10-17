@@ -1,0 +1,39 @@
+name: Check published game
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tests/live.smoke.js
+      - .github/workflows/live-check.yml
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Select browser and published revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -x /usr/bin/google-chrome; then
+            echo 'CHROMIUM_PATH=/usr/bin/google-chrome' >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+          site_commit=$(git ls-remote origin refs/heads/gh-pages | cut -f1)
+          test -n "$site_commit"
+          echo "LIVE_SITE_URL=https://rawcdn.githack.com/${GITHUB_REPOSITORY}/${site_commit}/index.html" >> "$GITHUB_ENV"
+      - run: npm run test:live
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-page-screenshots
+          path: /tmp/archer-live
+          if-no-files-found: ignore

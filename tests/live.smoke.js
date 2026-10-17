@@ -19,6 +19,7 @@ const browser = await chromium.launch({
   ],
 });
 const errors = [];
+let activePage;
 try {
   for (const mobile of [false, true]) {
     const context = await browser.newContext({
@@ -28,7 +29,7 @@ try {
       isMobile: mobile,
       hasTouch: mobile,
     });
-    const page = await context.newPage();
+    const page = (activePage = await context.newPage());
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("requestfailed", (req) => {
       if (req.failure()?.errorText !== "net::ERR_ABORTED")
@@ -95,6 +96,23 @@ try {
     `LIVE_BROWSER_OK ${url}: desktop and mobile joined, charged/released arrows, WebGL active, all assets loaded.`,
   );
 } catch (error) {
+  if (activePage) {
+    const diagnostics = await activePage
+      .evaluate(() => ({
+        url: location.href,
+        type: document.contentType,
+        title: document.title,
+        body: document.body?.innerText.slice(0, 2000),
+      }))
+      .catch((e) => ({ error: String(e) }));
+    await activePage
+      .screenshot({ path: "/tmp/archer-live/failure.png" })
+      .catch(() => {});
+    annotateFailure(
+      new Error(JSON.stringify({ diagnostics, errors })),
+      "Published page diagnostics",
+    );
+  }
   annotateFailure(error, "Published game validation");
   throw error;
 } finally {
