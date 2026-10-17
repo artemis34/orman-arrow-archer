@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 import { World } from "../shared/world.js";
-import { moveBody, RULES } from "../shared/config.js";
+import { advanceMovement, cleanInput, RULES } from "../shared/config.js";
 /** Transport adapters isolate rendering from the authority implementation. */
 export class LocalTransport {
   constructor() {
@@ -26,7 +26,14 @@ export class LocalTransport {
   close() {}
 }
 export class SocketTransport {
-  constructor(url, onState, onDisconnect) {
+  constructor(
+    url,
+    onState,
+    onDisconnect,
+    { createSocket = io, connectTimeout = 75000 } = {},
+  ) {
+    this.createSocket = createSocket;
+    this.connectTimeout = connectTimeout;
     this.url = url;
     this.online = true;
     this.onState = onState;
@@ -40,19 +47,20 @@ export class SocketTransport {
   connect(name, skin) {
     return new Promise((resolve, reject) => {
       let ready = false;
-      this.socket = io(this.url, {
+      this.socket = this.createSocket(this.url, {
         transports: ["websocket", "polling"],
-        timeout: 15000,
+        timeout: 60000,
+        tryAllTransports: true,
         reconnection: false,
       });
-      const timer = setTimeout(() => {
+      const timer = (this.connectTimer = setTimeout(() => {
         this.close();
         reject(
           new Error(
             "Sunucu yanıt vermedi. Ücretsiz sunucunun uyanması zaman alabilir.",
           ),
         );
-      }, 25000);
+      }, this.connectTimeout));
       this.socket.on("connect", () => this.socket.emit("join", { name, skin }));
       this.socket.on("welcome", (data) => {
         clearTimeout(timer);
@@ -62,8 +70,8 @@ export class SocketTransport {
         resolve(data);
         this.pingTimer = setInterval(() => {
           const start = performance.now();
-          this.socket.timeout(3000).emit("latency", () => {
-            this.ping = Math.round(performance.now() - start);
+          this.socket.timeout(3000).emit("latency", (error) => {
+            if (!error) this.ping = Math.round(performance.now() - start);
           });
         }, 2000);
       });
@@ -75,13 +83,14 @@ export class SocketTransport {
         if (me) {
           this.pending = this.pending.filter((i) => i.seq > me.seq);
           this.predicted = { ...me, upgrades: { ...me.upgrades } };
-          for (const i of this.pending) {
-            this.predicted.dashTime = Math.max(
-              0,
-              this.predicted.dashTime - 1 / RULES.tick,
-            );
-            moveBody(this.predicted, i, 1 / RULES.tick, this.obstacles);
-          }
+          if (this.predicted.alive)
+            for (const i of this.pending)
+              advanceMovement(
+                this.predicted,
+                i,
+                1 / RULES.tick,
+                this.obstacles,
+              );
         }
         this.onState(state);
       });
@@ -103,34 +112,25 @@ export class SocketTransport {
       });
       this.socket.on("disconnect", () => {
         if (ready) this.onDisconnect();
+        else {
+          clearTimeout(timer);
+          this.close();
+          reject(
+            new Error("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin."),
+          );
+        }
       });
     });
   }
   step(input) {
-    input = { ...input, seq: ++this.seq };
+    input = cleanInput({ ...input, seq: ++this.seq });
     this.socket.emit("input", input);
     this.pending.push(input);
     if (this.pending.length > 120) this.pending.shift();
-    if (this.predicted?.alive) {
-      if (input.dash && this.predicted.dashCd <= 0) {
-        const l = Math.hypot(input.x, input.z);
-        this.predicted.dashTime = RULES.dashDuration;
-        this.predicted.dashCd = RULES.dashCooldown;
-        this.predicted.dashX = l ? input.x / l : Math.cos(input.angle);
-        this.predicted.dashZ = l ? input.z / l : Math.sin(input.angle);
-      }
-      this.predicted.dashTime = Math.max(
-        0,
-        this.predicted.dashTime - 1 / RULES.tick,
-      );
-      this.predicted.dashCd = Math.max(
-        0,
-        this.predicted.dashCd - 1 / RULES.tick,
-      );
-      moveBody(this.predicted, input, 1 / RULES.tick, this.obstacles);
-      this.predicted.angle = input.angle;
-    }
+    if (this.predicted?.alive)
+      advanceMovement(this.predicted, input, 1 / RULES.tick, this.obstacles);
   }
+
   view() {
     const last = this.snapshots.at(-1);
     if (!last) return null;
@@ -156,7 +156,13 @@ export class SocketTransport {
             angle: this.predicted.angle,
           };
         const prev = old.get(p.id);
-        if (!prev || !p.alive) return p;
+        if (
+          !prev ||
+          !p.alive ||
+          !prev.alive ||
+          Math.hypot(p.x - prev.x, p.z - prev.z) > 8
+        )
+          return p;
         const da = Math.atan2(
           Math.sin(p.angle - prev.angle),
           Math.cos(p.angle - prev.angle),
@@ -187,6 +193,7 @@ export class SocketTransport {
     this.socket.emit("respawn");
   }
   close() {
+    clearTimeout(this.connectTimer);
     clearInterval(this.pingTimer);
     this.socket?.removeAllListeners();
     this.socket?.disconnect();

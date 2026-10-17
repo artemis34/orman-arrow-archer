@@ -1,3 +1,4 @@
+import { preferences } from "./preferences.js";
 import "@fontsource/manrope/latin-800.css";
 import "@fontsource/manrope/latin-700.css";
 import "@fontsource/dm-sans/latin-400.css";
@@ -47,14 +48,14 @@ let playing = false,
   joining = false;
 const initialServer =
   new URLSearchParams(location.search).get("server") ||
-  localStorage.getItem("wildbow-server") ||
+  preferences.get("wildbow-server") ||
   import.meta.env.VITE_SERVER_URL ||
   (["localhost", "127.0.0.1"].includes(location.hostname) ||
   location.hostname.endsWith(".onrender.com")
     ? location.origin
     : "");
 $("server-url").value = initialServer;
-$("player-name").value = localStorage.getItem("wildbow-name") || "Gezgin";
+$("player-name").value = preferences.get("wildbow-name") || "Gezgin";
 for (const [i, s] of SKINS.entries()) {
   const b = document.createElement("button");
   b.className = "skin" + (i === skin ? " selected" : "");
@@ -177,7 +178,7 @@ async function join() {
   $("play").disabled = true;
   audio.unlock();
   const name = $("player-name").value.trim() || "Gezgin";
-  localStorage.setItem("wildbow-name", name);
+  preferences.set("wildbow-name", name);
   let candidate;
   try {
     if (mode === "online") {
@@ -189,7 +190,7 @@ async function join() {
       if (location.protocol === "https:" && parsed.protocol !== "https:")
         throw new Error("Bu sayfada güvenli bir HTTPS sunucusu gerekiyor.");
       url = parsed.origin;
-      localStorage.setItem("wildbow-server", url);
+      preferences.set("wildbow-server", url);
       text("join-status", "Arenaya bağlanılıyor…");
       candidate = new SocketTransport(url, consume, () => {
         leave();

@@ -1,5 +1,12 @@
 import { FreeForAll } from "./modes.js";
-import { RULES, UPGRADES, cleanInput, clamp, moveBody } from "./config.js";
+import {
+  RULES,
+  UPGRADES,
+  cleanInput,
+  clamp,
+  moveBody,
+  advanceMovement,
+} from "./config.js";
 import { SpatialGrid, segmentFraction, Pool } from "./spatial.js";
 const names = [
   "Juniper",
@@ -128,7 +135,13 @@ export class World {
   }
   setInput(id, data) {
     const p = this.players.get(id);
-    if (p && !p.bot) p.input = cleanInput(data);
+    if (p && !p.bot) {
+      const next = cleanInput(data);
+      // Edge-triggered actions must survive batched packets until the next tick.
+      next.dash ||= p.input.dash;
+      next.heal ||= p.input.heal;
+      p.input = next;
+    }
   }
   choose(id, key) {
     const p = this.players.get(id);
@@ -338,8 +351,8 @@ export class World {
   step(dt = 1 / RULES.tick) {
     dt = clamp(dt, 0, 0.05);
     this.time += dt;
-    this.mode.step(this, dt);
     this.events = [];
+    this.mode.step(this, dt);
     this.grid.clear();
     this.orbGrid.clear();
     for (const o of this.orbs.active) this.orbGrid.insert(o);
@@ -351,9 +364,7 @@ export class World {
       if (p.bot) this.botInput(p, dt);
       p.shotCd = Math.max(0, p.shotCd - dt);
       p.spawnShield = Math.max(0, p.spawnShield - dt);
-      p.dashCd = Math.max(0, p.dashCd - dt);
       p.healCd = Math.max(0, p.healCd - dt);
-      p.dashTime = Math.max(0, p.dashTime - dt);
       const i = p.input;
       p.angle = i.angle;
       p.seq = i.seq;
@@ -363,16 +374,9 @@ export class World {
         this.events.push({ type: "heal", x: p.x, z: p.z, owner: p.id });
       }
       p.input.heal = false;
-      if (i.dash && p.dashCd === 0) {
-        p.dashCd = RULES.dashCooldown;
-        p.dashTime = RULES.dashDuration;
-        const len = Math.hypot(i.x, i.z);
-        p.dashX = len ? i.x / len : Math.cos(p.angle);
-        p.dashZ = len ? i.z / len : Math.sin(p.angle);
+      if (advanceMovement(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]))
         this.events.push({ type: "dash", x: p.x, z: p.z, owner: p.id });
-      }
       p.input.dash = false;
-      moveBody(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]);
       if (i.charge) {
         p.charge = clamp(
           p.charge +
@@ -394,6 +398,7 @@ export class World {
         p.poison -= dt;
         this.damage(p, dt * 4, p.poisonOwner);
       } else if (p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + dt * 0.8);
+      if (!p.alive) continue;
       if (p.dashTime <= 0)
         for (const q of this.grid.query(p.x, p.z, RULES.radius * 2)) {
           if (!q.alive || q.dashTime > 0) continue;
@@ -504,43 +509,40 @@ export class World {
   }
   snapshot(viewerId) {
     const viewer = this.players.get(viewerId);
+    const visible = (p) =>
+      !p.hidden ||
+      p.id === viewerId ||
+      (viewer && Math.hypot(p.x - viewer.x, p.z - viewer.z) < 5);
     return {
       time: this.time,
-      players: [...this.players.values()]
-        .filter(
-          (p) =>
-            !p.hidden ||
-            p.id === viewerId ||
-            (viewer && Math.hypot(p.x - viewer.x, p.z - viewer.z) < 5),
-        )
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          skin: p.skin,
-          x: p.x,
-          z: p.z,
-          angle: p.angle,
-          hp: p.hp,
-          maxHp: p.maxHp,
-          level: p.level,
-          xp: p.xp,
-          kills: p.kills,
-          score: p.score,
-          alive: p.alive,
-          charge: p.charge,
-          dashCd: p.dashCd,
-          healCd: p.healCd,
-          dashTime: p.dashTime,
-          dashX: p.dashX,
-          dashZ: p.dashZ,
-          upgrades: p.upgrades,
-          choices: p.id === viewerId ? p.choices : [],
-          hidden: p.hidden,
-          spawnShield: p.spawnShield,
-          seq: p.seq,
-          respawnIn: Math.max(0, p.respawnAt - this.time),
-          bot: p.bot,
-        })),
+      players: [...this.players.values()].filter(visible).map((p) => ({
+        id: p.id,
+        name: p.name,
+        skin: p.skin,
+        x: p.x,
+        z: p.z,
+        angle: p.angle,
+        hp: p.hp,
+        maxHp: p.maxHp,
+        level: p.level,
+        xp: p.xp,
+        kills: p.kills,
+        score: p.score,
+        alive: p.alive,
+        charge: p.charge,
+        dashCd: p.dashCd,
+        healCd: p.healCd,
+        dashTime: p.dashTime,
+        dashX: p.dashX,
+        dashZ: p.dashZ,
+        upgrades: p.upgrades,
+        choices: p.id === viewerId ? p.choices : [],
+        hidden: p.hidden,
+        spawnShield: p.spawnShield,
+        seq: p.seq,
+        respawnIn: Math.max(0, p.respawnAt - this.time),
+        bot: p.bot,
+      })),
       arrows: this.arrows.active.map((a) => ({
         id: a.id,
         x: a.x,
@@ -554,12 +556,11 @@ export class World {
         z: o.z,
         value: o.value,
       })),
-      events: this.events.filter(
-        (e) =>
-          e.type === "kill" ||
-          !this.players.get(e.owner)?.hidden ||
-          e.owner === viewerId,
-      ),
+      events: this.events.filter((e) => {
+        if (e.type === "kill") return true; // Kill feed has names, no coordinates.
+        const subject = this.players.get(e.target || e.owner);
+        return !subject || visible(subject);
+      }),
     };
   }
 }

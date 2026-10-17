@@ -13,6 +13,7 @@ export class Controls {
     this.mouse = { x: innerWidth / 2, y: innerHeight / 2 };
     this.touchAim = false;
     this.joy = { x: 0, z: 0 };
+    this.stickResets = [];
     addEventListener("keydown", (e) => {
       if (!this.active || /INPUT|TEXTAREA/.test(document.activeElement.tagName))
         return;
@@ -68,6 +69,8 @@ export class Controls {
     this.stick("aim-stick", true);
   }
   reset() {
+    for (const release of this.stickResets) release();
+    this.touchAim = false;
     this.keys.clear();
     this.charge = false;
     this.dash = false;
@@ -110,12 +113,18 @@ export class Controls {
     el.addEventListener("pointermove", (e) => {
       if (e.pointerId === pointer) update(e);
     });
-    const end = (e) => {
-      if (pointer !== e.pointerId) return;
+    const release = () => {
+      const captured = pointer;
       pointer = null;
+      if (captured !== null && el.hasPointerCapture(captured))
+        el.releasePointerCapture(captured);
       knob.style.transform = "";
       if (aim) this.charge = false;
       else this.joy = { x: 0, z: 0 };
+    };
+    this.stickResets.push(release);
+    const end = (e) => {
+      if (pointer === e.pointerId) release();
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);

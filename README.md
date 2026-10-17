@@ -77,3 +77,11 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 `npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
 
 Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
+
+## Sağlamlık ve yayın kontrolleri
+
+Girdi paketleri aynı sunucu turunda birikse de atılma ve can yenileme basışları kaybolmaz. Sunucu ve istemci hareket tahmini/bekleyen girdi tekrarı aynı hareket fonksiyonunu kullanır. Yeniden doğuş konumlarına interpolasyon uygulanmaz. WebSocket engelliyse Socket.io HTTP polling’e dönebilir; ücretsiz sunucunun uyanması için bağlantıya zaman tanınır.
+
+Zehirle ölen oyuncu aynı turda XP toplayamaz. Gizlenen oyuncuların konumları hasar olaylarıyla da uzak istemcilere gönderilmez. Depolama veya Web Audio erişimi olmayan tarayıcılarda oyun, bu isteğe bağlı özellikler olmadan açılır. Mobil odak kaybı joystick yakalamasını temizler; yatay görünümde menü ve HUD ayrı yerleşim kullanır.
+
+CI artık üretim sunucusunu başlatır, iki istemcili ağ testini ve masaüstü/mobil Chromium testlerini çalıştırır. Yayından sonra `LIVE_SITE_URL=<yayımlanan-adres> npm run test:live` ile gerçek CDN sayfasında masaüstü ve mobil katılma, yayı germe/bırakma, WebGL ve varlık yüklemeleri doğrulanır. Sonuç ekran görüntüleri Actions artefaktlarında saklanır. Yalnızca Markdown değişiklikleri yeniden dağıtımı tetiklemez.

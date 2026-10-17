@@ -116,3 +116,20 @@ export function moveBody(p, input, dt, obstacles) {
     RULES.size / 2 - RULES.radius,
   );
 }
+
+/** One movement tick shared by server authority, prediction, and input replay. */
+export function advanceMovement(p, input, dt, obstacles) {
+  p.angle = input.angle;
+  p.dashCd = Math.max(0, p.dashCd - dt);
+  p.dashTime = Math.max(0, p.dashTime - dt);
+  const started = input.dash && p.dashCd === 0;
+  if (started) {
+    const length = Math.hypot(input.x, input.z);
+    p.dashCd = RULES.dashCooldown;
+    p.dashTime = RULES.dashDuration;
+    p.dashX = length ? input.x / length : Math.cos(input.angle);
+    p.dashZ = length ? input.z / length : Math.sin(input.angle);
+  }
+  moveBody(p, input, dt, obstacles);
+  return started;
+}

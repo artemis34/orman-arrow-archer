@@ -1,16 +1,22 @@
+import { preferences } from "./preferences.js";
 export class AudioEngine {
   constructor() {
-    this.enabled = localStorage.getItem("wildbow-sound") !== "off";
+    this.enabled = preferences.get("wildbow-sound") !== "off";
     this.ctx = null;
   }
   unlock() {
-    if (!this.ctx)
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (this.ctx.state === "suspended") this.ctx.resume();
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      if (!this.ctx) this.ctx = new AudioContext();
+      if (this.ctx.state === "suspended") this.ctx.resume().catch(() => {});
+    } catch {
+      this.ctx = null;
+    }
   }
   toggle() {
     this.enabled = !this.enabled;
-    localStorage.setItem("wildbow-sound", this.enabled ? "on" : "off");
+    preferences.set("wildbow-sound", this.enabled ? "on" : "off");
     this.unlock();
     return this.enabled;
   }
