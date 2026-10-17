@@ -1,3 +1,4 @@
+import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -48,7 +49,7 @@ export class ArenaScene {
     this.scene.add(sun);
     this.sun = sun;
     this.materials = {
-      ground: new THREE.MeshStandardMaterial({ color: 0x749461, roughness: 1 }),
+      ground: new THREE.MeshStandardMaterial({ color: 0x799567, roughness: 1 }),
       trunk: new THREE.MeshStandardMaterial({ color: 0x69513c, roughness: 1 }),
       leaf: new THREE.MeshStandardMaterial({ color: 0x397148, roughness: 1 }),
       leaf2: new THREE.MeshStandardMaterial({ color: 0x54834e, roughness: 1 }),
@@ -57,13 +58,14 @@ export class ArenaScene {
       bush: new THREE.MeshStandardMaterial({ color: 0x759a50, roughness: 1 }),
       gold: new THREE.MeshStandardMaterial({ color: 0xecd68d, roughness: 0.6 }),
       gem: new THREE.MeshStandardMaterial({
-        color: 0xcaed8b,
+        color: 0xffffff,
         emissive: 0x5a7c28,
         emissiveIntensity: 0.4,
         roughness: 0.35,
         metalness: 0.15,
       }),
     };
+    this.forestMats = forestMaterials();
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(220, 220),
       this.materials.ground,
@@ -79,7 +81,12 @@ export class ArenaScene {
       };
     })();
     const patchMaterials = [0x7e9c67, 0x6a8d5a].map(
-      (color) => new THREE.MeshStandardMaterial({ color, roughness: 1 }),
+      (color) =>
+        new THREE.MeshStandardMaterial({
+          color,
+          roughness: 1,
+          depthWrite: false,
+        }),
     );
     for (let i = 0; i < 210; i++) {
       const patch = new THREE.Mesh(
@@ -150,6 +157,26 @@ export class ArenaScene {
     this.gems.frustumCulled = false;
     this.scene.add(this.gems);
     this.gemDummy = new THREE.Object3D();
+    this.gemColors = {
+      normal: new THREE.Color(0xcaed8b),
+      rare: new THREE.Color(0xffcd70),
+    };
+    this.rareHalos = new THREE.InstancedMesh(
+      new THREE.RingGeometry(0.7, 0.88, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd47d,
+        transparent: true,
+        opacity: 0.45,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+      RULES.maxRareOrbs,
+    );
+    this.rareHalos.frustumCulled = false;
+    this.rareHalos.count = 0;
+    this.scene.add(this.rareHalos);
+    this.haloDummy = new THREE.Object3D();
+    this.haloDummy.rotation.x = -Math.PI / 2;
     const effectGeo = new THREE.OctahedronGeometry(0.11);
     for (let i = 0; i < 140; i++) {
       const mesh = new THREE.Mesh(
@@ -281,39 +308,9 @@ export class ArenaScene {
     if (this.built) return;
     this.built = true;
     this.obstacles = obstacles;
-    for (const o of obstacles) {
-      let g;
-      if (o.type === "tree") g = this.tree(o.r * 0.8);
-      else if (o.type === "rock") {
-        g = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(o.r, 0),
-          this.materials.rock,
-        );
-        g.scale.set(1, 0.7, 0.85);
-        g.position.y = 0.45;
-        g.castShadow = true;
-        g.receiveShadow = true;
-      } else {
-        g = new THREE.Group();
-        for (let i = 0; i < 4; i++) {
-          const b = new THREE.Mesh(
-            new THREE.IcosahedronGeometry(o.r * 0.72, 0),
-            this.materials.bush,
-          );
-          b.position.set(
-            Math.cos(i * 2) * o.r * 0.4,
-            0.65,
-            Math.sin(i * 2) * o.r * 0.4,
-          );
-          b.scale.y = 0.75;
-          b.castShadow = true;
-          g.add(b);
-        }
-      }
-      g.position.x = o.x;
-      g.position.z = o.z;
-      this.worldGroup.add(g);
-    }
+    for (const o of obstacles)
+      this.worldGroup.add(forestProp(o, this.forestMats));
+    decorateForest(this.worldGroup, this.forestMats, obstacles);
     this.batch(this.worldGroup);
   }
   disposePlayer(v) {
@@ -576,7 +573,7 @@ export class ArenaScene {
           ctx.clearRect(0, 39, 256, 22);
           ctx.fillStyle = "#192e22";
           ctx.fillRect(64, 44, 128, 8);
-          ctx.fillStyle = p.hp < 30 ? "#e6a181" : "#bde08d";
+          ctx.fillStyle = p.hp < p.maxHp * 0.3 ? "#e6a181" : "#bde08d";
           ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
           v.tex.needsUpdate = true;
         }
@@ -599,15 +596,32 @@ export class ArenaScene {
         }
       }
       this.gems.count = state.orbs.length;
+      let rareCount = 0;
       for (let i = 0; i < state.orbs.length; i++) {
         const o = state.orbs[i],
           m = this.gemDummy;
         m.position.set(o.x, 0.45 + Math.sin(this.time * 2 + o.id) * 0.11, o.z);
+        m.scale.setScalar(o.rare ? 2.7 : o.value > RULES.orbXP ? 1.2 : 1);
+        this.gems.setColorAt(
+          i,
+          o.rare ? this.gemColors.rare : this.gemColors.normal,
+        );
+        if (o.rare && rareCount < RULES.maxRareOrbs) {
+          this.haloDummy.position.set(o.x, 0.045, o.z);
+          this.haloDummy.scale.setScalar(
+            1 + Math.sin(this.time * 2 + o.id) * 0.08,
+          );
+          this.haloDummy.updateMatrix();
+          this.rareHalos.setMatrixAt(rareCount++, this.haloDummy.matrix);
+        }
         m.rotation.y = this.time * 0.65 + o.id;
         m.updateMatrix();
         this.gems.setMatrixAt(i, m.matrix);
       }
       this.gems.instanceMatrix.needsUpdate = true;
+      if (this.gems.instanceColor) this.gems.instanceColor.needsUpdate = true;
+      this.rareHalos.count = rareCount;
+      this.rareHalos.instanceMatrix.needsUpdate = true;
     }
     const locked = lockId ? this.players.get(lockId) : null;
     this.lockRing.visible = !!(playing && locked?.root.visible);

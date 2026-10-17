@@ -91,8 +91,7 @@
           </p>
           <div class="card-footer">
             <span class="live-dot"></span>
-            <span id="server-label">Yerel arena • 7 bot rakip</span
-            ><span>30 TICK</span>
+            <span id="server-label">Yerel arena • 7 bot rakip</span>
           </div>
         </section>
       </main>
@@ -102,88 +101,97 @@
         ><span class="desktop-note">MASAÜSTÜ & MOBİL İÇİN TASARLANDI</span>
       </footer>
     </div>
-    <div id="hud" class="hidden">
-      <div class="hud-top">
-        <div class="hud-brand">
-          <span class="brand-mark">↗</span>
-          <div>WILDBOW<small id="mode-label">ANTRENMAN ARENASI</small></div>
-        </div>
-        <div class="session-meta">
-          <span class="live-dot"></span><span id="connection">YEREL</span
-          ><span id="ping">30 HZ</span
-          ><button
-            class="icon-button sound-button"
-            aria-label="Sesi aç veya kapat"
-          >
-            ♫</button
-          ><button id="exit" class="icon-button" aria-label="Arenadan çık">
-            ✕
-          </button>
-        </div>
-      </div>
-      <aside class="leaderboard">
-        <div class="panel-heading">
-          <span>ARENA LİDERLERİ</span><span>♛</span>
-        </div>
-        <div id="leaders"></div>
-        <div class="leader-footer">
-          <span id="population">8 OKÇU</span><span>HERKES TEK</span>
-        </div>
-      </aside>
-      <div id="kill-feed" aria-live="polite"></div>
-      <div class="minimap-wrap">
+    <div id="hud" class="arena-hud hidden">
+      <aside class="arena-map" aria-label="Harita">
         <canvas
           id="minimap"
           width="160"
           height="160"
           aria-label="Arena haritası"
-        ></canvas
-        ><span>ORMAN VADİSİ</span>
-      </div>
-      <div class="player-panel">
-        <div class="player-title">
-          <div class="player-avatar">↗</div>
-          <div>
-            <strong id="hud-name">Gezgin</strong
-            ><small id="player-status">İZİNİ BIRAK</small>
+        ></canvas>
+        <span>ORMAN VADİSİ <b>N</b></span>
+      </aside>
+      <aside class="arena-corner">
+        <section class="arena-leaders" aria-label="Arena liderleri">
+          <div class="arena-heading">
+            <span>ARENA LİDERLERİ</span><span>♛</span>
           </div>
-          <div class="level-badge">SV <b id="level">1</b></div>
+          <div class="arena-session">
+            <span class="live-dot"></span><span id="connection">YEREL</span>
+            <span id="population">8 OKÇU</span>
+            <button class="sound-button" aria-label="Sesi aç veya kapat">
+              ♫
+            </button>
+            <button id="exit" aria-label="Arenadan çık">✕</button>
+          </div>
+          <div id="leaders"></div>
+        </section>
+        <div id="kill-feed" aria-live="polite"></div>
+      </aside>
+      <section class="arena-vitals" aria-label="Oyuncu durumu">
+        <div class="vitals-heading">
+          <strong id="hud-name">Gezgin</strong
+          ><small id="player-status">İZİNİ BIRAK</small
+          ><span>SV <b id="level">1</b></span>
         </div>
         <div class="health-track">
           <div id="health-fill"></div>
           <span id="health-text">150 / 150</span>
         </div>
         <div class="xp-track"><div id="xp-fill"></div></div>
-        <div class="player-stats">
-          <span>✧ <b id="xp-text">0 / 55</b> XP</span
-          ><span>◎ <b id="kills">0</b> ELEME</span>
+        <div class="vitals-footer">
+          <span>✧ <b id="xp-text">0 / 55</b> XP</span>
+          <div id="upgrade-tray"></div>
+          <span>◎ <b id="kills">0</b></span>
         </div>
-      </div>
-      <div class="abilities">
-        <button id="dash" class="ability">
-          <span>ϟ</span><b id="dash-time">HAZIR</b><small>SPACE</small></button
-        ><button
-          id="heal"
-          class="ability"
-          aria-label="Orman nefesi: 25 can yenile"
-        >
-          <span>+</span><b id="heal-time">+25 CAN</b><small>E</small>
-        </button>
-        <div class="charge-display">
+      </section>
+      <div class="arena-actions">
+        <div class="arena-charge">
           <div class="charge-heading">
-            <span>YAY GERİLİMİ</span><b id="charge-percent">0%</b>
+            <span>YAY</span><b id="charge-percent">0%</b>
           </div>
           <div class="charge-track"><div id="charge-fill"></div></div>
           <small id="charge-hint">BASILI TUT · BIRAK VE AT</small>
         </div>
+        <div class="action-buttons">
+          <button id="dash" class="arena-ability" aria-label="Atılma">
+            <span>ϟ</span><b id="dash-time">HAZIR</b>
+          </button>
+          <button
+            id="heal"
+            class="arena-ability"
+            aria-label="Orman nefesi: 25 can yenile"
+          >
+            <span>+</span><b id="heal-time">+25 CAN</b>
+          </button>
+        </div>
       </div>
-      <div id="upgrade-tray"></div>
+      <button
+        id="upgrade-reminder"
+        class="upgrade-reminder hidden"
+        aria-controls="upgrades"
+      >
+        ✧ Yetenek seç <span id="upgrade-count"></span><span>↓</span>
+      </button>
+      <section
+        id="upgrades"
+        class="upgrade-dock hidden"
+        aria-label="Yetenek seçimi"
+      >
+        <div class="upgrade-dock-heading">
+          <span
+            >✧ YENİ YETENEK
+            <small>Hareket etmeye devam edebilirsin</small></span
+          ><button
+            id="upgrades-collapse"
+            aria-label="Yetenek kartlarını küçült"
+          >
+            ⌄
+          </button>
+        </div>
+        <div id="upgrade-options"></div>
+      </section>
       <div id="toast" class="hidden" aria-live="polite"></div>
-      <div class="desktop-controls">
-        <span><kbd>W A S D</kbd> hareket</span
-        ><span><kbd>FARE</kbd> nişan & atış</span
-        ><span><kbd>SPACE</kbd> atılma</span><button id="game-help">?</button>
-      </div>
       <div id="touch-controls">
         <div id="move-stick" class="joystick" aria-label="Hareket joystick">
           <span class="stick-label">HAREKET</span>
@@ -194,19 +202,10 @@
           class="joystick aim-stick"
           aria-label="Nişan ve atış joystick"
         >
-          <span class="stick-label">DOKUN: OTO ATIŞ</span>
+          <span class="stick-label">DOKUN: ATIŞ</span>
           <div class="stick-knob"></div>
         </div>
       </div>
-    </div>
-    <div id="upgrades" class="modal hidden">
-      <section class="upgrade-content">
-        <div class="eyebrow">✧ YENİ BİR GÜÇ UYANIYOR</div>
-        <h2>Bir sonraki hamlen?</h2>
-        <p>Seviye atladın. Tarzına uygun bir yetenek seç.</p>
-        <div id="upgrade-options"></div>
-        <small>Arena devam ediyor. Hızlı karar ver!</small>
-      </section>
     </div>
     <div id="death" class="modal hidden">
       <section class="death-card">
@@ -238,7 +237,8 @@
               Fareyle nişan al; sol tuşu basılı tutarak yayı ger, bırakınca at.
               Mobilde ekrana veya sağ joystick’e kısa dokun: en yakın açık
               hedefe otomatik atış. Sağ joystick’i çekip bırakarak elle nişan
-              al; hafif nişan yardımı uygulanır.
+              al; hafif nişan yardımı uygulanır. Temel ok 15 hasar verir; yayı
+              germek okun hızını ve menzilini artırır.
             </p>
           </div>
           <div>
@@ -253,7 +253,8 @@
             <b>04 / GÜÇLEN</b>
             <p>
               Kristalleri topla, rakiplerini vur. Seviye atladığında üç
-              yetenekten birini seç.
+              yetenekten birini alttaki kartlardan seç; hareket ve atış devam
+              eder. Altın büyük kristaller nadirdir ve 60 XP verir.
             </p>
           </div>
           <div>

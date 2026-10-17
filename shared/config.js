@@ -8,6 +8,17 @@ export const RULES = Object.freeze({
   botHealth: 100,
   playerShield: 4,
   botDamageScale: 0.75,
+  arrowDamage: 15,
+  shotCooldown: 0.55,
+  sideArrowScale: 0.3,
+  poisonDps: 1,
+  poisonDuration: 3,
+  speedPerUpgrade: 0.08,
+  drawFactor: 0.88,
+  orbXP: 12,
+  rareOrbXP: 60,
+  rareOrbChance: 0.04,
+  maxRareOrbs: 5,
   quickShotCharge: 0.55,
   quickShotCooldown: 0.65,
   autoAimRange: 22,
@@ -24,44 +35,44 @@ export const UPGRADES = Object.freeze({
   multishot: {
     name: "Çatal atış",
     icon: "⋔",
-    description: "Yayından üç ok çıkar. Yan oklar %55 hasar verir.",
+    description: "Üç ok atarsın. Yan oklar %30 hasar verir.",
     max: 1,
   },
   pierce: {
     name: "Delici ok",
     icon: "↠",
-    description: "Okların bir rakibin içinden geçebilir.",
+    description: "Bir ek rakibin içinden geçer.",
     max: 2,
   },
   bounce: {
     name: "Sekme",
     icon: "⌁",
-    description: "Okların arena sınırından bir kez seker.",
+    description: "Arena sınırından bir ek kez seker.",
     max: 2,
   },
   poison: {
     name: "Zehir",
     icon: "✧",
-    description: "İsabetler 3 saniye boyunca ek hasar verir.",
+    description: "3 sn zehir. Kademe başına +3 toplam hasar.",
     max: 3,
   },
   speed: {
     name: "Rüzgâr adımı",
     icon: "»",
-    description: "Hareket hızını %12 artırır.",
+    description: "%8 daha hızlı hareket.",
     max: 3,
   },
   draw: {
     name: "Çevik yay",
     icon: "ϟ",
-    description: "Yay germe süresini %18 kısaltır.",
+    description: "%12 hızlı germe ve otomatik atış.",
     max: 3,
   },
   vitality: {
     name: "Orman kalbi",
     icon: "♡",
-    description: "Azami canını 25 artırır ve 40 can yeniler.",
-    max: 4,
+    description: "+20 azami can; 25 can yenile.",
+    max: 3,
   },
 });
 export const SKINS = Object.freeze(skins);
@@ -90,7 +101,7 @@ export function moveBody(p, input, dt, obstacles) {
   const speed =
     p.dashTime > 0
       ? RULES.dashSpeed
-      : RULES.speed * (1 + 0.12 * (p.upgrades?.speed || 0));
+      : RULES.speed * (1 + RULES.speedPerUpgrade * (p.upgrades?.speed || 0));
   const move = p.dashTime > 0 ? { x: p.dashX, z: p.dashZ } : input;
   p.x = clamp(
     p.x + move.x * speed * dt,

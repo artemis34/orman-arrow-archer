@@ -37,11 +37,11 @@ test("bots deal 25 percent less arrow damage; firing ends protection", () => {
     b = enemy(w, "b", 20, 0);
   b.charge = 1;
   w.fire(b);
-  assert.equal(w.arrows.active[0].damage, 41 * 0.75);
+  assert.equal(w.arrows.active[0].damage, 15 * 0.75);
   p.charge = 1;
   w.fire(p);
   assert.equal(p.spawnShield, 0);
-  assert.equal(w.arrows.active[1].damage, 41);
+  assert.equal(w.arrows.active[1].damage, 15);
 });
 test("auto target skips dead, shielded, hidden and covered enemies", () => {
   const { w, p } = setup();
@@ -77,8 +77,9 @@ test("quick tap fires one server-selected arrow and respects cooldown under pack
   assert.equal(w.events.filter((e) => e.type === "shot").length, 0);
   assert.ok(p.shotCd > 0);
 });
-test("tap without target does not consume protection or create an arrow", () => {
+test("tap without target does not consume protection or release a partial stick draw", () => {
   const { w, p } = setup();
+  p.charge = 0.2;
   w.setInput(p.id, { quickShot: true });
   w.step();
   assert.equal(w.arrows.active.length, 0);

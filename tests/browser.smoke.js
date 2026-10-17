@@ -73,7 +73,7 @@ try {
   await page.locator("#play").click();
   await page.locator("#hud").waitFor({ state: "visible" });
   await page.waitForTimeout(600);
-  assert.equal(await page.locator("#connection").textContent(), "CANLI");
+  assert.equal(await page.locator("#connection").textContent(), "ONLINE");
   assert.equal(await page.locator("#hud-name").textContent(), "Test Okçu");
   await returnToLobby(page);
   await page.close();
@@ -99,7 +99,9 @@ try {
   await m.screenshot({ path: "/tmp/archer-validation/game-mobile.png" });
   // A tap on open arena space is an auto-shot request, even with no target.
   await m.touchscreen.tap(195, 330);
-  await expect(m.locator("#toast")).toContainText("Menzilde açık hedef yok");
+  await expect(m.locator("#toast")).toContainText(
+    /Menzilde açık hedef yok|Otomatik atış/,
+  );
   // Bots may leave line of sight between a HUD update and a tap. Retry only
   // when the UI offers a target, as a player would, until a shot is confirmed.
   const tapBox = await m.locator("#aim-stick").boundingBox();
@@ -213,8 +215,8 @@ try {
     await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     true,
   );
-  const leaderboard = await m.locator(".leaderboard").boundingBox(),
-    charge = await m.locator(".charge-display").boundingBox();
+  const leaderboard = await m.locator(".arena-leaders").boundingBox(),
+    charge = await m.locator(".arena-charge").boundingBox();
   assert.ok(
     leaderboard.y + leaderboard.height <= charge.y,
     "Landscape HUD panels must not overlap",

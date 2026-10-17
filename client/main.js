@@ -1,3 +1,4 @@
+import { bindAction } from "./ui.js";
 import { selectTarget } from "../shared/aim.js";
 import { preferences } from "./preferences.js";
 import "@fontsource/manrope/latin-800.css";
@@ -11,6 +12,7 @@ import "@fontsource/dm-sans/latin-ext-400.css";
 import "@fontsource/dm-sans/latin-ext-500.css";
 import "@fontsource/dm-sans/latin-ext-700.css";
 import "./style.css";
+import "./hud.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -44,6 +46,7 @@ let playing = false,
   accumulator = 0,
   hudAt = 0,
   choicesKey = "",
+  upgradesCollapsed = false,
   lastLevel = 1,
   toastTimer,
   joining = false;
@@ -116,19 +119,28 @@ function help(open) {
   } else focusBeforeHelp?.focus();
 }
 $("help-open").onclick = () => help(true);
-$("game-help").onclick = () => help(true);
+
 $("help-close").onclick = () => help(false);
 addEventListener("keydown", (e) => {
   if (e.code === "Escape" && !$("help").classList.contains("hidden"))
     help(false);
   if (
     playing &&
-    ["Digit1", "Digit2", "Digit3"].includes(e.code) &&
-    !$("upgrades").classList.contains("hidden")
+    !e.repeat &&
+    choicesKey &&
+    ["Digit1", "Digit2", "Digit3"].includes(e.code)
   ) {
     const b = $("upgrade-options").children[Number(e.code.slice(-1)) - 1];
     b?.click();
   }
+});
+bindAction($("upgrades-collapse"), () => {
+  upgradesCollapsed = true;
+  show("upgrades", false);
+});
+bindAction($("upgrade-reminder"), () => {
+  upgradesCollapsed = !upgradesCollapsed;
+  show("upgrades", !upgradesCollapsed);
 });
 function toast(message) {
   text("toast", message);
@@ -146,9 +158,7 @@ function consume(next) {
       const b = document.createElement("b");
       b.textContent = e.killer;
       row.append(b, document.createTextNode("  ↗  " + e.name));
-      $("kill-feed").prepend(row);
-      while ($("kill-feed").children.length > 4)
-        $("kill-feed").lastChild.remove();
+      $("kill-feed").replaceChildren(row);
       setTimeout(() => row.remove(), 5500);
     } else if (e.type === "hit") {
       scene.burst(e.x, e.z, 0xf4c98b, 7);
@@ -162,7 +172,8 @@ function consume(next) {
         if (e.quick) toast("Otomatik atış");
       }
     } else if (e.type === "gem" && e.owner === myId) {
-      scene.burst(e.x, e.z, 0xd1f59b, 4);
+      scene.burst(e.x, e.z, e.rare ? 0xffd680 : 0xd1f59b, e.rare ? 12 : 4);
+      if (e.rare) toast("Altın kristal · +60 XP");
       audio.play("gem");
     } else if (e.type === "heal") {
       scene.burst(e.x, e.z, 0xa8efa1, 14);
@@ -212,16 +223,13 @@ async function join() {
     controls.reset();
     lastLevel = 1;
     choicesKey = "";
+    upgradesCollapsed = false;
     accumulator = 0;
     state = transport.online ? null : transport.world.snapshot(myId);
     show("lobby", false);
     show("hud", true);
     document.body.classList.add("playing");
-    text(
-      "mode-label",
-      transport.online ? "ÇOK OYUNCULU ARENA" : "ANTRENMAN ARENASI",
-    );
-    text("connection", transport.online ? "CANLI" : "YEREL");
+    text("connection", transport.online ? "ONLINE" : "YEREL");
     toast("Ormana hoş geldin. Kristalleri topla, yayını ger!");
   } catch (error) {
     candidate?.close();
@@ -243,7 +251,8 @@ function leave() {
   transport = null;
   myId = null;
   state = atHome.snapshot();
-  for (const id of ["hud", "death", "upgrades", "help"]) show(id, false);
+  for (const id of ["hud", "death", "upgrades", "help", "upgrade-reminder"])
+    show(id, false);
   show("lobby", true);
   document.body.classList.remove("playing");
   $("kill-feed").replaceChildren();
@@ -274,6 +283,7 @@ function updateHud(current) {
   $("dash").classList.toggle("cooldown", me.dashCd > 0.05);
   text("heal-time", me.healCd > 0.05 ? `${me.healCd.toFixed(0)}s` : "+25 CAN");
   $("heal").classList.toggle("cooldown", me.healCd > 0.05 || me.hp >= me.maxHp);
+  $("health-fill").classList.toggle("critical", me.hp < me.maxHp * 0.3);
   const charge = Math.round(me.charge * 100);
   text("charge-percent", charge + "%");
   $("charge-fill").style.width = charge + "%";
@@ -286,7 +296,7 @@ function updateHud(current) {
       ? "TAM GERİLİM · BIRAK VE AT"
       : controls.isTouch
         ? charge > 0
-          ? "BIRAK: GÜÇLÜ ATIŞ"
+          ? "BIRAK: HIZLI OK"
           : me.shotCd > 0.04
             ? `YENİ ATIŞ: ${me.shotCd.toFixed(1)}s`
             : autoTarget
@@ -302,14 +312,16 @@ function updateHud(current) {
         ? "ÇALIDA GİZLENDİN"
         : "İZİNİ BIRAK",
   );
-  text("ping", transport.online ? `${transport.ping} MS` : "30 HZ");
+  $("connection").title = transport.online
+    ? `Gecikme: ${transport.ping} ms`
+    : "Botlarla antrenman";
   const sorted = [...current.players]
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 3);
   $("leaders").replaceChildren(
     ...sorted.map((p, i) => {
       const row = document.createElement("div");
-      row.className = "leader-row" + (p.id === myId ? " me" : "");
+      row.className = "arena-leader-row" + (p.id === myId ? " me" : "");
       const rank = document.createElement("span");
       rank.className = "rank";
       rank.textContent = String(i + 1).padStart(2, "0");
@@ -325,7 +337,7 @@ function updateHud(current) {
       return row;
     }),
   );
-  text("population", `${current.players.length} GÖRÜNÜR OKÇU`);
+  text("population", `${current.players.length} OKÇU`);
   const keys = Object.keys(me.upgrades)
     .sort()
     .map((k) => `${k}:${me.upgrades[k]}`)
@@ -335,7 +347,7 @@ function updateHud(current) {
     $("upgrade-tray").replaceChildren(
       ...Object.entries(me.upgrades).map(([k, v]) => {
         const e = document.createElement("span");
-        e.className = "upgrade-tag";
+        e.className = "arena-upgrade-tag";
         e.textContent = UPGRADES[k].icon + (v > 1 ? v : "");
         e.title = UPGRADES[k].name + ": " + v;
         return e;
@@ -347,18 +359,24 @@ function updateHud(current) {
     toast(`Seviye ${me.level} — yeni bir yetenek seç!`);
     lastLevel = me.level;
   }
-  const ck = me.alive ? me.choices.join(",") : "";
+  const ck =
+    me.alive && me.choices.length
+      ? `${me.pending}:${me.choices.join(",")}`
+      : "";
   if (ck !== choicesKey) {
     choicesKey = ck;
+    text("upgrade-count", me.pending > 1 ? `· ${me.pending} bekliyor` : "");
+    upgradesCollapsed = false;
     show("upgrades", !!ck);
+    show("upgrade-reminder", !!ck);
     $("upgrade-options").replaceChildren(
       ...me.choices.map((key, i) => {
         const u = UPGRADES[key],
           b = document.createElement("button");
         for (const [tag, cls, value] of [
-          ["span", "upgrade-icon", u.icon],
-          ["span", "upgrade-key", `${i + 1} / PASİF YETENEK`],
-          ["strong", "upgrade-name", u.name],
+          ["span", "perk-icon", u.icon],
+          ["span", "perk-key", `${i + 1}`],
+          ["strong", "perk-name", u.name],
           ["p", "", u.description],
         ]) {
           const el = document.createElement(tag);
@@ -366,9 +384,8 @@ function updateHud(current) {
           el.textContent = value;
           b.append(el);
         }
-        b.onclick = () => {
-          transport.choose(key);
-        };
+        b.setAttribute("aria-label", u.name + ": " + u.description);
+        bindAction(b, () => transport.choose(key));
         return b;
       }),
     );
@@ -400,7 +417,7 @@ function updateHud(current) {
     ctx.lineTo(size, i * 40);
     ctx.stroke();
   }
-  ctx.fillStyle = "#8fab6b55";
+  ctx.fillStyle = "#8fab6b77";
   for (const o of scene.obstacles || []) {
     ctx.beginPath();
     ctx.arc(
@@ -411,6 +428,16 @@ function updateHud(current) {
       Math.PI * 2,
     );
     ctx.fill();
+  }
+  for (const orb of current.orbs) {
+    if (!orb.rare) continue;
+    ctx.fillStyle = "#ffd278";
+    ctx.fillRect(
+      (orb.x + 42) * scale - 1.7,
+      (orb.z + 42) * scale - 1.7,
+      3.4,
+      3.4,
+    );
   }
   for (const p of current.players) {
     if (!p.alive) continue;

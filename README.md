@@ -32,11 +32,13 @@ npm start
 
 - WASD / ok tuşları: hareket. Fare: nişan. Sol tık basılı tut/bırak: şarjlı atış.
 - Space / sağ tık / ϟ butonu: atılma, 3 saniye bekleme ve kısa ok dokunulmazlığı. E / + butonu: Orman nefesi, 25 can yenileme, 14 saniye bekleme.
-- Mobil: sol joystick hareket. Arenaya veya sağ joystick’e kısa dokunuş: en yakın açık rakibe otomatik atış. Sağ joystick sürükleme: hafif nişan destekli yay germe, bırakınca güçlü atış. Altın halka otomatik hedefi gösterir. ϟ atılma.
-- Kristaller ve isabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
-- Ağaç ve kaya siperleri okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
+- Mobil: sol joystick hareket. Arenaya veya sağ joystick’e kısa dokunuş: en yakın açık rakibe otomatik atış. Sağ joystick sürükleme: hafif nişan destekli yay germe, bırakınca daha hızlı ve uzağa giden ok. Altın halka otomatik hedefi gösterir. ϟ atılma.
+- Normal kristal 12 XP, nadir büyük altın kristal 60 XP verir; haritada en çok beş altın kristal bulunur. Altın kristaller haritada da işaretlenir. İsabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
+- Ağaç, kaya, kütük ve taş kalıntıları okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
 - Oyuncu 150 can ve 4 saniye doğuş kalkanıyla başlar; ilk başarılı atış kalkanı kaldırır. Doğuş noktası rakiplerden en az 10 birim uzak seçilir; uygun yer yoksa örneklenen en güvenli nokta kullanılır. Botlar 100 cana sahiptir ve %25 daha az ok hasarı verir. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
-- Otomatik atış 22 birim içindeki görünür, sipersiz ve doğuş koruması olmayan en yakın rakibi seçer. %55 şarj gücü ve 0,65 saniye bekleme kullanır; yay hızı yeteneği bu beklemeyi kısaltır. Hareketli hedefe kısa öngörü uygulanır; oklar fiziksel olarak uçar ve kaçılabilir. Tam şarjlı elle atış daha güçlüdür. Çevrimiçinde hedef seçimi ve atış sunucu tarafından doğrulanır.
+- Otomatik atış 22 birim içindeki görünür, sipersiz ve doğuş koruması olmayan en yakın rakibi seçer. Okun hızı/menzili için %55 şarj eşdeğeri ve 0,65 saniye bekleme kullanır; yay hızı yeteneği bu beklemeyi kısaltır. Hareketli hedefe kısa öngörü uygulanır; oklar fiziksel olarak uçar ve kaçılabilir. Temel ok her şarj seviyesinde 15 hasar verir; tam şarj daha hızlı ve uzağa giden ok sağlar. Elle atışta da 0,55 saniye bekleme vardır; hızlı tıklamayla bu süre atlanamaz. Çevrimiçinde hedef seçimi ve atış sunucu tarafından doğrulanır.
+- Çoklu atışın yan okları %30 hasar verir. Zehir 3 saniye sürer ve kademe başına toplam 3 ek hasar verir; süreler üst üste eklenmez. Hız yeteneği kademe başına %8, yay hızı %12; Orman kalbi +20 azami can ve 25 iyileştirme verir.
+- Yetenekler ekranı örtmeyen alt kartlardan seçilir; oyun, yürüyüş ve atış devam eder. Kartları küçültüp merkezdeki yavaşça beliren hatırlatıcıyla yeniden açabilirsin. Masaüstünde 1–3 tuşları da seçer. Biriken seviyeler sırayla sunulur.
 - Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Uyumlu cihazlarda isabette hafif titreşim.
 
 ## Mimari
@@ -49,7 +51,10 @@ client/
   transport.js    Yerel antrenman / Socket.io adaptörleri, prediction & interpolation
   presentation.js Kare hızından bağımsız poz yumuşatma ve mesafeye bağlı yürüyüş
   audio.js        Web Audio sentezi
-  style.css       Masaüstü ve mobil arayüz
+  forest.js       Birleştirilen çevre geometrileri, patikalar ve bitkiler
+  hud.css         Köşelerde HUD, kompakt yetenek kartları, mobil yerleşimler
+  ui.js           Joystick tutulurken de çalışan dokunmatik kart düğmeleri
+  style.css       Ana menü ve öğretici
 shared/
   config.js       Kurallar, doğrulama, ortak hareket ve kozmetik tanımları
   spatial.js      Uniform grid, swept segment-circle testleri, sınırlı nesne havuzu
@@ -73,11 +78,13 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 33 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 38 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
 
 `npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, dokunarak otomatik atış, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
+
+`npm run test:hud`: gerçek Socket.io otoritesiyle masaüstü, tablet, 390×844 ve 375×667 telefon, 844×390 yatay görünüm. Kartların oyun alanını kapatmadığını, joystick tutulurken ikinci parmakla seçim yapılabildiğini, bekleyen seçimleri ve küçült/aç davranışını doğrular. Geliştirme sunucusunda çalıştırmak için `PORT=3002 npm run dev`, ardından `TEST_SERVER_URL=http://127.0.0.1:3002 npm run test:hud`.
 
 Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
 
@@ -87,4 +94,4 @@ Girdi paketleri aynı sunucu turunda birikse de atılma ve can yenileme basışl
 
 Zehirle ölen oyuncu aynı turda XP toplayamaz. Gizlenen oyuncuların konumları hasar olaylarıyla da uzak istemcilere gönderilmez. Depolama veya Web Audio erişimi olmayan tarayıcılarda oyun, bu isteğe bağlı özellikler olmadan açılır. Mobil odak kaybı joystick yakalamasını temizler; yatay görünümde menü ve HUD ayrı yerleşim kullanır.
 
-CI artık üretim sunucusunu başlatır, iki istemcili ağ testini ve masaüstü/mobil Chromium testlerini çalıştırır. Yayından sonra `LIVE_SITE_URL=<yayımlanan-adres> npm run test:live` ile gerçek CDN sayfasında masaüstü ve mobil katılma, yayı germe/bırakma, WebGL ve varlık yüklemeleri doğrulanır. Sonuç ekran görüntüleri Actions artefaktlarında saklanır. Yalnızca Markdown değişiklikleri yeniden dağıtımı tetiklemez.
+CI artık üretim sunucusunu başlatır, iki istemcili ağ testini, masaüstü/mobil Chromium testlerini ve beş görünümde HUD/kart testini çalıştırır. Yayından sonra `LIVE_SITE_URL=<yayımlanan-adres> npm run test:live` ile gerçek CDN sayfasında masaüstü ve mobil katılma, yayı germe/bırakma, WebGL ve varlık yüklemeleri doğrulanır. Sonuç ekran görüntüleri Actions artefaktlarında saklanır. Yalnızca Markdown değişiklikleri yeniden dağıtımı tetiklemez.

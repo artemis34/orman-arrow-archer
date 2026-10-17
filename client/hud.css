@@ -1,0 +1,723 @@
+/* Gameplay stays in the corners; level-up never blocks the arena or input. */
+#hud {
+  --edge: 18px;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#hud button {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.arena-map,
+.arena-leaders,
+.arena-vitals,
+.arena-charge,
+.upgrade-dock {
+  background: #10271fe8;
+  border: 1px solid #d8edc426;
+  border-radius: 12px;
+  box-shadow: 0 5px 18px #10271918;
+}
+.arena-map {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left));
+  top: max(var(--edge), env(safe-area-inset-top));
+  width: 146px;
+  padding: 6px;
+}
+#minimap {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  border-radius: 7px;
+}
+.arena-map > span {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 3px 1px;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #c7dcaf;
+}
+.arena-corner {
+  position: absolute;
+  right: max(var(--edge), env(safe-area-inset-right));
+  top: max(var(--edge), env(safe-area-inset-top));
+  width: 196px;
+}
+.arena-leaders {
+  overflow: hidden;
+}
+.arena-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px 2px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #d6e8bd;
+}
+.arena-heading > span:last-child {
+  font-size: 19px;
+  color: var(--lime);
+}
+.arena-session {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px 5px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 8px;
+  color: #c3d6b2;
+}
+.arena-session .live-dot {
+  width: 5px;
+  height: 5px;
+}
+#population {
+  margin-right: auto;
+  color: #829c88;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.arena-session button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff08;
+  font-size: 14px;
+}
+.arena-session button:hover {
+  background: #d4f39425;
+}
+.arena-leader-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  font-size: 11px;
+  color: #c0d1bb;
+}
+.arena-leader-row.me {
+  background: #d4f39412;
+  color: var(--lime);
+}
+.arena-leader-row .rank {
+  width: 13px;
+  font-size: 8px;
+  color: #718f79;
+}
+.arena-leader-row .swatch {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.arena-leader-row > span:nth-child(3) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arena-leader-row .score {
+  margin-left: auto;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+#kill-feed {
+  margin-top: 6px;
+}
+.kill-entry {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #10271fc4;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #becdb5;
+}
+.kill-entry b {
+  color: #d9ecb0;
+  font-weight: 500;
+}
+.arena-vitals {
+  position: absolute;
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+  left: max(var(--edge), env(safe-area-inset-left));
+  width: 260px;
+  padding: 10px 12px;
+}
+.vitals-heading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 7px;
+  min-width: 0;
+}
+#hud-name {
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+#player-status {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: #9dbb91;
+}
+.vitals-heading > span {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 9px;
+  color: #c7dfad;
+}
+.health-track {
+  position: relative;
+  height: 15px;
+  border-radius: 4px;
+  background: #071c16;
+  overflow: hidden;
+}
+#health-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #76af79, #b8df83);
+  transition: width 0.16s;
+}
+#health-fill.critical {
+  background: #d58d70;
+}
+#health-text {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  color: #f2f7e9;
+  text-shadow:
+    0 1px 2px #10271f,
+    0 0 2px #10271f;
+}
+.xp-track {
+  height: 3px;
+  margin-top: 5px;
+  border-radius: 3px;
+  background: #061c16;
+  overflow: hidden;
+}
+#xp-fill {
+  width: 0;
+  height: 100%;
+  background: #e4d492;
+  transition: width 0.2s;
+}
+.vitals-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 8px;
+  color: #b0c49e;
+  min-height: 12px;
+}
+.vitals-footer > span:last-child {
+  margin-left: auto;
+}
+.vitals-footer b {
+  font-weight: 500;
+}
+#upgrade-tray {
+  display: flex;
+  gap: 3px;
+  max-width: 90px;
+  overflow: hidden;
+}
+.arena-upgrade-tag {
+  color: #d4f394;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.arena-actions {
+  position: absolute;
+  right: max(var(--edge), env(safe-area-inset-right));
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+.arena-charge {
+  width: 146px;
+  padding: 9px 10px;
+}
+.charge-heading {
+  display: flex;
+  justify-content: space-between;
+  color: #b5cda2;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+.charge-heading b {
+  color: var(--lime);
+}
+.charge-track {
+  height: 4px;
+  background: #071e15;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+#charge-fill {
+  height: 100%;
+  background: var(--lime);
+  width: 0;
+  transition: width 0.05s;
+}
+#charge-hint {
+  display: block;
+  color: #a4bf91;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+.arena-ability {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 48px;
+  height: 54px;
+  border: 1px solid #d4f39430;
+  border-radius: 10px;
+  background: #10271fe8;
+  color: var(--lime);
+}
+.arena-ability > span {
+  font-size: 25px;
+  line-height: 26px;
+}
+.arena-ability > b {
+  font-size: 8px;
+  font-weight: 500;
+  color: #d1e4bc;
+  white-space: nowrap;
+}
+.arena-ability.cooldown {
+  opacity: 0.65;
+}
+#toast {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(340px, 44vw);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  text-align: center;
+  color: #e2f1c9;
+  background: #173a2ad9;
+}
+.upgrade-reminder {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid #ddf3a860;
+  border-radius: 30px;
+  background: #173624da;
+  color: #e1f6b3;
+  font-size: 12px;
+  white-space: nowrap;
+  animation: perk-pulse 1.8s ease-in-out infinite;
+}
+.upgrade-reminder #upgrade-count {
+  font-size: 10px;
+}
+@keyframes perk-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 18px #d4f39424;
+  }
+}
+.upgrade-dock {
+  position: absolute;
+  bottom: calc(104px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(600px, calc(100vw - 36px));
+  padding: 7px;
+  pointer-events: none;
+}
+.upgrade-dock-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px 6px 5px;
+  color: #d5e7bc;
+  font-size: 9px;
+  letter-spacing: 0.7px;
+}
+.upgrade-dock-heading small {
+  margin-left: 8px;
+  color: #91ad8d;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+#upgrades-collapse {
+  border: 0;
+  background: #d4f39414;
+  border-radius: 5px;
+  width: 28px;
+  height: 24px;
+  font-size: 18px;
+  line-height: 20px;
+}
+#upgrade-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+#upgrade-options button {
+  position: relative;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid #c0de9140;
+  background: #264333;
+  text-align: left;
+  color: #d8e6c9;
+  min-height: 98px;
+}
+#upgrade-options button:hover,
+#upgrade-options button:focus-visible {
+  background: #355540;
+  border-color: var(--lime);
+}
+.perk-icon {
+  display: inline-block;
+  color: var(--lime);
+  font-size: 19px;
+  line-height: 19px;
+}
+.perk-key {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 9px;
+  color: #a8bd94;
+}
+.perk-name {
+  display: block;
+  margin: 5px 0;
+  font-size: 12px;
+}
+#upgrade-options p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #afc6a4;
+}
+#touch-controls {
+  display: none;
+}
+.joystick {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  bottom: calc(106px + env(safe-area-inset-bottom));
+  border: 1px solid #deedb74a;
+  border-radius: 50%;
+  background: #17352645;
+  pointer-events: auto;
+  touch-action: none;
+}
+.joystick::before {
+  content: "";
+  position: absolute;
+  inset: 15px;
+  border: 1px dashed #d2edb32d;
+  border-radius: 50%;
+}
+#move-stick {
+  left: max(14px, env(safe-area-inset-left));
+}
+#aim-stick {
+  right: max(14px, env(safe-area-inset-right));
+  border-color: #dbf59a6b;
+}
+.stick-knob {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  left: calc(50% - 19px);
+  top: calc(50% - 19px);
+  border-radius: 50%;
+  border: 1px solid #d8efb388;
+  background: #d7efac33;
+}
+.stick-label {
+  position: absolute;
+  bottom: -15px;
+  width: 100%;
+  text-align: center;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: #e0ebce;
+}
+body.playing #arena {
+  cursor: crosshair;
+}
+@media (pointer: coarse), (max-width: 720px) {
+  #hud {
+    --edge: 12px;
+  }
+  .arena-map {
+    width: 116px;
+    padding: 5px;
+  }
+  .arena-map > span {
+    font-size: 7px;
+    padding-top: 4px;
+  }
+  .arena-corner {
+    width: 158px;
+  }
+  .arena-heading {
+    padding: 7px 9px 0;
+    font-size: 8px;
+    letter-spacing: 0.6px;
+  }
+  .arena-session {
+    padding: 0 4px 3px 9px;
+    gap: 4px;
+    font-size: 7px;
+  }
+  .arena-session button {
+    width: 30px;
+    height: 32px;
+  }
+  #population {
+    font-size: 7px;
+  }
+  .arena-leader-row {
+    padding: 5px 9px;
+    gap: 5px;
+    font-size: 10px;
+  }
+  .arena-leader-row .score {
+    font-size: 9px;
+  }
+  .kill-entry {
+    font-size: 9px;
+    padding: 6px 8px;
+  }
+  .arena-vitals {
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(360px, calc(100vw - 24px));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    padding: 8px 10px;
+  }
+  .vitals-heading {
+    margin-bottom: 5px;
+  }
+  .arena-actions {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: calc(112px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: 100px;
+  }
+  .arena-charge {
+    width: 96px;
+    padding: 5px 7px;
+    border-radius: 7px;
+  }
+  .charge-heading {
+    font-size: 7px;
+  }
+  .charge-track {
+    margin: 4px 0;
+    height: 3px;
+  }
+  #charge-hint {
+    font-size: 7px;
+  }
+  .arena-ability {
+    width: 44px;
+    height: 46px;
+  }
+  .arena-ability > span {
+    font-size: 22px;
+    line-height: 23px;
+  }
+  .arena-ability > b {
+    font-size: 7px;
+  }
+  #touch-controls {
+    display: block;
+  }
+  #toast {
+    top: calc(170px + env(safe-area-inset-top));
+    max-width: calc(100vw - 56px);
+    width: max-content;
+    font-size: 10px;
+  }
+  .upgrade-dock {
+    bottom: calc(236px + env(safe-area-inset-bottom));
+    width: calc(100vw - 24px);
+    max-width: 560px;
+    padding: 5px;
+  }
+  .upgrade-dock-heading {
+    font-size: 8px;
+    padding-bottom: 4px;
+  }
+  .upgrade-dock-heading small {
+    display: none;
+  }
+  #upgrades-collapse {
+    height: 20px;
+    width: 28px;
+  }
+  #upgrade-options {
+    gap: 5px;
+  }
+  #upgrade-options button {
+    padding: 7px;
+    min-height: 96px;
+  }
+  .perk-name {
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  .perk-icon {
+    font-size: 16px;
+    line-height: 16px;
+  }
+  .perk-key {
+    top: 7px;
+    right: 7px;
+    font-size: 8px;
+  }
+  #upgrade-options p {
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .upgrade-reminder {
+    font-size: 11px;
+    top: 36%;
+  }
+}
+@media (max-width: 420px) and (max-height: 740px) {
+  .joystick {
+    width: 96px;
+    height: 96px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  .arena-actions {
+    bottom: calc(101px + env(safe-area-inset-bottom));
+  }
+  .upgrade-dock {
+    bottom: calc(199px + env(safe-area-inset-bottom));
+  }
+  #upgrade-options button {
+    min-height: 88px;
+  }
+}
+@media (max-height: 500px) and (pointer: coarse) {
+  .arena-map {
+    width: 100px;
+  }
+  .arena-corner {
+    width: 158px;
+  }
+  .arena-vitals {
+    transform: none;
+    left: max(12px, env(safe-area-inset-left));
+    width: 200px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  #player-status {
+    display: none;
+  }
+  .joystick {
+    width: 90px;
+    height: 90px;
+    bottom: calc(91px + env(safe-area-inset-bottom));
+  }
+  #aim-stick {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .arena-actions {
+    left: auto;
+    right: max(115px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    transform: none;
+    width: 92px;
+  }
+  .arena-charge {
+    width: 90px;
+  }
+  .arena-ability {
+    height: 40px;
+    width: 40px;
+  }
+  .upgrade-dock {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: min(430px, calc(100vw - 440px));
+  }
+  #upgrade-options button {
+    min-height: 89px;
+    padding: 6px;
+  }
+  .perk-icon {
+    display: none;
+  }
+  .perk-key {
+    display: none;
+  }
+  .perk-name {
+    font-size: 10px;
+    margin: 0 0 4px;
+  }
+  #upgrade-options p {
+    font-size: 9px;
+  }
+  #toast {
+    top: 20px;
+    max-width: 260px;
+  }
+  .upgrade-reminder {
+    top: 31%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upgrade-reminder {
+    animation: none;
+  }
+}

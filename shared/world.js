@@ -33,16 +33,26 @@ export class World {
     this.arrows = new Pool(() => ({ hits: new Set() }), RULES.maxArrows);
     this.orbs = new Pool(() => ({}), RULES.maxOrbs);
     this.obstacles = [];
-    for (let i = 0; i < 85; i++) {
+    for (let i = 0; i < 110; i++) {
       const o = {
         id: i,
         x: (this.random() - 0.5) * 74,
         z: (this.random() - 0.5) * 74,
         r: 0.8 + this.random() * 0.8,
-        type: i % 4 === 0 ? "bush" : i % 3 === 0 ? "rock" : "tree",
+        type: [
+          "tree",
+          "bush",
+          "tree",
+          "rock",
+          "stump",
+          "tree",
+          "ruin",
+          "bush",
+          "log",
+        ][i % 9],
       };
       if (
-        Math.hypot(o.x, o.z) < 6 ||
+        Math.hypot(o.x, o.z) < 7.5 ||
         this.obstacles.some(
           (p) => Math.hypot(p.x - o.x, p.z - o.z) < p.r + o.r + 1.7,
         )
@@ -91,14 +101,23 @@ export class World {
     return best;
   }
 
-  spawnOrb(x, z, value = 12) {
+  spawnOrb(x, z, value) {
+    const rare =
+      value === undefined
+        ? this.random() < RULES.rareOrbChance &&
+          this.orbs.active.filter((o) => o.rare).length < RULES.maxRareOrbs
+        : value >= RULES.rareOrbXP;
+    value ??= rare ? RULES.rareOrbXP : RULES.orbXP;
     const o = this.orbs.acquire();
     if (!o) return;
     Object.assign(o, {
       id: ++this.nextId,
       ...(x === undefined ? this.spawnPoint() : { x, z }),
       value,
+      rare,
+      collected: false,
     });
+    return o;
   }
   addPlayer(id, name = "Gezgin", skin = 0, bot = false) {
     if (this.players.size >= RULES.maxPlayers) return null;
@@ -132,6 +151,7 @@ export class World {
       input: cleanInput(),
       seq: 0,
       poison: 0,
+      poisonDps: 0,
       poisonOwner: null,
       spawnShield: bot ? 2 : RULES.playerShield,
       revealUntil: 0,
@@ -161,11 +181,11 @@ export class World {
   }
   choose(id, key) {
     const p = this.players.get(id);
-    if (!p || !p.choices.includes(key)) return false;
+    if (!p?.alive || !p.choices.includes(key)) return false;
     p.upgrades[key] = (p.upgrades[key] || 0) + 1;
     if (key === "vitality") {
-      p.maxHp += 25;
-      p.hp = Math.min(p.maxHp, p.hp + 40);
+      p.maxHp += 20;
+      p.hp = Math.min(p.maxHp, p.hp + 25);
     }
     p.pending--;
     this.offer(p);
@@ -259,6 +279,7 @@ export class World {
       healCd: 0,
       dashTime: 0,
       poison: 0,
+      poisonDps: 0,
       shotCd: 0,
       spawnShield: p.bot ? 2 : RULES.playerShield,
       revealUntil: 0,
@@ -289,8 +310,12 @@ export class World {
         vz: Math.sin(angle) * speed,
         life: 0.5 + q * 0.9,
         damage:
-          (12 + q * 29) *
-          (offset ? 0.55 : 1) *
+          RULES.arrowDamage *
+          (offset ? RULES.sideArrowScale : 1) *
+          (p.bot ? RULES.botDamageScale : 1),
+        poisonDps:
+          (p.upgrades.poison || 0) *
+          RULES.poisonDps *
           (p.bot ? RULES.botDamageScale : 1),
         pierce: p.upgrades.pierce || 0,
         bounce: p.upgrades.bounce || 0,
@@ -300,7 +325,8 @@ export class World {
     if (!fired) return false;
     p.spawnShield = 0;
     p.revealUntil = this.time + 0.6;
-    p.shotCd = 0.17;
+    p.shotCd =
+      RULES.shotCooldown * Math.pow(RULES.drawFactor, p.upgrades.draw || 0);
     this.events.push({ type: "shot", x: p.x, z: p.z, owner: p.id, quick });
     return true;
   }
@@ -322,7 +348,9 @@ export class World {
     const fired = this.fire(p, true);
     p.charge = 0;
     if (fired)
-      p.shotCd = RULES.quickShotCooldown * Math.pow(0.82, p.upgrades.draw || 0);
+      p.shotCd =
+        RULES.quickShotCooldown *
+        Math.pow(RULES.drawFactor, p.upgrades.draw || 0);
     return fired;
   }
   botInput(p, dt) {
@@ -432,11 +460,18 @@ export class World {
       p.input.dash = false;
       const quick = i.quickShot && !i.charge;
       p.input.quickShot = false;
-      if (quick) this.quickShot(p);
+      if (quick) {
+        this.quickShot(p);
+        // A short stick tap may have started drawing on pointerdown. It is an
+        // auto-shot gesture, so a missing target must not release that partial draw.
+        p.charge = 0;
+      }
       if (i.charge) {
         p.charge = clamp(
           p.charge +
-            dt / (RULES.drawTime * Math.pow(0.82, p.upgrades.draw || 0)),
+            dt /
+              (RULES.drawTime *
+                Math.pow(RULES.drawFactor, p.upgrades.draw || 0)),
           0,
           1,
         );
@@ -453,7 +488,7 @@ export class World {
         );
       if (p.poison > 0) {
         p.poison -= dt;
-        this.damage(p, dt * 4, p.poisonOwner);
+        this.damage(p, dt * (p.poisonDps || RULES.poisonDps), p.poisonOwner);
       } else if (p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + dt * 0.8);
       if (!p.alive) continue;
       if (p.dashTime <= 0)
@@ -483,7 +518,14 @@ export class World {
         if (o.collected || Math.hypot(o.x - p.x, o.z - p.z) > 1.3) continue;
         o.collected = true;
         this.gain(p, o.value);
-        this.events.push({ type: "gem", x: o.x, z: o.z, owner: p.id });
+        this.events.push({
+          type: "gem",
+          x: o.x,
+          z: o.z,
+          owner: p.id,
+          rare: o.rare,
+          value: o.value,
+        });
       }
     }
     for (let n = this.orbs.active.length - 1; n >= 0; n--)
@@ -551,8 +593,11 @@ export class World {
           this.damage(p, a.damage, a.owner);
           p.hidden = false;
           if (a.poison && p.spawnShield <= 0) {
-            p.poison = 3 * a.poison;
-            p.poisonOwner = a.owner;
+            if (p.poison <= 0 || a.poisonDps >= p.poisonDps) {
+              p.poisonDps = a.poisonDps;
+              p.poisonOwner = a.owner;
+            }
+            p.poison = RULES.poisonDuration;
           }
           if (a.pierce > 0) a.pierce--;
           else {
@@ -599,6 +644,7 @@ export class World {
         dashZ: p.dashZ,
         upgrades: p.upgrades,
         choices: p.id === viewerId ? p.choices : [],
+        pending: p.id === viewerId ? p.pending : 0,
         hidden: p.hidden,
         spawnShield: p.spawnShield,
         seq: p.seq,
@@ -617,6 +663,7 @@ export class World {
         x: o.x,
         z: o.z,
         value: o.value,
+        rare: o.rare,
       })),
       events: this.events.filter((e) => {
         if (e.type === "kill") return true; // Kill feed has names, no coordinates.

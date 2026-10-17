@@ -57,7 +57,7 @@ test("charging and releasing produces authoritative damage; arrow pool is reused
   assert.equal(w.arrows.active.length, 0);
   w.setInput("a", { charge: false, angle: 0 });
   for (let i = 0; i < 10; i++) w.step();
-  assert.ok(b.hp < b.maxHp - 30);
+  assert.ok(b.hp < b.maxHp - 14);
   assert.ok(a.score > 0);
   assert.equal(w.arrows.active.length, 0);
   assert.equal(w.arrows.free.length, RULES.maxArrows);
