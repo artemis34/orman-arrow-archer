@@ -16,6 +16,21 @@ const browser = await chromium.launch({
     "--enable-unsafe-swiftshader",
   ],
 });
+async function returnToLobby(page, touch = false) {
+  const activate = (selector, timeout = 5000) =>
+    touch
+      ? page.locator(selector).tap({ timeout })
+      : page.locator(selector).click({ timeout });
+  if (await page.locator("#death").isVisible()) await activate("#back-lobby");
+  else
+    try {
+      await activate("#exit", 1500);
+    } catch (error) {
+      if (!(await page.locator("#death").isVisible())) throw error;
+      await activate("#back-lobby");
+    }
+  await expect(page.locator("#lobby")).toBeVisible();
+}
 try {
   const errors = [];
   const page = await browser.newPage({
@@ -52,11 +67,7 @@ try {
     timeout: 8000,
   });
   await page.screenshot({ path: "/tmp/archer-validation/game-desktop.png" });
-  await page
-    .locator(
-      "body:has(#death:not(.hidden)) #back-lobby, body:has(#death.hidden) #exit",
-    )
-    .click();
+  await returnToLobby(page);
   await page.locator("#online-mode").click();
   await page.locator("#server-url").fill(baseUrl);
   await page.locator("#play").click();
@@ -64,11 +75,7 @@ try {
   await page.waitForTimeout(600);
   assert.equal(await page.locator("#connection").textContent(), "CANLI");
   assert.equal(await page.locator("#hud-name").textContent(), "Test Okçu");
-  await page
-    .locator(
-      "body:has(#death:not(.hidden)) #back-lobby, body:has(#death.hidden) #exit",
-    )
-    .click();
+  await returnToLobby(page);
   await page.close();
   const mobile = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -184,11 +191,7 @@ try {
   );
   await m.screenshot({ path: "/tmp/archer-validation/game-landscape.png" });
   // Combat continues during this test; a legitimate elimination has its own menu action.
-  await m
-    .locator(
-      "body:has(#death:not(.hidden)) #back-lobby, body:has(#death.hidden) #exit",
-    )
-    .tap();
+  await returnToLobby(m, true);
   await expect(m.locator("#play")).toBeInViewport({ ratio: 1 });
   await m.screenshot({ path: "/tmp/archer-validation/lobby-landscape.png" });
 
@@ -218,6 +221,14 @@ try {
     "Browser smoke passed: desktop play, charge/release, dash, online join, simultaneous mobile sticks, focus recovery, landscape, blocked storage/audio, no runtime errors.",
   );
 } catch (error) {
+  for (const [i, page] of browser
+    .contexts()
+    .flatMap((c) => c.pages())
+    .entries()) {
+    await page
+      .screenshot({ path: `/tmp/archer-validation/failure-${i}.png` })
+      .catch(() => {});
+  }
   annotateFailure(error, "Desktop/mobile browser validation");
   throw error;
 } finally {
