@@ -1,3 +1,4 @@
+import { selectTarget } from "../shared/aim.js";
 import { preferences } from "./preferences.js";
 import "@fontsource/manrope/latin-800.css";
 import "@fontsource/manrope/latin-700.css";
@@ -156,7 +157,10 @@ function consume(next) {
         if (e.target === myId) navigator.vibrate?.(18);
       }
     } else if (e.type === "shot") {
-      if (e.owner === myId) audio.play("shot");
+      if (e.owner === myId) {
+        audio.play("shot");
+        if (e.quick) toast("Otomatik atış");
+      }
     } else if (e.type === "gem" && e.owner === myId) {
       scene.burst(e.x, e.z, 0xd1f59b, 4);
       audio.play("gem");
@@ -273,9 +277,22 @@ function updateHud(current) {
   const charge = Math.round(me.charge * 100);
   text("charge-percent", charge + "%");
   $("charge-fill").style.width = charge + "%";
+  const autoTarget = controls.isTouch
+    ? selectTarget(me, current.players, scene.obstacles)
+    : null;
   text(
     "charge-hint",
-    charge >= 98 ? "TAM GERİLİM · BIRAK VE AT" : "BASILI TUT · BIRAK VE AT",
+    charge >= 98
+      ? "TAM GERİLİM · BIRAK VE AT"
+      : controls.isTouch
+        ? charge > 0
+          ? "BIRAK: GÜÇLÜ ATIŞ"
+          : me.shotCd > 0.04
+            ? `YENİ ATIŞ: ${me.shotCd.toFixed(1)}s`
+            : autoTarget
+              ? `OTO HEDEF: ${autoTarget.name}`
+              : "DOKUN: OTO ATIŞ · ÇEK: NİŞAN"
+        : "BASILI TUT · BIRAK VE AT",
   );
   text(
     "player-status",
@@ -419,7 +436,7 @@ function frame(now) {
   while (accumulator >= 1 / RULES.tick) {
     if (playing && transport) {
       const me = state?.players.find((p) => p.id === myId);
-      const next = transport.step(controls.sample(me));
+      const next = transport.step(controls.sample(me, state, scene.obstacles));
       if (next) consume(next);
     } else {
       atHome.step();
@@ -428,12 +445,24 @@ function frame(now) {
     accumulator -= 1 / RULES.tick;
   }
   const view = playing && transport?.online ? transport.view() : state;
-  scene.render(view, myId, dt, playing);
+  const me = view?.players.find((p) => p.id === myId);
+  const target =
+    playing && controls.isTouch && me?.alive
+      ? selectTarget(
+          me,
+          view.players,
+          scene.obstacles,
+          controls.charge ? { angle: controls.angle, cone: 0.16 } : {},
+        )
+      : null;
+  scene.render(view, myId, dt, playing, target?.id);
   if (playing && now - hudAt > 90) {
     updateHud(state);
     hudAt = now;
   }
 }
+controls.onNoTarget = () =>
+  toast("Menzilde açık hedef yok. Yaklaş veya elle nişan al.");
 show("loading", false);
 show("lobby", true);
 requestAnimationFrame(frame);

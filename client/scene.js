@@ -1,3 +1,4 @@
+import { createPose, updatePose } from "./presentation.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
@@ -38,10 +39,10 @@ export class ArenaScene {
     sun.position.set(-22, 45, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -38;
-    sun.shadow.camera.right = 38;
-    sun.shadow.camera.top = 38;
-    sun.shadow.camera.bottom = -38;
+    sun.shadow.camera.left = -52;
+    sun.shadow.camera.right = 52;
+    sun.shadow.camera.top = 52;
+    sun.shadow.camera.bottom = -52;
     sun.shadow.camera.far = 100;
     sun.shadow.normalBias = 0.07;
     this.scene.add(sun);
@@ -159,6 +160,18 @@ export class ArenaScene {
       this.scene.add(mesh);
       this.effects.push({ mesh, life: 0, vx: 0, vz: 0, vy: 0 });
     }
+    this.lockRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.85, 0.93, 36),
+      new THREE.MeshBasicMaterial({
+        color: 0xf2d28c,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85,
+      }),
+    );
+    this.lockRing.rotation.x = -Math.PI / 2;
+    this.lockRing.visible = false;
+    this.scene.add(this.lockRing);
     this.reticle = new THREE.Group();
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.34, 0.38, 32),
@@ -357,9 +370,12 @@ export class ArenaScene {
     const legs = [];
     for (const z of [-0.18, 0.18]) {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(0.23, 0.48, 0.22), dark);
-      leg.position.set(0, 0.24, z);
-      body.add(leg);
-      legs.push(leg);
+      const hip = new THREE.Group();
+      hip.position.set(0, 0.48, z);
+      leg.position.y = -0.24;
+      hip.add(leg);
+      body.add(hip);
+      legs.push(hip);
     }
     const bow = new THREE.Group();
     const curve = new THREE.EllipseCurve(
@@ -455,9 +471,8 @@ export class ArenaScene {
       label,
       canvas: labelCanvas,
       tex,
+      pose: createPose(p),
       hp: p.hp,
-      x: p.x,
-      z: p.z,
       skin: p.skin,
       name: p.name,
     };
@@ -485,16 +500,23 @@ export class ArenaScene {
     this.ray.ray.intersectPlane(this.groundPlane, this.intersection);
     return Math.atan2(this.intersection.z - p.z, this.intersection.x - p.x);
   }
-  render(state, myId, dt, playing) {
+  render(state, myId, dt, playing, lockId = null) {
     this.time += dt;
     const me = state?.players.find((p) => p.id === myId);
     const desired =
       me && playing
-        ? me
+        ? this.players.get(myId)?.root.position || me
         : {
             x: Math.sin(this.time * 0.035) * 5,
             z: Math.cos(this.time * 0.035) * 3,
           };
+    if (
+      playing &&
+      Math.hypot(desired.x - this.target.x, desired.z - this.target.z) > 18
+    ) {
+      this.target.x = desired.x;
+      this.target.z = desired.z;
+    }
     const smoothing = 1 - Math.exp(-dt * (playing ? 8 : 1));
     this.target.x += (desired.x - this.target.x) * smoothing;
     this.target.z += (desired.z - this.target.z) * smoothing;
@@ -506,9 +528,7 @@ export class ArenaScene {
       this.target.z + (playing ? height * 0.73 : 28),
     );
     this.camera.lookAt(this.target.x, 0, this.target.z);
-    this.sun.position.set(this.target.x - 22, 45, this.target.z + 18);
-    this.sun.target.position.set(this.target.x, 0, this.target.z);
-    this.sun.target.updateMatrixWorld();
+
     if (state) {
       const ids = new Set();
       for (const p of state.players) {
@@ -525,25 +545,24 @@ export class ArenaScene {
         }
         v.seen = this.time;
         v.root.visible = p.alive;
+        updatePose(v.pose, p, dt);
         if (!p.alive) continue;
-        const moving = Math.hypot(p.x - v.x, p.z - v.z) > 0.015;
-        v.x = p.x;
-        v.z = p.z;
-        v.root.position.set(p.x, 0, p.z);
+        v.root.position.set(v.pose.x, 0, v.pose.z);
         const delta = Math.atan2(
           Math.sin(-p.angle - v.body.rotation.y),
           Math.cos(-p.angle - v.body.rotation.y),
         );
         v.body.rotation.y += delta * Math.min(1, dt * 22);
-        v.body.position.y = moving
-          ? Math.abs(Math.sin(this.time * 16)) * 0.07
-          : 0;
-        v.legs[0].rotation.z = moving ? Math.sin(this.time * 16) * 0.4 : 0;
-        v.legs[1].rotation.z = -v.legs[0].rotation.z;
+        const stride = Math.sin(v.pose.phase) * v.pose.weight;
+        v.body.position.y =
+          (1 - Math.cos(v.pose.phase * 2)) * 0.012 * v.pose.weight;
+        v.legs[0].rotation.z = stride * 0.32;
+        v.legs[1].rotation.z = -stride * 0.32;
+        v.body.rotation.z = p.dashTime > 0 ? -0.12 : stride * 0.015;
         v.base.visible = p.id === myId;
         v.shield.visible = p.spawnShield > 0;
         v.label.visible = playing;
-        v.root.scale.setScalar(p.hidden ? 0.8 : 1);
+
         v.string.geometry.attributes.position.setXYZ(
           1,
           -0.05 - p.charge * 0.4,
@@ -590,15 +609,26 @@ export class ArenaScene {
       }
       this.gems.instanceMatrix.needsUpdate = true;
     }
+    const locked = lockId ? this.players.get(lockId) : null;
+    this.lockRing.visible = !!(playing && locked?.root.visible);
+    if (this.lockRing.visible) {
+      this.lockRing.position.set(
+        locked.root.position.x,
+        0.06,
+        locked.root.position.z,
+      );
+      this.lockRing.scale.setScalar(1 + Math.sin(this.time * 3) * 0.04);
+    }
     this.reticle.visible = this.aimLine.visible = !!(me?.alive && playing);
     if (me?.alive && playing) {
+      const origin = this.players.get(myId)?.root.position || me;
       const distance = 4 + me.charge * 10,
-        tx = me.x + Math.cos(me.angle) * distance,
-        tz = me.z + Math.sin(me.angle) * distance;
+        tx = origin.x + Math.cos(me.angle) * distance,
+        tz = origin.z + Math.sin(me.angle) * distance;
       this.reticle.position.set(tx, 0.07, tz);
       this.reticle.rotation.y = this.time * 0.6;
       const pos = this.aimLine.geometry.attributes.position;
-      pos.setXYZ(0, me.x, 0.1, me.z);
+      pos.setXYZ(0, origin.x, 0.1, origin.z);
       pos.setXYZ(1, tx, 0.1, tz);
       pos.needsUpdate = true;
       this.aimLine.computeLineDistances();

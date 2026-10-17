@@ -1,3 +1,5 @@
+import { selectTarget, aimedAngle, angleDelta } from "../shared/aim.js";
+import { RULES, clamp } from "../shared/config.js";
 export class Controls {
   constructor(canvas, scene, audio) {
     this.scene = scene;
@@ -9,11 +11,44 @@ export class Controls {
     this.charge = false;
     this.dash = false;
     this.heal = false;
+    this.quickShot = false;
     this.active = false;
     this.mouse = { x: innerWidth / 2, y: innerHeight / 2 };
     this.touchAim = false;
     this.joy = { x: 0, z: 0 };
     this.stickResets = [];
+    this.isTouch = matchMedia("(pointer:coarse)").matches;
+    let canvasTouch = null;
+    canvas.addEventListener("pointerdown", (e) => {
+      if (!this.active || e.pointerType !== "touch" || canvasTouch) return;
+      this.isTouch = true;
+      this.audio.unlock();
+      canvasTouch = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        time: performance.now(),
+      };
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup", (e) => {
+      if (canvasTouch?.id !== e.pointerId) return;
+      if (
+        this.active &&
+        performance.now() - canvasTouch.time < 280 &&
+        Math.hypot(e.clientX - canvasTouch.x, e.clientY - canvasTouch.y) < 14
+      )
+        this.quickShot = true;
+      canvasTouch = null;
+    });
+    canvas.addEventListener("pointercancel", () => (canvasTouch = null));
+    this.stickResets.push(() => {
+      if (canvasTouch) {
+        const id = canvasTouch.id;
+        canvasTouch = null;
+        if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+      }
+    });
     addEventListener("keydown", (e) => {
       if (!this.active || /INPUT|TEXTAREA/.test(document.activeElement.tagName))
         return;
@@ -71,6 +106,7 @@ export class Controls {
   reset() {
     for (const release of this.stickResets) release();
     this.touchAim = false;
+    this.quickShot = false;
     this.keys.clear();
     this.charge = false;
     this.dash = false;
@@ -82,7 +118,11 @@ export class Controls {
   stick(id, aim) {
     const el = document.getElementById(id),
       knob = el.querySelector(".stick-knob");
-    let pointer = null;
+    let pointer = null,
+      dragged = false,
+      pressedAt = 0,
+      startX = 0,
+      startY = 0;
     const update = (e) => {
       const r = el.getBoundingClientRect(),
         radius = r.width * 0.35,
@@ -106,12 +146,21 @@ export class Controls {
       if (pointer !== null || !this.active) return;
       e.preventDefault();
       this.audio.unlock();
+      this.isTouch = true;
+      dragged = false;
+      pressedAt = performance.now();
+      startX = e.clientX;
+      startY = e.clientY;
       pointer = e.pointerId;
       el.setPointerCapture(pointer);
       update(e);
     });
     el.addEventListener("pointermove", (e) => {
-      if (e.pointerId === pointer) update(e);
+      if (e.pointerId === pointer) {
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 8)
+          dragged = true;
+        update(e);
+      }
     });
     const release = () => {
       const captured = pointer;
@@ -124,13 +173,23 @@ export class Controls {
     };
     this.stickResets.push(release);
     const end = (e) => {
-      if (pointer === e.pointerId) release();
+      if (pointer === e.pointerId) {
+        if (
+          aim &&
+          e.type === "pointerup" &&
+          !dragged &&
+          performance.now() - pressedAt < 280 &&
+          this.active
+        )
+          this.quickShot = true;
+        release();
+      }
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
     el.addEventListener("lostpointercapture", end);
   }
-  sample(me) {
+  sample(me, state, obstacles = []) {
     let x =
         this.joy.x +
         (this.keys.has("KeyD") || this.keys.has("ArrowRight") ? 1 : 0) -
@@ -146,16 +205,48 @@ export class Controls {
     }
     if (me && !this.touchAim)
       this.angle = this.scene.aimAt(this.mouse.x, this.mouse.y, me);
+    let angle = this.angle;
+    if (me?.alive && this.isTouch && state) {
+      if (this.quickShot) {
+        const target = selectTarget(me, state.players, obstacles);
+        if (target) {
+          angle = this.angle = aimedAngle(
+            me,
+            target,
+            19 + RULES.quickShotCharge * 23,
+            obstacles,
+          );
+          this.touchAim = true;
+        } else this.onNoTarget?.();
+      } else if (this.charge && this.touchAim) {
+        const target = selectTarget(me, state.players, obstacles, {
+          angle,
+          cone: 0.16,
+        });
+        if (target)
+          angle +=
+            clamp(
+              angleDelta(
+                aimedAngle(me, target, 19 + me.charge * 23, obstacles),
+                angle,
+              ),
+              -0.12,
+              0.12,
+            ) * 0.35;
+      }
+    }
     const input = {
       x: this.active ? x : 0,
       z: this.active ? z : 0,
-      angle: this.angle,
+      angle,
       charge: this.active && this.charge,
       dash: this.active && this.dash,
       heal: this.active && this.heal,
+      quickShot: this.active && this.quickShot,
     };
     this.dash = false;
     this.heal = false;
+    this.quickShot = false;
     return input;
   }
 }

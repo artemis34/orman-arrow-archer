@@ -1700,6 +1700,19 @@ body.playing #arena {
 }
 /* Compact landscape layout keeps the lobby playable and HUD panels apart. */
 @media (max-height: 500px) and (pointer: coarse) {
+  .leaderboard {
+    top: 64px;
+  }
+  .charge-display {
+    padding: 8px 10px;
+  }
+  .charge-display > small {
+    line-height: 8px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .leaderboard .leader-row {
     padding: 4px 10px;
     font-size: 9px;

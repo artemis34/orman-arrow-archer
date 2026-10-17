@@ -97,6 +97,33 @@ try {
     true,
   );
   await m.screenshot({ path: "/tmp/archer-validation/game-mobile.png" });
+  // A tap on open arena space is an auto-shot request, even with no target.
+  await m.touchscreen.tap(195, 330);
+  await expect(m.locator("#toast")).toContainText("Menzilde açık hedef yok");
+  // Bots may leave line of sight between a HUD update and a tap. Retry only
+  // when the UI offers a target, as a player would, until a shot is confirmed.
+  const tapBox = await m.locator("#aim-stick").boundingBox();
+  await expect
+    .poll(
+      async () => {
+        if (
+          (await m.locator("#charge-hint").textContent()).startsWith(
+            "OTO HEDEF:",
+          )
+        )
+          await m.touchscreen.tap(
+            tapBox.x + tapBox.width * 0.7,
+            tapBox.y + tapBox.height / 2,
+          );
+        return m.locator("#toast").textContent();
+      },
+      { timeout: 30000, intervals: [100, 200, 300] },
+    )
+    .toContain("Otomatik atış");
+  // Start a fresh match so combat during target testing cannot affect stick tests.
+  await m.reload();
+  await m.locator("#play").click();
+  await expect(m.locator("#hud")).toBeVisible();
 
   const cd = await mobile.newCDPSession(m),
     box = await m.locator("#aim-stick").boundingBox(),
@@ -125,6 +152,9 @@ try {
         }
       return { x: x / n, y: y / n };
     });
+  await expect
+    .poll(async () => Number.isFinite((await minimapPoint()).x))
+    .toBe(true);
   const beforeMove = await minimapPoint();
   await cd.send("Input.dispatchTouchEvent", {
     type: "touchStart",
@@ -218,7 +248,7 @@ try {
   await privateContext.close();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser smoke passed: desktop play, charge/release, dash, online join, simultaneous mobile sticks, focus recovery, landscape, blocked storage/audio, no runtime errors.",
+    "Browser smoke passed: desktop play, charge/release, dash, online join, mobile tap-to-fire, simultaneous mobile sticks, focus recovery, landscape, blocked storage/audio, no runtime errors.",
   );
 } catch (error) {
   for (const [i, page] of browser

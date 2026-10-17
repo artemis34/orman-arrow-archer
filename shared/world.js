@@ -1,3 +1,4 @@
+import { selectTarget, aimedAngle } from "./aim.js";
 import { FreeForAll } from "./modes.js";
 import {
   RULES,
@@ -60,25 +61,36 @@ export class World {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
-  spawnPoint() {
+  spawnPoint(clearance = 5) {
+    let best = { x: 0, z: 0 },
+      bestDistance = -1;
     for (let i = 0; i < 100; i++) {
       const p = {
         x: (this.random() - 0.5) * 72,
         z: (this.random() - 0.5) * 72,
       };
       if (
-        !this.obstacles.some(
+        this.obstacles.some(
           (o) =>
             o.type !== "bush" && Math.hypot(o.x - p.x, o.z - p.z) < o.r + 2,
-        ) &&
-        ![...this.players.values()].some(
-          (o) => o.alive && Math.hypot(o.x - p.x, o.z - p.z) < 5,
         )
       )
-        return p;
+        continue;
+      const distance = Math.min(
+        Infinity,
+        ...[...this.players.values()]
+          .filter((o) => o.alive)
+          .map((o) => Math.hypot(o.x - p.x, o.z - p.z)),
+      );
+      if (distance > bestDistance) {
+        best = p;
+        bestDistance = distance;
+      }
+      if (distance >= clearance) return p;
     }
-    return { x: 0, z: 0 };
+    return best;
   }
+
   spawnOrb(x, z, value = 12) {
     const o = this.orbs.acquire();
     if (!o) return;
@@ -99,10 +111,10 @@ export class World {
           .slice(0, 16) || "Gezgin",
       skin: clamp(Math.floor(Number.isFinite(skin) ? skin : 0), 0, 3),
       bot,
-      ...this.spawnPoint(),
+      ...this.spawnPoint(bot ? 5 : 10),
       angle: 0,
-      hp: 100,
-      maxHp: 100,
+      hp: bot ? RULES.botHealth : RULES.playerHealth,
+      maxHp: bot ? RULES.botHealth : RULES.playerHealth,
       level: 1,
       xp: 0,
       kills: 0,
@@ -121,7 +133,10 @@ export class World {
       seq: 0,
       poison: 0,
       poisonOwner: null,
-      spawnShield: 2,
+      spawnShield: bot ? 2 : RULES.playerShield,
+      revealUntil: 0,
+      vx: 0,
+      vz: 0,
       respawnAt: 0,
       shotCd: 0,
       brain: "gather",
@@ -140,6 +155,7 @@ export class World {
       // Edge-triggered actions must survive batched packets until the next tick.
       next.dash ||= p.input.dash;
       next.heal ||= p.input.heal;
+      next.quickShot ||= p.input.quickShot;
       p.input = next;
     }
   }
@@ -228,9 +244,9 @@ export class World {
   respawn(id) {
     const p = this.players.get(id);
     if (!p || p.alive || this.time < p.respawnAt) return false;
-    Object.assign(p, this.spawnPoint(), {
-      hp: 100,
-      maxHp: 100,
+    Object.assign(p, this.spawnPoint(p.bot ? 5 : 10), {
+      hp: p.bot ? RULES.botHealth : RULES.playerHealth,
+      maxHp: p.bot ? RULES.botHealth : RULES.playerHealth,
       level: 1,
       xp: 0,
       damageXpCarry: 0,
@@ -244,18 +260,23 @@ export class World {
       dashTime: 0,
       poison: 0,
       shotCd: 0,
-      spawnShield: 2,
+      spawnShield: p.bot ? 2 : RULES.playerShield,
+      revealUntil: 0,
+      vx: 0,
+      vz: 0,
       input: cleanInput(),
     });
     return true;
   }
-  fire(p) {
-    if (p.charge < 0.08 || p.shotCd > 0) return;
+  fire(p, quick = false) {
+    if (p.charge < 0.08 || p.shotCd > 0 || !p.alive) return false;
+    let fired = false;
     const q = clamp(p.charge, 0, 1),
       spread = p.upgrades.multishot ? [-0.16, 0, 0.16] : [0];
     for (const offset of spread) {
       const a = this.arrows.acquire();
       if (!a) break;
+      fired = true;
       const angle = p.angle + offset,
         speed = 19 + q * 23;
       a.hits.clear();
@@ -267,14 +288,42 @@ export class World {
         vx: Math.cos(angle) * speed,
         vz: Math.sin(angle) * speed,
         life: 0.5 + q * 0.9,
-        damage: (12 + q * 29) * (offset ? 0.55 : 1),
+        damage:
+          (12 + q * 29) *
+          (offset ? 0.55 : 1) *
+          (p.bot ? RULES.botDamageScale : 1),
         pierce: p.upgrades.pierce || 0,
         bounce: p.upgrades.bounce || 0,
         poison: p.upgrades.poison || 0,
       });
     }
+    if (!fired) return false;
+    p.spawnShield = 0;
+    p.revealUntil = this.time + 0.6;
     p.shotCd = 0.17;
-    this.events.push({ type: "shot", x: p.x, z: p.z, owner: p.id });
+    this.events.push({ type: "shot", x: p.x, z: p.z, owner: p.id, quick });
+    return true;
+  }
+  quickShot(p) {
+    if (!p.alive || p.shotCd > 0) return false;
+    const target = selectTarget(
+      p,
+      [...this.players.values()].filter((q) => this.mode.canDamage(p, q)),
+      this.obstacles,
+    );
+    if (!target) return false;
+    p.angle = aimedAngle(
+      p,
+      target,
+      19 + RULES.quickShotCharge * 23,
+      this.obstacles,
+    );
+    p.charge = RULES.quickShotCharge;
+    const fired = this.fire(p, true);
+    p.charge = 0;
+    if (fired)
+      p.shotCd = RULES.quickShotCooldown * Math.pow(0.82, p.upgrades.draw || 0);
+    return fired;
   }
   botInput(p, dt) {
     if (p.choices.length)
@@ -289,6 +338,7 @@ export class World {
           (o) =>
             o !== p &&
             o.alive &&
+            o.spawnShield <= 0 &&
             (!o.hidden || Math.hypot(o.x - p.x, o.z - p.z) < 5),
         )
         .sort(
@@ -362,6 +412,8 @@ export class World {
         if (p.bot) this.respawn(p.id);
         continue;
       }
+      const oldX = p.x,
+        oldZ = p.z;
       if (p.bot) this.botInput(p, dt);
       p.shotCd = Math.max(0, p.shotCd - dt);
       p.spawnShield = Math.max(0, p.spawnShield - dt);
@@ -378,6 +430,9 @@ export class World {
       if (advanceMovement(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]))
         this.events.push({ type: "dash", x: p.x, z: p.z, owner: p.id });
       p.input.dash = false;
+      const quick = i.quickShot && !i.charge;
+      p.input.quickShot = false;
+      if (quick) this.quickShot(p);
       if (i.charge) {
         p.charge = clamp(
           p.charge +
@@ -392,6 +447,7 @@ export class World {
       }
       p.hidden =
         !i.charge &&
+        this.time >= (p.revealUntil || 0) &&
         this.obstacles.some(
           (o) => o.type === "bush" && Math.hypot(o.x - p.x, o.z - p.z) < o.r,
         );
@@ -420,6 +476,8 @@ export class World {
           }
         }
       moveBody(p, { x: 0, z: 0 }, 0, [...this.obstacleGrid.query(p.x, p.z, 3)]);
+      p.vx = dt ? (p.x - oldX) / dt : 0;
+      p.vz = dt ? (p.z - oldZ) / dt : 0;
       this.grid.insert(p, RULES.radius);
       for (const o of this.orbGrid.query(p.x, p.z, 1.5)) {
         if (o.collected || Math.hypot(o.x - p.x, o.z - p.z) > 1.3) continue;
@@ -522,6 +580,8 @@ export class World {
         skin: p.skin,
         x: p.x,
         z: p.z,
+        vx: p.vx,
+        vz: p.vz,
         angle: p.angle,
         hp: p.hp,
         maxHp: p.maxHp,
@@ -531,6 +591,7 @@ export class World {
         score: p.score,
         alive: p.alive,
         charge: p.charge,
+        shotCd: p.shotCd,
         dashCd: p.dashCd,
         healCd: p.healCd,
         dashTime: p.dashTime,

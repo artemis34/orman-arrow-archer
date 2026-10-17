@@ -27,7 +27,16 @@ test("untrusted inputs are finite, normalized, and cannot choose damage or posit
       dash: "true",
       seq: -5,
     }),
-    { x: 0, z: 0, angle: 0, charge: false, dash: false, heal: false, seq: 0 },
+    {
+      x: 0,
+      z: 0,
+      angle: 0,
+      charge: false,
+      dash: false,
+      heal: false,
+      quickShot: false,
+      seq: 0,
+    },
   );
   const w = world(),
     p = w.addPlayer("a");
@@ -35,7 +44,7 @@ test("untrusted inputs are finite, normalized, and cannot choose damage or posit
   w.setInput("a", { x: 100, z: 100, hp: 9999, damage: 10000 });
   w.step();
   assert.ok(Math.hypot(p.x, p.z) <= RULES.speed / RULES.tick + 0.001);
-  assert.equal(p.hp, 100);
+  assert.equal(p.hp, RULES.playerHealth);
 });
 test("charging and releasing produces authoritative damage; arrow pool is reused", () => {
   const w = world(),
@@ -48,7 +57,7 @@ test("charging and releasing produces authoritative damage; arrow pool is reused
   assert.equal(w.arrows.active.length, 0);
   w.setInput("a", { charge: false, angle: 0 });
   for (let i = 0; i < 10; i++) w.step();
-  assert.ok(b.hp < 70);
+  assert.ok(b.hp < b.maxHp - 30);
   assert.ok(a.score > 0);
   assert.equal(w.arrows.active.length, 0);
   assert.equal(w.arrows.free.length, RULES.maxArrows);
@@ -64,7 +73,7 @@ test("cover stops swept arrows", () => {
   w.obstacleGrid.insert(cover, 1);
   shoot(w, a);
   for (let i = 0; i < 20; i++) w.step();
-  assert.equal(b.hp, 100);
+  assert.equal(b.hp, RULES.playerHealth);
   assert.equal(w.arrows.active.length, 0);
 });
 test("dash grants brief evasion, obeys cooldown and arena bounds", () => {
@@ -126,7 +135,7 @@ test("death drops XP, enforces respawn delay and resets progression", () => {
   for (let i = 0; i < 92; i++) w.step();
   assert.equal(w.respawn("b"), true);
   assert.equal(b.level, 1);
-  assert.equal(b.hp, 100);
+  assert.equal(b.hp, RULES.playerHealth);
   assert.ok(b.spawnShield > 0);
 });
 test("multishot, piercing, bounce, poison and upgrade caps work", () => {
@@ -141,7 +150,7 @@ test("multishot, piercing, bounce, poison and upgrade caps work", () => {
   shoot(w, a);
   assert.equal(w.arrows.active.length, 3);
   for (let i = 0; i < 15; i++) w.step();
-  assert.ok(b.hp < 100 && c.hp < 100);
+  assert.ok(b.hp < b.maxHp && c.hp < c.maxHp);
   assert.ok(c.poison > 0);
   const before = c.hp;
   for (let i = 0; i < 30; i++) w.step();
@@ -193,7 +202,7 @@ test("player bodies separate and cover behind a target does not swallow the hit"
   w.obstacleGrid.insert(rock, 0.5);
   shoot(w, a);
   for (let i = 0; i < 8; i++) w.step();
-  assert.ok(b.hp < 100);
+  assert.ok(b.hp < b.maxHp);
 });
 test("malformed names and skin objects cannot crash the authority", () => {
   const w = world();
@@ -225,5 +234,5 @@ test("poison rewards total damage rather than granting XP for every tiny tick", 
   position(b, 4, 0);
   for (let i = 0; i < 90; i++) w.damage(b, 4 / 30, "a");
   assert.equal(a.score, 4);
-  assert.ok(b.hp > 87);
+  assert.ok(Math.abs(b.hp - (b.maxHp - 12)) < 0.001);
 });

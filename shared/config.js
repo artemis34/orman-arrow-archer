@@ -4,6 +4,13 @@ export const RULES = Object.freeze({
   size: 84,
   tick: 30,
   speed: 7.4,
+  playerHealth: 150,
+  botHealth: 100,
+  playerShield: 4,
+  botDamageScale: 0.75,
+  quickShotCharge: 0.55,
+  quickShotCooldown: 0.65,
+  autoAimRange: 22,
   radius: 0.62,
   drawTime: 0.85,
   dashCooldown: 3,
@@ -75,6 +82,7 @@ export function cleanInput(data = {}) {
     charge: data.charge === true,
     dash: data.dash === true,
     heal: data.heal === true,
+    quickShot: data.quickShot === true,
     seq: clamp(Math.floor(num(data.seq)), 0, 2147483647),
   };
 }

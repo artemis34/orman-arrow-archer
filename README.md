@@ -32,10 +32,11 @@ npm start
 
 - WASD / ok tuşları: hareket. Fare: nişan. Sol tık basılı tut/bırak: şarjlı atış.
 - Space / sağ tık / ϟ butonu: atılma, 3 saniye bekleme ve kısa ok dokunulmazlığı. E / + butonu: Orman nefesi, 25 can yenileme, 14 saniye bekleme.
-- Mobil: sol joystick hareket; sağ joystick nişan/germe, bırakınca atış. ϟ atılma.
+- Mobil: sol joystick hareket. Arenaya veya sağ joystick’e kısa dokunuş: en yakın açık rakibe otomatik atış. Sağ joystick sürükleme: hafif nişan destekli yay germe, bırakınca güçlü atış. Altın halka otomatik hedefi gösterir. ϟ atılma.
 - Kristaller ve isabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
 - Ağaç ve kaya siperleri okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
-- Doğuş kalkanı 2 saniye. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
+- Oyuncu 150 can ve 4 saniye doğuş kalkanıyla başlar; ilk başarılı atış kalkanı kaldırır. Doğuş noktası rakiplerden en az 10 birim uzak seçilir; uygun yer yoksa örneklenen en güvenli nokta kullanılır. Botlar 100 cana sahiptir ve %25 daha az ok hasarı verir. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
+- Otomatik atış 22 birim içindeki görünür, sipersiz ve doğuş koruması olmayan en yakın rakibi seçer. %55 şarj gücü ve 0,65 saniye bekleme kullanır; yay hızı yeteneği bu beklemeyi kısaltır. Hareketli hedefe kısa öngörü uygulanır; oklar fiziksel olarak uçar ve kaçılabilir. Tam şarjlı elle atış daha güçlüdür. Çevrimiçinde hedef seçimi ve atış sunucu tarafından doğrulanır.
 - Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Uyumlu cihazlarda isabette hafif titreşim.
 
 ## Mimari
@@ -46,11 +47,13 @@ client/
   scene.js        Three.js sahnesi, havuzlanmış ok/EXP/efekt görselleri
   controls.js     Klavye/fare ve bağımsız pointer yakalamalı çift joystick
   transport.js    Yerel antrenman / Socket.io adaptörleri, prediction & interpolation
+  presentation.js Kare hızından bağımsız poz yumuşatma ve mesafeye bağlı yürüyüş
   audio.js        Web Audio sentezi
   style.css       Masaüstü ve mobil arayüz
 shared/
   config.js       Kurallar, doğrulama, ortak hareket ve kozmetik tanımları
   spatial.js      Uniform grid, swept segment-circle testleri, sınırlı nesne havuzu
+  aim.js          Görüş hattı, en yakın hedef ve hareketli hedef öngörüsü
   world.js        Otoriter simülasyon, FSM botlar, yetenekler, görünürlük
 server/index.js   Express, Socket.io, 30 Hz döngü, bağlantı/mesaj sınırları
 public/           Statik varlıklar
@@ -70,11 +73,11 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 33 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
 
-`npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
+`npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, dokunarak otomatik atış, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
 
 Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
 

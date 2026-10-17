@@ -41,7 +41,7 @@ try {
   let after = a.state().players.find((p) => p.id === a.id);
   assert.equal(after.x, before.x);
   assert.equal(after.z, before.z);
-  assert.ok(after.hp <= 100);
+  assert.equal(after.hp, after.maxHp);
   assert.equal(after.seq, 1);
   a.socket.emit("input", { x: 1, z: 0, angle: 0, charge: true, seq: 2 });
   const holding = setInterval(
