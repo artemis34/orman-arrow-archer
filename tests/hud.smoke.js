@@ -96,9 +96,8 @@ try {
     await expect.poll(() => world.players.get(id).pending).toBe(1);
     await activate("#upgrade-options button:first-child");
     await expect(page.locator("#upgrades")).toBeHidden();
-    // Two real taps plus layout checks may take over three seconds under CI's
-    // software renderer. Authority tests separately assert that early choices
-    // preserve the exact remaining timer; here wait for control to return.
+    // The final card ends the guard immediately; no remaining timer to wait for.
+    assert.equal(world.players.get(id).levelGuard, 0);
     await expect
       .poll(() => world.players.get(id).levelGuard, { timeout: 4500 })
       .toBe(0);

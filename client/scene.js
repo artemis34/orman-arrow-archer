@@ -342,8 +342,21 @@ export class ArenaScene {
   }
   makePlayer(p, local = false) {
     const root = new THREE.Group(),
-      body = new THREE.Group();
-    root.add(body);
+      body = new THREE.Group(),
+      lowerBody = new THREE.Group();
+    root.add(body, lowerBody);
+    const contact = new THREE.Mesh(
+      new THREE.CircleGeometry(0.56, 20),
+      new THREE.MeshBasicMaterial({
+        color: 0x173025,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+      }),
+    );
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.y = 0.028;
+    root.add(contact);
     const skin = SKINS[p.skin] || SKINS[0],
       cloth = new THREE.MeshStandardMaterial({ color: skin.body }),
       cape = new THREE.MeshStandardMaterial({
@@ -386,7 +399,13 @@ export class ArenaScene {
       hip.position.set(0, 0.48, z);
       leg.position.y = -0.24;
       hip.add(leg);
-      body.add(hip);
+      lowerBody.add(hip);
+      const boot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.31, 0.12, 0.24),
+        dark,
+      );
+      boot.position.set(0, -0.42, 0);
+      hip.add(boot);
       legs.push(hip);
     }
     const bow = new THREE.Group();
@@ -507,6 +526,9 @@ export class ArenaScene {
     return {
       root,
       body,
+      lowerBody,
+      cape: capeMesh,
+      footstep: 0,
       legs,
       bow,
       string,
@@ -534,12 +556,26 @@ export class ArenaScene {
       e.life = 0.4 + Math.random() * 0.25;
       e.mesh.position.set(x, 0.8, z);
       e.mesh.material.color.set(color);
+      e.mesh.scale.setScalar(1);
       e.vx = (Math.random() - 0.5) * 5;
       e.vz = (Math.random() - 0.5) * 5;
       e.vy = 2 + Math.random() * 3;
       e.mesh.visible = true;
       if (++done >= count) break;
     }
+  }
+  stepDust(x, z) {
+    const e = this.effects.find((p) => p.life <= 0);
+    if (!e) return;
+    e.life = 0.2;
+    e.mesh.position.set(x, 0.06, z);
+    e.mesh.scale.setScalar(0.45);
+    e.mesh.material.color.setHex(0xc2bd8b);
+    e.mesh.material.opacity = 0.4;
+    e.mesh.visible = true;
+    e.vx = (Math.random() - 0.5) * 0.6;
+    e.vz = (Math.random() - 0.5) * 0.6;
+    e.vy = 0.3;
   }
   aimAt(clientX, clientY, p) {
     this.pointer.set(
@@ -607,17 +643,44 @@ export class ArenaScene {
         v.guardActive = guarded;
         if (!p.alive) continue;
         v.root.position.set(v.pose.x, 0, v.pose.z);
-        const delta = Math.atan2(
-          Math.sin(-p.angle - v.body.rotation.y),
-          Math.cos(-p.angle - v.body.rotation.y),
-        );
-        v.body.rotation.y += delta * Math.min(1, dt * 22);
+        v.body.rotation.y = v.lowerBody.rotation.y = -v.pose.facing;
         const stride = Math.sin(v.pose.phase) * v.pose.weight;
         v.body.position.y =
-          (1 - Math.cos(v.pose.phase * 2)) * 0.012 * v.pose.weight;
-        v.legs[0].rotation.z = stride * 0.32;
-        v.legs[1].rotation.z = -stride * 0.32;
-        v.body.rotation.z = p.dashTime > 0 ? -0.12 : stride * 0.015;
+          (1 - Math.cos(v.pose.phase * 2)) * 0.018 * v.pose.weight;
+        const relative = v.pose.moveAngle - v.pose.facing;
+        const forward = Math.cos(relative),
+          side = Math.sin(relative);
+        for (let i = 0; i < v.legs.length; i++) {
+          const step = Math.sin(v.pose.phase + i * Math.PI) * v.pose.weight;
+          const leg = v.legs[i];
+          leg.rotation.z = step * 0.55 * forward;
+          leg.rotation.x = -step * 0.45 * side;
+          // Keep the stance foot on the ground; only the swinging foot lifts.
+          leg.position.y =
+            Math.cos(leg.rotation.x) * Math.cos(leg.rotation.z) * 0.48 +
+            Math.abs(Math.cos(leg.rotation.x) * Math.sin(leg.rotation.z)) *
+              0.155 +
+            Math.abs(Math.sin(leg.rotation.x)) * 0.12 +
+            Math.max(0, step) * 0.1;
+        }
+        v.body.rotation.z =
+          p.dashTime > 0
+            ? -0.12
+            : -forward * v.pose.weight * 0.05 + stride * 0.012;
+        v.body.rotation.x = side * v.pose.weight * 0.04 + v.pose.turn * 0.04;
+        v.cape.rotation.z =
+          -0.25 -
+          v.pose.weight * 0.1 +
+          Math.cos(v.pose.phase * 2) * v.pose.weight * 0.035;
+        const footstep = Math.floor(v.pose.phase / Math.PI);
+        if (
+          footstep !== v.footstep &&
+          v.pose.weight > 0.5 &&
+          playing &&
+          p.dashTime <= 0
+        )
+          this.stepDust(v.pose.x, v.pose.z);
+        v.footstep = footstep;
         v.base.visible = p.id === myId || p.slowTime > 0;
         v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
         v.shield.visible = p.spawnShield > 0 || p.levelGuard > 0;

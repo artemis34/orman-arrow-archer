@@ -58,7 +58,7 @@ test("level-up grants a three-second freeze visible to enemies, blocks damage an
   assert.ok(p.choices.length > 0);
   assert.equal(w.damage(p, 1, enemy.id), 1);
 });
-test("early and queued choices preserve the fixed three-second protection without restarting it", () => {
+test("queued choices retain protection without refreshing it, and the final choice resumes play immediately", () => {
   const w = empty(),
     p = add(w, "p", 0, 0);
   w.gain(p, 200);
@@ -70,13 +70,10 @@ test("early and queued choices preserve the fixed three-second protection withou
   w.gain(p, 1);
   assert.equal(p.levelGuard, remaining);
   w.choose(p.id, p.choices[0]);
-  assert.equal(p.levelGuard, remaining);
+  assert.equal(p.levelGuard, 0);
   assert.equal(p.pending, 0);
   w.setInput(p.id, { x: 1 });
   w.step();
-  assert.equal(p.x, 0);
-  run(w, 76);
-  assert.equal(p.levelGuard, 0);
   assert.ok(p.x > 0);
 });
 test("a protected archer cannot attack through old arrows, poison, collision pushing or XP farming", () => {

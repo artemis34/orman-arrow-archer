@@ -166,3 +166,17 @@ test("respawn snaps the render pose instead of animating a walk across the arena
   assert.equal(pose.x, 25);
   assert.equal(pose.weight, 0);
 });
+test("turning follows the short arc across pi while footsteps follow travel rather than aim", () => {
+  const p = { x: 0, z: 0, angle: Math.PI - 0.04, alive: true, dashTime: 0 };
+  const pose = createPose(p);
+  p.angle = -Math.PI + 0.04;
+  updatePose(pose, p, 1 / 60);
+  assert.ok(Math.abs(pose.facing - (Math.PI - 0.04)) < 0.08);
+  assert.equal(pose.phase, 0, "turning in place must not play walking steps");
+  for (let f = 0; f < 60; f++) {
+    p.z += 0.1;
+    updatePose(pose, p, 1 / 60);
+  }
+  assert.ok(Math.abs(pose.moveAngle - Math.PI / 2) < 0.01);
+  assert.ok(pose.weight > 0.8 && pose.phase > 0);
+});

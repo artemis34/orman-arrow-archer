@@ -33,15 +33,15 @@ npm start
 - WASD / ok tuşları: hareket. Fare: nişan. Sol tık basılı tut/bırak: şarjlı atış.
 - Space / sağ tık / ϟ butonu: atılma, 3 saniye bekleme ve kısa ok dokunulmazlığı. E / + butonu: Orman nefesi, 25 can yenileme, 14 saniye bekleme.
 - Mobil: sol joystick hareket. Arenaya veya sağ joystick’e kısa dokunuş: canı en az olan açık rakibe otomatik atış. Sağ joystick sürükleme: hafif nişan destekli yay germe, bırakınca daha hızlı ve uzağa giden ok. Altın halka otomatik hedefi gösterir. ϟ atılma.
-- Normal kristal 12 XP, nadir büyük altın kristal 60 XP verir; haritada en çok beş altın kristal bulunur. Altın kristaller haritada da işaretlenir. İsabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
+- Normal kristal 12 XP, nadir büyük altın kristal 60 XP verir; haritada en çok beş altın kristal bulunur. Altın kristaller haritada büyük, darbeli elmaslarla işaretlenir. Toplama modundaki botlar bu ortak hedeflere öncelik verir. İsabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
 - Ağaç, kaya, kütük ve taş kalıntıları okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
 - Oyuncu 150 can ve 4 saniye doğuş kalkanıyla başlar; ilk başarılı atış kalkanı kaldırır. Doğuş noktası rakiplerden en az 10 birim uzak seçilir; uygun yer yoksa örneklenen en güvenli nokta kullanılır. Botlar 100 cana sahiptir ve %25 daha az ok hasarı verir. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
 - Otomatik atış 22 birim içindeki görünür, sipersiz ve korumasız rakipler arasından mevcut canı en az olanı seçer. Canlar eşitse seçili hedefi korur; ilk seçimde yakınlık kullanılır. Hedef bilgisi sunucudan gelir. Okun hızı/menzili için %55 şarj eşdeğeri ve 0,65 saniye bekleme kullanır; yay hızı yeteneği bu beklemeyi kısaltır. Hareketli hedefe kısa öngörü uygulanır; oklar fiziksel olarak uçar ve kaçılabilir. Temel ok her şarj seviyesinde 15 hasar verir; tam şarj daha hızlı ve uzağa giden ok sağlar. Elle atışta da 0,55 saniye bekleme vardır; hızlı tıklamayla bu süre atlanamaz. Çevrimiçinde hedef seçimi ve atış sunucu tarafından doğrulanır.
 - Çoklu atışın yan okları %30 hasar verir. Zehir 3 saniye sürer ve kademe başına toplam 3 ek hasar verir; süreler üst üste eklenmez. Hız yeteneği kademe başına %8, yay hızı %12; Orman kalbi +20 azami can ve 25 iyileştirme verir.
-- Seviye atlayınca 3 saniye sabit ve hasara karşı korumalı kalırsın. Altın ışık, yükselen kıvılcımlar ve azalan süre halkası tüm rakiplere korumayı gösterir; bu sırada çalıda da görünürsün. Bu sırada saldırı/atılma/aktif iyileştirme yapılmaz; mevcut saldırıların iptal edilir. Seçimi erken bitirmek süreyi kısaltmaz; süre bitince kart seçilmemiş olsa da savaş sürer. Biriken seçimler süreyi yenilemez. Kartlar altta, küçültülebilir; 1–3 tuşları da seçer.
+- Seviye atlayınca en fazla 3 saniye sabit ve hasara karşı korumalı kalırsın. Altın ışık, yükselen kıvılcımlar ve azalan süre halkası tüm rakiplere korumayı gösterir; bu sırada çalıda da görünürsün. Bu sırada saldırı/atılma/aktif iyileştirme yapılmaz; mevcut saldırıların iptal edilir. Bekleyen seçimleri bitirince koruma ve sabitlik hemen sona erer; süre bitince kart seçilmemiş olsa da savaş sürer. Biriken seçimler süreyi yenilemez. Kartlar altta, küçültülebilir; 1–3 tuşları da seçer.
 - HUD varsayılan olarak okunabilir küçük harita, sağ üst arena menüsü, ince can/XP şeridi ve kısa açıklamalı iki yetenek butonudur (ATIL / +25 CAN). Kendi karakterinin üzerinde mini can barı, XP şeridinde sonraki seviyeye kalan XP görünür. Harita, sıralama/ses/çıkış ve oyuncu ayrıntıları dokununca açılır; başka panel açınca veya arenaya dokununca kapanır. Bekleyen kart hatırlatıcısı yalnızca kartlar küçültülmüşken görünür.
 - Yeni seçenekler: Zincir ok, Buz oku, Kor patlaması, Artçı ok, Uzak avcı. [Araştırma kaynağı ve PvP denge kararları](docs/skill-design.md).
-- Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Uyumlu cihazlarda isabette hafif titreşim.
+- Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Zehir tikleri isabet sesi/titreşim üretmez; kısa sesler sınırlı sayıda çalınır ve sessize alma/odak kaybı/çıkışta temizlenir. Uyumlu cihazlarda doğrudan isabette hafif titreşim.
 
 ## Mimari
 
@@ -82,9 +82,11 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 51 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 56 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
+
+`npm run test:audio`: gerçek tarayıcıda zehirli otomatik atış yapar; gerçek Web Audio osilatörlerini sayarak bir atış ve bir isabet sesi oluştuğunu, 3 saniyelik zehir tiklerinin yeni ses üretmediğini ve seslerin sonlandığını doğrular.
 
 `npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, dokunarak otomatik atış, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
 

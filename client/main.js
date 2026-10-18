@@ -174,7 +174,7 @@ function consume(next) {
       row.append(b, document.createTextNode("  ↗  " + e.name));
       $("kill-feed").replaceChildren(row);
       setTimeout(() => row.remove(), 5500);
-    } else if (e.type === "hit") {
+    } else if (e.type === "hit" && e.kind !== "poison") {
       scene.burst(e.x, e.z, 0xf4c98b, 7);
       if (e.owner === myId || e.target === myId) {
         audio.play("hit");
@@ -273,6 +273,7 @@ $("player-name").addEventListener("keydown", (e) => {
   if (e.key === "Enter") join();
 });
 function leave() {
+  audio.stopAll();
   playing = false;
   controls.active = false;
   controls.reset();
@@ -479,13 +480,23 @@ function updateHud(current) {
   }
   for (const orb of current.orbs) {
     if (!orb.rare) continue;
+    const x = (orb.x + 42) * scale,
+      y = (orb.z + 42) * scale;
+    ctx.strokeStyle = "#ffd278bb";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(x, y, 6 + Math.sin(performance.now() / 350) * 0.8, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.fillStyle = "#ffd278";
-    ctx.fillRect(
-      (orb.x + 42) * scale - 1.7,
-      (orb.z + 42) * scale - 1.7,
-      3.4,
-      3.4,
-    );
+    ctx.strokeStyle = "#152b20";
+    ctx.beginPath();
+    ctx.moveTo(x, y - 4.2);
+    ctx.lineTo(x + 4.2, y);
+    ctx.lineTo(x, y + 4.2);
+    ctx.lineTo(x - 4.2, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
   for (const p of current.players) {
     if (!p.alive) continue;

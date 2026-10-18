@@ -78,6 +78,36 @@ test("dead players cannot select vitality or heal through queued upgrades", () =
   assert.equal(p.hp, 0);
   assert.equal(p.maxHp, 150);
 });
+test("rare crystals attract a gathering bot from farther away than common XP", () => {
+  const w = empty(),
+    p = w.addPlayer("bot", "Bot", 0, true);
+  Object.assign(p, { x: 0, z: 0, thinkAt: 0 });
+  w.spawnOrb(5, 0, 12);
+  w.spawnOrb(0, 10, 60);
+  w.botInput(p, 1 / 30);
+  assert.equal(p.brain, "gather");
+  assert.ok(p.input.z > 0.9 && Math.abs(p.input.x) < 0.01);
+});
+test("poison ticks stay distinct from impact feedback while retaining their damage", () => {
+  const w = empty(),
+    a = w.addPlayer("a"),
+    b = w.addPlayer("b");
+  Object.assign(a, { x: 0, z: 0, spawnShield: 0 });
+  Object.assign(b, { x: 10, z: 0, spawnShield: 0 });
+  w.damage(b, 15, a.id);
+  assert.equal(w.events.find((e) => e.type === "hit").kind, "impact");
+  Object.assign(b, { poison: 3, poisonDps: 3, poisonOwner: a.id });
+  const hp = b.hp;
+  for (let i = 0; i < 30; i++) {
+    w.step();
+    assert.ok(
+      w.events
+        .filter((e) => e.type === "hit")
+        .every((e) => e.kind === "poison"),
+    );
+  }
+  assert.ok(Math.abs(b.hp - (hp - 3)) < 1e-6);
+});
 test("rapid manual tapping cannot bypass the attack cadence", () => {
   const w = empty(),
     p = w.addPlayer("p");

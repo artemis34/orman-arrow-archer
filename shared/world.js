@@ -195,6 +195,7 @@ export class World {
     }
     p.pending--;
     this.offer(p);
+    if (!p.pending) p.levelGuard = 0;
     return true;
   }
   offer(p) {
@@ -236,7 +237,7 @@ export class World {
         }
     }
   }
-  damage(p, amount, owner) {
+  damage(p, amount, owner, kind = "impact") {
     if (!p.alive || p.spawnShield > 0 || p.levelGuard > 0) return 0;
     const source = this.players.get(owner);
     if (source && (!this.mode.canDamage(source, p) || source.levelGuard > 0))
@@ -245,6 +246,7 @@ export class World {
     p.hp -= amount;
     this.events.push({
       type: "hit",
+      kind,
       x: p.x,
       z: p.z,
       target: p.id,
@@ -450,8 +452,8 @@ export class World {
         goal = this.orbs.active.reduce(
           (best, o) =>
             !best ||
-            Math.hypot(o.x - p.x, o.z - p.z) <
-              Math.hypot(best.x - p.x, best.z - p.z)
+            Math.hypot(o.x - p.x, o.z - p.z) / (o.rare ? 3 : 1) <
+              Math.hypot(best.x - p.x, best.z - p.z) / (best.rare ? 3 : 1)
               ? o
               : best,
           null,
@@ -547,7 +549,12 @@ export class World {
         );
       if (p.poison > 0) {
         p.poison -= dt;
-        this.damage(p, dt * (p.poisonDps || RULES.poisonDps), p.poisonOwner);
+        this.damage(
+          p,
+          dt * (p.poisonDps || RULES.poisonDps),
+          p.poisonOwner,
+          "poison",
+        );
       } else if (p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + dt * 0.8);
       if (!p.alive) continue;
       if (p.dashTime <= 0 && p.levelGuard <= 0)

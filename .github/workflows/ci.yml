@@ -40,6 +40,7 @@ jobs:
           npm run test:network
           npm run test:browser
           npm run test:hud
+          npm run test:audio
       - uses: actions/upload-artifact@v4
         if: always()
         with:
