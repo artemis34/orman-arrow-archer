@@ -29,6 +29,8 @@ io.on("connection", (socket) => {
 await new Promise((r) => http.listen(0, "127.0.0.1", r));
 const timer = setInterval(() => {
   world.step();
+  // Keep random XP spawns from introducing a level-up into this pickup test.
+  while (world.orbs.active.length) world.orbs.release(0);
   for (const [id, socket] of io.sockets.sockets)
     socket.emit("state", world.snapshot(id));
 }, 1000 / RULES.tick);
