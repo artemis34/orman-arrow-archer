@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-DGk5mNgi.js"></script>
+    <script type="module" crossorigin src="./assets/index-FuplCmQf.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-CZurm5z8.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-CkAUmzyQ.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -118,7 +118,7 @@
             height="160"
             aria-label="Arena haritası"
           ></canvas>
-          <span class="map-caption">ORMAN VADİSİ <b>◆ 60 XP</b></span>
+          <span class="map-caption">◆ 60 XP <b>ϟ HIZ · ↑ GÜÇ</b></span>
         </button>
       </aside>
       <aside class="arena-corner">
@@ -168,7 +168,8 @@
           <span class="vitals-meter"
             ><span class="health-track"
               ><span id="health-fill"></span
-              ><span id="health-text">150 / 150</span></span
+              ><span id="health-text">150 / 150</span
+              ><span id="buff-status" class="hidden"></span></span
             ><span class="xp-track"
               ><span id="xp-fill"></span
               ><span id="xp-remaining">55 XP kaldı</span></span
@@ -282,6 +283,11 @@
               hasara karşı korumalı olursun; seçimleri bitirince hemen devam
               edersin. Altın ışık ve azalan halka koruma bitene kadar yanar.
               Altın büyük kristaller nadirdir ve 60 XP verir.
+            </p>
+            <p>
+              Mavi ϟ noktasından 15 saniye %30 atış hızı, turuncu ↑ noktasından
+              %20 ok hasarı alırsın. Noktalar 45 saniyede yeniden dolar.
+              Korumalıyken veya başka bir buff aktifken yenisi alınmaz.
             </p>
           </div>
           <div>
