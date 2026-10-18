@@ -41,6 +41,7 @@ npm start
 - Seviye atlayınca en fazla 3 saniye sabit ve hasara karşı korumalı kalırsın. Altın ışık, yükselen kıvılcımlar ve azalan süre halkası tüm rakiplere korumayı gösterir; bu sırada çalıda da görünürsün. Bu sırada saldırı/atılma/aktif iyileştirme yapılmaz; mevcut saldırıların iptal edilir. Bekleyen seçimleri bitirince koruma ve sabitlik hemen sona erer; süre bitince kart seçilmemiş olsa da savaş sürer. Biriken seçimler süreyi yenilemez. Kartlar altta, küçültülebilir; 1–3 tuşları da seçer.
 - HUD varsayılan olarak okunabilir küçük harita, sağ üst arena menüsü, ince can/XP şeridi ve kısa açıklamalı iki yetenek butonudur (ATIL / +25 CAN). Kendi karakterinin üzerinde mini can barı, XP şeridinde sonraki seviyeye kalan XP görünür. Harita, sıralama/ses/çıkış ve oyuncu ayrıntıları dokununca açılır; başka panel açınca veya arenaya dokununca kapanır. Bekleyen kart hatırlatıcısı yalnızca kartlar küçültülmüşken görünür.
 - Yeni seçenekler: Zincir ok, Buz oku, Kor patlaması, Artçı ok, Uzak avcı. [Araştırma kaynağı ve PvP denge kararları](docs/skill-design.md).
+- Geçici güçler ayrı ve haritada görünen iki noktadan alınır: mavi ϟ Seri yay, 15 saniye %30 atış hızı; turuncu ↑ Avcı kudreti, 15 saniye %20 ok hasarı. Noktalar alındıktan 45 saniye sonra yeniden dolar. Tek aktif buff; süre yenileme veya üst üste katlama yoktur. Doğuş/seçim koruması sırasında alınmaz, ölümde silinir. Seri yay germe ve atış beklemesini 1,3'e böler; kudret temel oku 15→18 yapar, zehir ve alan hasarını artırmaz. Can çubuğundaki küçük simge kalan süreyi gösterir; oyuncu detaylarında açıklaması açılır. Botlar da bu ortak hedeflere yönelir.
 - Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Zehir tikleri isabet sesi/titreşim üretmez; kısa sesler sınırlı sayıda çalınır ve sessize alma/odak kaybı/çıkışta temizlenir. Uyumlu cihazlarda doğrudan isabette hafif titreşim.
 
 ## Mimari
@@ -82,7 +83,9 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 56 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 63 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+
+`npm run test:powerups`: gerçek dokunmatik hareketle iki buff türünü toplar; oyunu durdurmadığını, sürenin bitmesini, noktaların beklemesini, can metninin okunmasını, yatay görünümü ve ölümde temizliği doğrular.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
 

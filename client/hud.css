@@ -265,6 +265,16 @@
   background: #071c16;
   overflow: hidden;
 }
+#buff-status {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: #132c25e8;
+  font-size: 8px;
+  line-height: 13px;
+}
 #xp-fill {
   display: block;
   width: 0;
@@ -629,6 +639,9 @@ body.playing #arena {
 @media (max-height: 500px) and (pointer: coarse) {
   .arena-map {
     width: 84px;
+  }
+  .arena-map.expanded {
+    width: min(200px, calc(100vw - 24px));
   }
   .arena-vitals {
     left: max(12px, env(safe-area-inset-left));

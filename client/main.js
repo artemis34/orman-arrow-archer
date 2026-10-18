@@ -1,6 +1,7 @@
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
 import { selectTarget } from "../shared/aim.js";
+import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
 import "@fontsource/manrope/latin-800.css";
 import "@fontsource/manrope/latin-700.css";
@@ -199,6 +200,13 @@ function consume(next) {
             : 0xeee9be,
         e.type === "blast" ? 12 : 5,
       );
+    } else if (e.type === "buff") {
+      const buff = POWERUPS[e.key];
+      if (buff) scene.burst(e.x, e.z, buff.color, 12);
+      if (buff && e.owner === myId) {
+        audio.play("level");
+        toast(`${buff.icon} ${buff.description} · 15s`);
+      }
     } else if (e.type === "gem" && e.owner === myId) {
       scene.burst(e.x, e.z, e.rare ? 0xffd680 : 0xd1f59b, e.rare ? 12 : 4);
       if (e.rare) toast("✧ +60 XP");
@@ -307,6 +315,17 @@ function updateHud(current) {
   text("level", me.level);
   text("kills", me.kills);
   text("health-text", `${Math.ceil(me.hp)} / ${me.maxHp}`);
+  const buff = me.alive && me.buffTime > 0 ? POWERUPS[me.buffType] : null;
+  show("buff-status", !!buff);
+  if (buff) {
+    text("buff-status", `${buff.icon} ${Math.ceil(me.buffTime)}s`);
+    $("buff-status").style.color = buff.color;
+    $("buff-status").setAttribute(
+      "aria-label",
+      `${buff.name}: ${buff.description}, ${Math.ceil(me.buffTime)} saniye`,
+    );
+    $("buff-status").title = `${buff.name}: ${buff.description}`;
+  }
   $("health-fill").style.width = `${(me.hp / me.maxHp) * 100}%`;
   $("xp-fill").style.width = `${(me.xp / (me.level * 55)) * 100}%`;
   text("xp-text", `${me.xp} / ${me.level * 55}`);
@@ -357,7 +376,9 @@ function updateHud(current) {
         ? "DOĞUŞ KALKANI"
         : me.hidden
           ? "ÇALIDA GİZLENDİN"
-          : "İZİNİ BIRAK",
+          : buff
+            ? `${buff.icon} ${buff.description} · ${Math.ceil(me.buffTime)}s`
+            : "İZİNİ BIRAK",
   );
   $("connection").title = transport.online
     ? `Gecikme: ${transport.ping} ms`
@@ -497,6 +518,25 @@ function updateHud(current) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  }
+  for (const site of current.powerups || []) {
+    const spec = POWERUPS[site.key];
+    if (!spec) continue;
+    const x = (site.x + 42) * scale,
+      y = (site.z + 42) * scale;
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = spec.color;
+    ctx.fillStyle = site.cooldown > 0 ? "#203e2b" : spec.color;
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (site.cooldown <= 0) {
+      ctx.fillStyle = "#12251f";
+      ctx.font = "bold 9px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(spec.icon, x, y + 3);
+    }
   }
   for (const p of current.players) {
     if (!p.alive) continue;

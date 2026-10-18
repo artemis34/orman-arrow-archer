@@ -1,4 +1,5 @@
 import { applyArrowImpact, redirectRicochet } from "./skills.js";
+import { PowerupSystem, attackRate, arrowPower } from "./powerups.js";
 import { selectTarget, aimedAngle } from "./aim.js";
 import { FreeForAll } from "./modes.js";
 import {
@@ -62,6 +63,7 @@ export class World {
       this.obstacles.push(o);
       this.obstacleGrid.insert(o, o.r);
     }
+    this.powerups = new PowerupSystem(this.obstacles);
     for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
     for (let i = 0; i < bots; i++)
       this.addPlayer(`bot-${i}`, names[i % names.length], i % 4, true);
@@ -154,6 +156,8 @@ export class World {
       poison: 0,
       poisonDps: 0,
       levelGuard: 0,
+      buffType: null,
+      buffTime: 0,
       autoTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
@@ -265,6 +269,8 @@ export class World {
     if (p.hp <= 0) {
       p.hp = 0;
       p.alive = false;
+      p.buffType = null;
+      p.buffTime = 0;
       p.charge = 0;
       p.respawnAt = this.time + 3;
       if (attacker && attacker !== p) {
@@ -307,6 +313,8 @@ export class World {
       poison: 0,
       poisonDps: 0,
       levelGuard: 0,
+      buffType: null,
+      buffTime: 0,
       autoTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
@@ -361,6 +369,7 @@ export class World {
         damage:
           RULES.arrowDamage *
           (rear ? RULES.rearArrowScale : offset ? RULES.sideArrowScale : 1) *
+          arrowPower(p) *
           (p.bot ? RULES.botDamageScale : 1),
         poisonDps:
           (p.upgrades.poison || 0) *
@@ -376,7 +385,8 @@ export class World {
     p.spawnShield = 0;
     p.revealUntil = this.time + 0.6;
     p.shotCd =
-      RULES.shotCooldown * Math.pow(RULES.drawFactor, p.upgrades.draw || 0);
+      (RULES.shotCooldown * Math.pow(RULES.drawFactor, p.upgrades.draw || 0)) /
+      attackRate(p);
     this.events.push({ type: "shot", x: p.x, z: p.z, owner: p.id, quick });
     return true;
   }
@@ -407,8 +417,9 @@ export class World {
     p.charge = 0;
     if (fired)
       p.shotCd =
-        RULES.quickShotCooldown *
-        Math.pow(RULES.drawFactor, p.upgrades.draw || 0);
+        (RULES.quickShotCooldown *
+          Math.pow(RULES.drawFactor, p.upgrades.draw || 0)) /
+        attackRate(p);
     return fired;
   }
   botInput(p, dt) {
@@ -458,6 +469,14 @@ export class World {
               : best,
           null,
         );
+        const buff = this.powerups.goal(p);
+        if (
+          buff &&
+          (!goal ||
+            Math.hypot(buff.x - p.x, buff.z - p.z) / 4 <
+              Math.hypot(goal.x - p.x, goal.z - p.z) / (goal.rare ? 3 : 1))
+        )
+          goal = buff;
       }
       if (!goal) goal = { x: 0, z: 0 };
       let dx = goal.x - p.x,
@@ -490,6 +509,7 @@ export class World {
     dt = clamp(dt, 0, 0.05);
     this.time += dt;
     this.events = [];
+    this.powerups.tick(dt, this.players.values());
     this.mode.step(this, dt);
     this.grid.clear();
     this.orbGrid.clear();
@@ -531,8 +551,9 @@ export class World {
         p.charge = clamp(
           p.charge +
             dt /
-              (RULES.drawTime *
-                Math.pow(RULES.drawFactor, p.upgrades.draw || 0)),
+              ((RULES.drawTime *
+                Math.pow(RULES.drawFactor, p.upgrades.draw || 0)) /
+                attackRate(p)),
           0,
           1,
         );
@@ -598,6 +619,7 @@ export class World {
           value: o.value,
         });
       }
+      this.powerups.collect(p, this.events);
     }
     for (let n = this.orbs.active.length - 1; n >= 0; n--)
       if (this.orbs.active[n].collected) {
@@ -714,6 +736,8 @@ export class World {
         alive: p.alive,
         charge: p.charge,
         levelGuard: p.levelGuard,
+        buffType: p.buffType,
+        buffTime: p.buffTime,
         autoTargetId: p.id === viewerId ? p.autoTargetId : null,
         slowTime: p.slowTime,
         slowImmunity: p.slowImmunity,
@@ -747,6 +771,7 @@ export class World {
         value: o.value,
         rare: o.rare,
       })),
+      powerups: this.powerups.snapshot(),
       events: this.events.filter((e) => {
         if (e.type === "kill") return true; // Kill feed has names, no coordinates.
         const subject = this.players.get(e.target || e.owner);

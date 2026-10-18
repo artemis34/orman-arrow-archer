@@ -3,6 +3,7 @@ import { createPose, updatePose } from "./presentation.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
+import { POWERUPS, POWERUP_RULES } from "../shared/powerups.js";
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 /** All dynamic meshes are created once and reused across snapshots. */
 export class ArenaScene {
@@ -190,6 +191,44 @@ export class ArenaScene {
     this.rareHalos.frustumCulled = false;
     this.rareHalos.count = 0;
     this.scene.add(this.rareHalos);
+    this.powerupMeshes = [];
+    for (let i = 0; i < POWERUP_RULES.count; i++) {
+      const group = new THREE.Group();
+      const pad = new THREE.Mesh(
+        new THREE.RingGeometry(0.45, 0.95, 6),
+        new THREE.MeshBasicMaterial({
+          color: 0x71877b,
+          side: THREE.DoubleSide,
+        }),
+      );
+      pad.rotation.x = -Math.PI / 2;
+      pad.position.y = 0.04;
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.93, 1.04, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0x82dfff,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.05;
+      const emblem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.48, 0),
+        new THREE.MeshStandardMaterial({
+          color: 0x82dfff,
+          emissive: 0x82dfff,
+          emissiveIntensity: 0.55,
+          roughness: 0.4,
+        }),
+      );
+      group.add(pad, ring, emblem);
+      group.visible = false;
+      this.scene.add(group);
+      this.powerupMeshes.push({ group, ring, emblem });
+    }
     this.haloDummy = new THREE.Object3D();
     this.haloDummy.rotation.x = -Math.PI / 2;
     const effectGeo = new THREE.OctahedronGeometry(0.11);
@@ -453,6 +492,20 @@ export class ArenaScene {
     base.rotation.x = -Math.PI / 2;
     base.position.y = 0.035;
     root.add(base);
+    const buffRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.84, 0.91, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x82dfff,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    buffRing.rotation.x = -Math.PI / 2;
+    buffRing.position.y = 0.06;
+    buffRing.visible = false;
+    root.add(buffRing);
     const shield = new THREE.Mesh(
       new THREE.SphereGeometry(0.95, 16, 12),
       new THREE.MeshBasicMaterial({
@@ -531,6 +584,8 @@ export class ArenaScene {
       footstep: 0,
       legs,
       bow,
+      bowLine,
+      buffRing,
       string,
       base,
       shield,
@@ -683,6 +738,13 @@ export class ArenaScene {
         v.footstep = footstep;
         v.base.visible = p.id === myId || p.slowTime > 0;
         v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
+        const buff = p.buffTime > 0 ? POWERUPS[p.buffType] : null;
+        v.buffRing.visible = !!buff;
+        v.bowLine.material.color.set(buff ? buff.color : 0xe7bf79);
+        if (buff) {
+          v.buffRing.material.color.set(buff.color);
+          v.buffRing.material.opacity = 0.6 + Math.sin(this.time * 4) * 0.15;
+        }
         v.shield.visible = p.spawnShield > 0 || p.levelGuard > 0;
         v.shield.material.color.setHex(guarded ? 0xffe49b : 0xd5f0b1);
         v.shield.material.opacity = guarded
@@ -732,6 +794,22 @@ export class ArenaScene {
             this.players.delete(id);
           }
         }
+      for (let i = 0; i < this.powerupMeshes.length; i++) {
+        const view = this.powerupMeshes[i],
+          site = state.powerups?.[i],
+          spec = site && POWERUPS[site.key];
+        view.group.visible = !!spec;
+        if (!spec) continue;
+        view.group.position.set(site.x, 0, site.z);
+        view.emblem.visible = site.cooldown <= 0;
+        view.emblem.material.color.set(spec.color);
+        view.emblem.material.emissive.set(spec.color);
+        view.emblem.position.y = 1.1 + Math.sin(this.time * 2 + i) * 0.15;
+        view.emblem.rotation.y = this.time * 0.8;
+        view.ring.material.color.set(spec.color);
+        view.ring.material.opacity =
+          site.cooldown > 0 ? 0.18 : 0.65 + Math.sin(this.time * 3) * 0.15;
+      }
       for (let i = 0; i < this.arrowMeshes.length; i++) {
         const m = this.arrowMeshes[i],
           a = state.arrows[i];
