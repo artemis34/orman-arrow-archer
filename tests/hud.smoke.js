@@ -99,6 +99,13 @@ try {
     );
     await expect(page.locator("#leader-panel")).toBeHidden();
     await expect(page.locator("#vitals-details")).toBeHidden();
+    await expect(page.locator("#dash small")).toHaveText("ATIL");
+    await expect(page.locator("#heal small")).toHaveText("+25 CAN");
+    await expect(page.locator("#xp-remaining")).toHaveText(
+      `${world.players.get(id).level * 55 - world.players.get(id).xp} XP kaldı`,
+    );
+    const map = await page.locator(".arena-map").boundingBox();
+    assert.ok(map.width >= 84, `${label}: readable collapsed map`);
     let area = 0;
     for (const selector of [
       ".arena-map",
@@ -111,7 +118,7 @@ try {
     }
     assert.ok(
       area / width / height < 0.1,
-      `${label}: persistent solid HUD must occupy less than 10% of the screen`,
+      `${label}: readable persistent HUD must occupy less than 10% of the screen`,
     );
     await activate("#leaders-toggle");
     await expect(page.locator("#leader-panel")).toBeVisible();

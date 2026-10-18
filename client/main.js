@@ -309,6 +309,7 @@ function updateHud(current) {
   $("health-fill").style.width = `${(me.hp / me.maxHp) * 100}%`;
   $("xp-fill").style.width = `${(me.xp / (me.level * 55)) * 100}%`;
   text("xp-text", `${me.xp} / ${me.level * 55}`);
+  text("xp-remaining", `${Math.max(0, me.level * 55 - me.xp)} XP kaldı`);
   text("dash-time", me.dashCd > 0.05 ? me.dashCd.toFixed(1) : "");
   $("dash").classList.toggle("cooldown", me.dashCd > 0.05);
   text("heal-time", me.healCd > 0.05 ? me.healCd.toFixed(0) : "");

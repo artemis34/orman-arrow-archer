@@ -340,7 +340,7 @@ export class ArenaScene {
     v.tex.dispose();
     this.scene.remove(v.root);
   }
-  makePlayer(p) {
+  makePlayer(p, local = false) {
     const root = new THREE.Group(),
       body = new THREE.Group();
     root.add(body);
@@ -454,12 +454,12 @@ export class ArenaScene {
     ctx.fillStyle = "#eef3dc";
     ctx.shadowColor = "#142c20";
     ctx.shadowBlur = 7;
-    ctx.fillText(p.name, 128, 27);
+    if (!local) ctx.fillText(p.name, 128, 27);
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#192e22";
     ctx.fillRect(64, 44, 128, 8);
-    ctx.fillStyle = "#bde08d";
-    ctx.fillRect(64, 44, 128, 8);
+    ctx.fillStyle = p.hp < p.maxHp * 0.3 ? "#e6a181" : "#bde08d";
+    ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
     const tex = new THREE.CanvasTexture(labelCanvas);
     const label = new THREE.Sprite(
       new THREE.SpriteMaterial({
@@ -469,7 +469,7 @@ export class ArenaScene {
       }),
     );
     label.scale.set(3.8, 1.2, 1);
-    label.position.y = 2.6;
+    label.position.y = local ? 2.35 : 2.6;
     root.add(label);
     this.scene.add(root);
     return {
@@ -485,6 +485,7 @@ export class ArenaScene {
       tex,
       pose: createPose(p),
       hp: p.hp,
+      maxHp: p.maxHp,
       skin: p.skin,
       name: p.name,
     };
@@ -552,7 +553,7 @@ export class ArenaScene {
           v = null;
         }
         if (!v) {
-          v = this.makePlayer(p);
+          v = this.makePlayer(p, p.id === myId);
           this.players.set(p.id, v);
         }
         v.seen = this.time;
@@ -575,7 +576,7 @@ export class ArenaScene {
         v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
         v.shield.visible = p.spawnShield > 0 || p.levelGuard > 0;
         v.shield.material.color.setHex(p.levelGuard > 0 ? 0x9edce8 : 0xd5f0b1);
-        v.label.visible = playing && p.id !== myId;
+        v.label.visible = playing;
 
         v.string.geometry.attributes.position.setXYZ(
           1,
@@ -584,8 +585,9 @@ export class ArenaScene {
           0,
         );
         v.string.geometry.attributes.position.needsUpdate = true;
-        if (v.hp !== p.hp) {
+        if (v.hp !== p.hp || v.maxHp !== p.maxHp) {
           v.hp = p.hp;
+          v.maxHp = p.maxHp;
           const ctx = v.canvas.getContext("2d");
           ctx.clearRect(0, 39, 256, 22);
           ctx.fillStyle = "#192e22";
