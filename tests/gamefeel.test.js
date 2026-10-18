@@ -77,6 +77,50 @@ test("quick tap fires one server-selected arrow and respects cooldown under pack
   assert.equal(w.events.filter((e) => e.type === "shot").length, 0);
   assert.ok(p.shotCd > 0);
 });
+test("auto aim selects lowest absolute health in range and retains it when equal-health enemies move", () => {
+  const { w, p } = setup();
+  const near = enemy(w, "near", 5, 0, { hp: 80, maxHp: 200 });
+  const weak = enemy(w, "weak", 0, 12, { hp: 35, maxHp: 100 });
+  enemy(w, "outside", 25, 0, { hp: 1 });
+  enemy(w, "protected", 0, 6, { hp: 1, levelGuard: 2 });
+  assert.equal(w.autoTarget(p).id, weak.id);
+  assert.equal(
+    w.snapshot(p.id).players.find((v) => v.id === p.id).autoTargetId,
+    weak.id,
+  );
+  weak.hp = near.hp;
+  for (let i = 0; i < 20; i++) {
+    near.x = 3 + Math.sin(i);
+    weak.z = 12 + Math.cos(i);
+    assert.equal(w.autoTarget(p).id, weak.id);
+    const snapshot = w.snapshot(p.id);
+    const me = snapshot.players.find((v) => v.id === p.id);
+    assert.equal(selectTarget(me, snapshot.players.reverse(), []).id, weak.id);
+  }
+  near.hp = 20;
+  assert.equal(
+    w.autoTarget(p).id,
+    near.id,
+    "a strictly weaker valid enemy takes priority",
+  );
+  near.hidden = true;
+  near.x = 8;
+  assert.equal(w.autoTarget(p).id, weak.id, "hidden targets are excluded");
+  weak.z = 23;
+  assert.equal(w.autoTarget(p), null);
+});
+test("quick shots authoritatively attack the weakest opponent rather than accepting a forged target", () => {
+  const { w, p } = setup();
+  enemy(w, "near", 5, 0, { hp: 90 });
+  const weak = enemy(w, "weak", 0, 12, { hp: 30 });
+  w.setInput(p.id, { quickShot: true, autoTargetId: "near", angle: 0 });
+  w.step();
+  assert.equal(p.autoTargetId, weak.id);
+  assert.ok(Math.abs(w.arrows.active[0].vx) < 0.001);
+  assert.ok(w.arrows.active[0].vz > 0);
+  weak.spawnShield = 2;
+  assert.equal(w.autoTarget(p).id, "near");
+});
 test("tap without target does not consume protection or release a partial stick draw", () => {
   const { w, p } = setup();
   p.charge = 0.2;

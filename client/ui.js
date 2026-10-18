@@ -41,14 +41,9 @@ export function bindAction(button, action) {
       event.sourceCapabilities?.firesTouchEvents
     )
       return;
-    // A touch may reveal a different button under the same point. Safari's
-    // compatibility MouseEvent has no pointerType; never activate that new card.
-    if (
-      event.detail !== 0 &&
-      !event.pointerType &&
-      performance.now() - lastTouchAction < 700
-    )
-      return;
+    // A touch can also produce a compatibility click marked as mouse (or with
+    // no pointerType). Never toggle twice or pick a newly revealed card with it.
+    if (event.detail !== 0 && performance.now() - lastTouchAction < 700) return;
     if (!button.disabled) action();
   });
 }

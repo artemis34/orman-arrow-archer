@@ -22,13 +22,19 @@ const shoot = (w, p, skills = {}) => {
   Object.assign(p, { upgrades: skills, angle: 0, charge: 1, shotCd: 0 });
   w.fire(p);
 };
-test("level-up grants a bounded four-second freeze, blocks damage and all actions, then resumes", () => {
+test("level-up grants a three-second freeze visible to enemies, blocks damage and actions, then resumes", () => {
   const w = empty(),
     p = add(w, "p", 0, 0),
     enemy = add(w, "e", 8, 0);
   p.hp = 80;
+  p.hidden = true;
   w.gain(p, 60);
-  assert.equal(p.levelGuard, 4);
+  assert.equal(p.levelGuard, 3);
+  assert.equal(p.hidden, false);
+  assert.equal(
+    w.snapshot(enemy.id).players.find((v) => v.id === p.id).levelGuard,
+    3,
+  );
   const hp = p.hp;
   w.damage(p, 999, enemy.id);
   assert.equal(p.hp, hp);
@@ -45,13 +51,14 @@ test("level-up grants a bounded four-second freeze, blocks damage and all action
   assert.equal(p.dashTime, 0);
   assert.equal(p.healCd, 0);
   assert.equal(w.arrows.active.length, 0);
-  assert.ok(p.levelGuard > 2.9 && p.levelGuard <= 3.01);
-  run(w, 92);
+  assert.ok(p.levelGuard > 1.9 && p.levelGuard <= 2.01);
+  run(w, 62);
   assert.equal(p.levelGuard, 0);
   assert.ok(p.x > 0);
   assert.ok(p.choices.length > 0);
+  assert.equal(w.damage(p, 1, enemy.id), 1);
 });
-test("choosing every queued level ends protection early; partial choices never restart its timer", () => {
+test("early and queued choices preserve the fixed three-second protection without restarting it", () => {
   const w = empty(),
     p = add(w, "p", 0, 0);
   w.gain(p, 200);
@@ -63,10 +70,13 @@ test("choosing every queued level ends protection early; partial choices never r
   w.gain(p, 1);
   assert.equal(p.levelGuard, remaining);
   w.choose(p.id, p.choices[0]);
-  assert.equal(p.levelGuard, 0);
+  assert.equal(p.levelGuard, remaining);
   assert.equal(p.pending, 0);
   w.setInput(p.id, { x: 1 });
   w.step();
+  assert.equal(p.x, 0);
+  run(w, 76);
+  assert.equal(p.levelGuard, 0);
   assert.ok(p.x > 0);
 });
 test("a protected archer cannot attack through old arrows, poison, collision pushing or XP farming", () => {
@@ -253,7 +263,7 @@ test("combined projectile skills stay bounded through repeated fights, eliminati
           Number.isFinite(actor.hp),
       );
       assert.ok(actor.hp >= 0 && actor.hp <= actor.maxHp);
-      assert.ok(actor.levelGuard <= 4 && actor.slowTime <= RULES.frostDuration);
+      assert.ok(actor.levelGuard <= 3 && actor.slowTime <= RULES.frostDuration);
     }
     for (const arrow of w.arrows.active)
       assert.ok(

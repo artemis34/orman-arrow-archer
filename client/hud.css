@@ -9,7 +9,7 @@
 }
 #hud button {
   pointer-events: auto;
-  touch-action: manipulation;
+  touch-action: none;
 }
 .sr-only {
   position: absolute;
@@ -46,7 +46,7 @@
   display: none;
 }
 .arena-map.expanded {
-  width: 164px;
+  width: min(240px, calc(100vw - 24px));
 }
 .arena-map.expanded #map-toggle {
   background: #10271fe8;
@@ -570,7 +570,7 @@ body.playing #arena {
     width: 92px;
   }
   .arena-map.expanded {
-    width: 150px;
+    width: min(220px, calc(100vw - 24px), calc(100dvh - 100px));
   }
   #leader-panel {
     width: 170px;

@@ -76,7 +76,7 @@ export function redirectRicochet(world, arrow, impact) {
     { ...impact, id: arrow.owner },
     candidates,
     world.obstacles,
-    { range: RULES.ricochetRange },
+    { range: RULES.ricochetRange, priority: "nearest", preferredId: null },
   );
   if (!next) return false;
   const angle = Math.atan2(next.z - impact.z, next.x - impact.x),

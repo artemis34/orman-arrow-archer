@@ -9,15 +9,24 @@ export function clearShot(from, to, obstacles) {
       segmentFraction(from.x, from.z, to.x, to.z, o.x, o.z, o.r) !== null,
   );
 }
-/** Nearest visible, unprotected opponent with actual line of sight. */
+/** Lowest current HP first; retain the previous target on ties to avoid flicker.
+ * Ricochets explicitly request nearest-neighbor selection instead.
+ */
 export function selectTarget(
   shooter,
   players,
   obstacles,
-  { range = RULES.autoAimRange, angle = null, cone = Math.PI } = {},
+  {
+    range = RULES.autoAimRange,
+    angle = null,
+    cone = Math.PI,
+    priority = "health",
+    preferredId = shooter.autoTargetId,
+  } = {},
 ) {
-  let nearest = null,
-    best = range;
+  let target = null,
+    bestDistance = Infinity,
+    bestHealth = Infinity;
   for (const p of players) {
     if (
       p.id === shooter.id ||
@@ -27,7 +36,7 @@ export function selectTarget(
     )
       continue;
     const distance = Math.hypot(p.x - shooter.x, p.z - shooter.z);
-    if (distance > best || (p.hidden && distance >= 5)) continue;
+    if (distance > range || (p.hidden && distance >= 5)) continue;
     if (
       angle !== null &&
       Math.abs(
@@ -36,10 +45,25 @@ export function selectTarget(
     )
       continue;
     if (!clearShot(shooter, p, obstacles)) continue;
-    nearest = p;
-    best = distance;
+    const health = priority === "health" ? p.hp : 0;
+    const preferred = p.id === preferredId;
+    const currentPreferred = target?.id === preferredId;
+    if (
+      !target ||
+      health < bestHealth ||
+      (health === bestHealth &&
+        ((preferred && !currentPreferred) ||
+          (preferred === currentPreferred &&
+            (distance < bestDistance ||
+              (distance === bestDistance &&
+                String(p.id) < String(target.id))))))
+    ) {
+      target = p;
+      bestDistance = distance;
+      bestHealth = health;
+    }
   }
-  return nearest;
+  return target;
 }
 /** Predict a short intercept; arrows still travel normally and can be dodged. */
 export function aimedAngle(shooter, target, arrowSpeed, obstacles) {

@@ -20,8 +20,6 @@ io.on("connection", (socket) => {
     const p = world.addPlayer(socket.id, data.name, data.skin);
     id = p.id;
     Object.assign(p, { x: -2, z: 0 });
-    world.gain(p, 200);
-    p.hp = 35; // Keep health readable while choosing under pressure.
     socket.emit("welcome", {
       id: p.id,
       obstacles: world.obstacles,
@@ -76,6 +74,12 @@ try {
     await page.locator("#online-mode").click();
     await page.locator("#server-url").fill(fixtureUrl);
     await page.locator("#play").click();
+    await expect(page.locator("#hud")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    // Start the three-second window after initial navigation and font loading,
+    // so a slow CI browser doesn't consume it before any controls are usable.
+    world.gain(world.players.get(id), 200);
+    world.players.get(id).hp = 35;
     await expect(page.locator("#upgrades")).toBeVisible();
     await expect(page.locator("#upgrade-options button")).toHaveCount(3);
     await expect(page.locator("#upgrade-count")).toContainText("2");
@@ -92,11 +96,12 @@ try {
     await expect.poll(() => world.players.get(id).pending).toBe(1);
     await activate("#upgrade-options button:first-child");
     await expect(page.locator("#upgrades")).toBeHidden();
-    assert.equal(
-      world.players.get(id).levelGuard,
-      0,
-      "all choices end protection early",
-    );
+    // Two real taps plus layout checks may take over three seconds under CI's
+    // software renderer. Authority tests separately assert that early choices
+    // preserve the exact remaining timer; here wait for control to return.
+    await expect
+      .poll(() => world.players.get(id).levelGuard, { timeout: 4500 })
+      .toBe(0);
     await expect(page.locator("#leader-panel")).toBeHidden();
     await expect(page.locator("#vitals-details")).toBeHidden();
     await expect(page.locator("#dash small")).toHaveText("ATIL");
@@ -128,6 +133,26 @@ try {
       "aria-expanded",
       "true",
     );
+    assert.ok(
+      (await page.locator(".arena-map").boundingBox()).width > map.width * 1.9,
+      `${label}: the map visibly enlarges, beyond changing aria-expanded`,
+    );
+    if (touch) {
+      // Some browsers emit a second compatibility click marked as mouse.
+      await page.locator("#map-toggle").evaluate((el) =>
+        el.dispatchEvent(
+          new PointerEvent("click", {
+            bubbles: true,
+            detail: 1,
+            pointerType: "mouse",
+          }),
+        ),
+      );
+      await expect(page.locator("#map-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    }
     await activate("#vitals-toggle");
     await expect(page.locator("#vitals-details")).toBeVisible();
     await expect(page.locator("#map-toggle")).toHaveAttribute(
@@ -241,7 +266,7 @@ try {
     );
     await context.close();
     console.log(
-      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, folded panels, protected selection, expiry, resumed input, queued picks.`,
+      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, actual map enlargement, ghost-click protection, three-second selection, expiry, resumed input, queued picks.`,
     );
   }
   assert.deepEqual(errors, []);

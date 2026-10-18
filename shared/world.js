@@ -154,6 +154,7 @@ export class World {
       poison: 0,
       poisonDps: 0,
       levelGuard: 0,
+      autoTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
       blastCd: 0,
@@ -194,7 +195,6 @@ export class World {
     }
     p.pending--;
     this.offer(p);
-    if (!p.pending) p.levelGuard = 0;
     return true;
   }
   offer(p) {
@@ -220,8 +220,10 @@ export class World {
       if (p.alive) p.hp = Math.min(p.maxHp, p.hp + 18);
     }
     if (p.pending && !p.choices.length) this.offer(p);
-    if (!wasPending && p.pending && p.alive && !p.bot) {
+    if (!wasPending && p.pending && p.alive && !p.bot && p.levelGuard <= 0) {
       p.levelGuard = RULES.levelGuardDuration;
+      p.hidden = false;
+      p.revealUntil = this.time + RULES.levelGuardDuration;
       p.charge = p.dashTime = p.vx = p.vz = 0;
       p.input.charge = p.input.dash = p.input.heal = p.input.quickShot = false;
       // Cancel without releasing during a swept-hit iteration over this pool.
@@ -303,6 +305,7 @@ export class World {
       poison: 0,
       poisonDps: 0,
       levelGuard: 0,
+      autoTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
       blastCd: 0,
@@ -375,13 +378,21 @@ export class World {
     this.events.push({ type: "shot", x: p.x, z: p.z, owner: p.id, quick });
     return true;
   }
+  autoTarget(p) {
+    const target =
+      p.alive && p.levelGuard <= 0
+        ? selectTarget(
+            p,
+            [...this.players.values()].filter((q) => this.mode.canDamage(p, q)),
+            this.obstacles,
+          )
+        : null;
+    p.autoTargetId = target?.id || null;
+    return target;
+  }
   quickShot(p) {
     if (!p.alive || p.shotCd > 0 || p.levelGuard > 0) return false;
-    const target = selectTarget(
-      p,
-      [...this.players.values()].filter((q) => this.mode.canDamage(p, q)),
-      this.obstacles,
-    );
+    const target = this.autoTarget(p);
     if (!target) return false;
     p.angle = aimedAngle(
       p,
@@ -504,6 +515,7 @@ export class World {
       }
       p.input.heal = false;
       p.input.dash = false;
+      if (!p.bot) this.autoTarget(p);
       const quick = i.quickShot && !i.charge && p.levelGuard <= 0;
       p.input.quickShot = false;
       if (quick) {
@@ -695,6 +707,7 @@ export class World {
         alive: p.alive,
         charge: p.charge,
         levelGuard: p.levelGuard,
+        autoTargetId: p.id === viewerId ? p.autoTargetId : null,
         slowTime: p.slowTime,
         slowImmunity: p.slowImmunity,
         shotCd: p.shotCd,

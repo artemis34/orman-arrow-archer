@@ -11,8 +11,13 @@ export function setupPanels() {
   function toggle(buttonId, panelId, open) {
     $(buttonId).setAttribute("aria-expanded", String(open));
     if (panelId) $(panelId).classList.toggle("hidden", !open);
-    if (buttonId === "map-toggle")
+    if (buttonId === "map-toggle") {
       $("map-toggle").parentElement.classList.toggle("expanded", open);
+      $("map-toggle").setAttribute(
+        "aria-label",
+        open ? "Haritayı küçült" : "Haritayı büyüt",
+      );
+    }
   }
   function close() {
     for (const [button, panel] of entries) toggle(button, panel, false);

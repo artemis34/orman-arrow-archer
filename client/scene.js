@@ -445,6 +445,38 @@ export class ArenaScene {
     );
     shield.position.y = 0.7;
     root.add(shield);
+    // Pooled with the avatar: a golden countdown and rising sparks are visible
+    // to every viewer for exactly the authority's remaining guard duration.
+    const levelEffect = new THREE.Group();
+    const guardRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.06, 1.17, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xffe49b,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    guardRing.rotation.x = -Math.PI / 2;
+    guardRing.rotation.z = Math.PI / 2;
+    guardRing.position.y = 0.08;
+    levelEffect.add(guardRing);
+    const sparkGeometry = new THREE.OctahedronGeometry(0.1),
+      sparkMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffedb5,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+      });
+    const guardSparks = [];
+    for (let i = 0; i < 6; i++) {
+      const spark = new THREE.Mesh(sparkGeometry, sparkMaterial);
+      guardSparks.push(spark);
+      levelEffect.add(spark);
+    }
+    levelEffect.visible = false;
+    root.add(levelEffect);
     const labelCanvas = document.createElement("canvas");
     labelCanvas.width = 256;
     labelCanvas.height = 80;
@@ -480,6 +512,11 @@ export class ArenaScene {
       string,
       base,
       shield,
+      levelEffect,
+      guardRing,
+      guardSparks,
+      guardActive: false,
+      level: p.level,
       label,
       canvas: labelCanvas,
       tex,
@@ -559,6 +596,15 @@ export class ArenaScene {
         v.seen = this.time;
         v.root.visible = p.alive;
         updatePose(v.pose, p, dt);
+        const guarded = p.levelGuard > 0;
+        if (
+          playing &&
+          p.alive &&
+          (p.level > v.level || (guarded && !v.guardActive))
+        )
+          this.burst(p.x, p.z, 0xffe49b, 18);
+        v.level = p.level;
+        v.guardActive = guarded;
         if (!p.alive) continue;
         v.root.position.set(v.pose.x, 0, v.pose.z);
         const delta = Math.atan2(
@@ -575,7 +621,25 @@ export class ArenaScene {
         v.base.visible = p.id === myId || p.slowTime > 0;
         v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
         v.shield.visible = p.spawnShield > 0 || p.levelGuard > 0;
-        v.shield.material.color.setHex(p.levelGuard > 0 ? 0x9edce8 : 0xd5f0b1);
+        v.shield.material.color.setHex(guarded ? 0xffe49b : 0xd5f0b1);
+        v.shield.material.opacity = guarded
+          ? 0.23 + Math.sin(this.time * 9) * 0.05
+          : 0.13;
+        v.levelEffect.visible = guarded;
+        if (guarded) {
+          const fraction = Math.min(1, p.levelGuard / RULES.levelGuardDuration);
+          v.guardRing.geometry.setDrawRange(0, Math.ceil(fraction * 64) * 6);
+          for (let i = 0; i < v.guardSparks.length; i++) {
+            const phase = this.time * 1.8 + (i * Math.PI) / 3;
+            const spark = v.guardSparks[i];
+            spark.position.set(
+              Math.cos(phase) * 0.95,
+              0.35 + ((this.time * 0.75 + i / 6) % 1) * 1.6,
+              Math.sin(phase) * 0.95,
+            );
+            spark.rotation.y = phase;
+          }
+        }
         v.label.visible = playing;
 
         v.string.geometry.attributes.position.setXYZ(
