@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-BT4ZlfYp.js"></script>
+    <script type="module" crossorigin src="./assets/index-DdnkFLcK.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-BvpaO0Te.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-Dl7jMYdG.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -106,67 +106,88 @@
       </footer>
     </div>
     <div id="hud" class="arena-hud hidden">
-      <aside class="arena-map" aria-label="Harita">
-        <canvas
-          id="minimap"
-          width="160"
-          height="160"
-          aria-label="Arena haritası"
-        ></canvas>
-        <span>ORMAN VADİSİ <b>N</b></span>
+      <aside class="arena-map">
+        <button
+          id="map-toggle"
+          aria-label="Haritayı büyüt"
+          aria-expanded="false"
+        >
+          <canvas
+            id="minimap"
+            width="160"
+            height="160"
+            aria-label="Arena haritası"
+          ></canvas>
+          <span class="map-caption">ORMAN VADİSİ <b>N</b></span>
+        </button>
       </aside>
       <aside class="arena-corner">
-        <section class="arena-leaders" aria-label="Arena liderleri">
-          <div class="arena-heading">
-            <span>ARENA LİDERLERİ</span><span>♛</span>
-          </div>
-          <div class="arena-session">
-            <span class="live-dot"></span><span id="connection">YEREL</span>
-            <span id="population">8 OKÇU</span>
-            <button class="sound-button" aria-label="Sesi aç veya kapat">
-              ♫
-            </button>
-            <button id="exit" aria-label="Arenadan çık">✕</button>
-          </div>
-          <div id="leaders"></div>
-        </section>
-        <div id="kill-feed" aria-live="polite"></div>
+        <button
+          id="leaders-toggle"
+          class="hud-summary"
+          aria-label="Arena menüsünü aç"
+          aria-controls="leader-panel"
+          aria-expanded="false"
+        >
+          <span>♛</span><b id="my-rank">1</b><span class="menu-lines">☰</span>
+        </button>
+        <div id="leader-panel" class="hidden">
+          <section class="arena-leaders" aria-label="Arena liderleri">
+            <div class="arena-heading"><span>ARENA LİDERLERİ</span></div>
+            <div class="arena-session">
+              <span class="live-dot"></span><span id="connection">YEREL</span
+              ><span id="population">8 OKÇU</span
+              ><button class="sound-button" aria-label="Sesi aç veya kapat">
+                ♫</button
+              ><button id="exit" aria-label="Arenadan çık">✕</button>
+            </div>
+            <div id="leaders"></div>
+          </section>
+          <div id="kill-feed" aria-live="polite"></div>
+        </div>
       </aside>
       <section class="arena-vitals" aria-label="Oyuncu durumu">
-        <div class="vitals-heading">
-          <strong id="hud-name">Gezgin</strong
-          ><small id="player-status">İZİNİ BIRAK</small
-          ><span>SV <b id="level">1</b></span>
+        <div id="vitals-details" class="hidden">
+          <div class="vitals-heading">
+            <strong id="hud-name">Gezgin</strong
+            ><small id="player-status"></small>
+          </div>
+          <div class="vitals-footer">
+            <span>✧ <b id="xp-text">0 / 55</b> XP</span>
+            <div id="upgrade-tray"></div>
+            <span>◎ <b id="kills">0</b></span>
+          </div>
         </div>
-        <div class="health-track">
-          <div id="health-fill"></div>
-          <span id="health-text">150 / 150</span>
-        </div>
-        <div class="xp-track"><div id="xp-fill"></div></div>
-        <div class="vitals-footer">
-          <span>✧ <b id="xp-text">0 / 55</b> XP</span>
-          <div id="upgrade-tray"></div>
-          <span>◎ <b id="kills">0</b></span>
-        </div>
+        <button
+          id="vitals-toggle"
+          aria-label="Can ve yetenek ayrıntıları"
+          aria-controls="vitals-details"
+          aria-expanded="false"
+        >
+          <span class="vitals-level"><b id="level">1</b></span>
+          <span class="vitals-meter"
+            ><span class="health-track"
+              ><span id="health-fill"></span
+              ><span id="health-text">150 / 150</span></span
+            ><span class="xp-track"><span id="xp-fill"></span></span
+          ></span>
+        </button>
       </section>
       <div class="arena-actions">
-        <div class="arena-charge">
-          <div class="charge-heading">
-            <span>YAY</span><b id="charge-percent">0%</b>
-          </div>
+        <div class="arena-charge hidden">
+          <b id="charge-percent">0%</b>
           <div class="charge-track"><div id="charge-fill"></div></div>
-          <small id="charge-hint">BASILI TUT · BIRAK VE AT</small>
+          <small id="charge-hint" class="sr-only"></small>
         </div>
         <div class="action-buttons">
           <button id="dash" class="arena-ability" aria-label="Atılma">
-            <span>ϟ</span><b id="dash-time">HAZIR</b>
-          </button>
-          <button
+            <span>ϟ</span><b id="dash-time"></b></button
+          ><button
             id="heal"
             class="arena-ability"
             aria-label="Orman nefesi: 25 can yenile"
           >
-            <span>+</span><b id="heal-time">+25 CAN</b>
+            <span>+</span><b id="heal-time"></b>
           </button>
         </div>
       </div>
@@ -175,7 +196,7 @@
         class="upgrade-reminder hidden"
         aria-controls="upgrades"
       >
-        ✧ Yetenek seç <span id="upgrade-count"></span><span>↓</span>
+        ✧ Yetenek <span id="reminder-time"></span>
       </button>
       <section
         id="upgrades"
@@ -183,9 +204,8 @@
         aria-label="Yetenek seçimi"
       >
         <div class="upgrade-dock-heading">
-          <span
-            >✧ YENİ YETENEK
-            <small>Hareket etmeye devam edebilirsin</small></span
+          <span>✧ YETENEK SEÇ <small id="upgrade-count"></small></span
+          ><b id="guard-time"></b
           ><button
             id="upgrades-collapse"
             aria-label="Yetenek kartlarını küçült"
@@ -198,7 +218,6 @@
       <div id="toast" class="hidden" aria-live="polite"></div>
       <div id="touch-controls">
         <div id="move-stick" class="joystick" aria-label="Hareket joystick">
-          <span class="stick-label">HAREKET</span>
           <div class="stick-knob"></div>
         </div>
         <div
@@ -206,7 +225,6 @@
           class="joystick aim-stick"
           aria-label="Nişan ve atış joystick"
         >
-          <span class="stick-label">DOKUN: ATIŞ</span>
           <div class="stick-knob"></div>
         </div>
       </div>
@@ -257,8 +275,9 @@
             <b>04 / GÜÇLEN</b>
             <p>
               Kristalleri topla, rakiplerini vur. Seviye atladığında üç
-              yetenekten birini alttaki kartlardan seç; hareket ve atış devam
-              eder. Altın büyük kristaller nadirdir ve 60 XP verir.
+              yetenekten birini alttaki kartlardan seç. İlk 4 saniye sabit ve
+              hasara karşı korumalı olursun; tüm seçimleri bitirince erken
+              dönersin. Altın büyük kristaller nadirdir ve 60 XP verir.
             </p>
           </div>
           <div>
