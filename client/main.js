@@ -160,11 +160,9 @@ function consume(next) {
   if (me) {
     const guarded = me.levelGuard > 0;
     if (guarded && !guardWasActive) {
-      controls.reset();
       panels.close();
     }
-    controls.active =
-      me.alive && !guarded && $("help").classList.contains("hidden");
+    controls.active = me.alive && $("help").classList.contains("hidden");
     guardWasActive = guarded;
   }
   for (const e of next.events || []) {

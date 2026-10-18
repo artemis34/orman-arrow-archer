@@ -178,15 +178,17 @@ try {
       1,
       "opening cards must not select the newly revealed card",
     );
-    await expect.poll(() => p.levelGuard, { timeout: 6500 }).toBe(0);
-    await expect(page.locator("#dash")).toBeEnabled();
-    // Leaving a card undecided cannot extend protection. Input resumes normally.
+    // Hold movement through the end of protection: no need to lift/repress.
     const start = p.x;
-    if (touch) {
+    if (touch)
       await cd.send("Input.dispatchTouchEvent", {
         type: "touchStart",
         touchPoints: [move],
       });
+    else await page.keyboard.down("KeyD");
+    await expect.poll(() => p.levelGuard, { timeout: 6500 }).toBe(0);
+    await expect(page.locator("#dash")).toBeEnabled();
+    if (touch) {
       await expect.poll(() => p.x - start).toBeGreaterThan(0.3);
       const box = await page
         .locator("#upgrade-options button")
@@ -213,7 +215,6 @@ try {
         touchPoints: [],
       });
     } else {
-      await page.keyboard.down("KeyD");
       await expect.poll(() => p.x - start).toBeGreaterThan(0.3);
       await page.keyboard.press("Digit1");
       await page.keyboard.up("KeyD");
