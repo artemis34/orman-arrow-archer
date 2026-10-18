@@ -1,3 +1,4 @@
+import { applyArrowImpact, redirectRicochet } from "./skills.js";
 import { selectTarget, aimedAngle } from "./aim.js";
 import { FreeForAll } from "./modes.js";
 import {
@@ -152,6 +153,10 @@ export class World {
       seq: 0,
       poison: 0,
       poisonDps: 0,
+      levelGuard: 0,
+      slowTime: 0,
+      slowImmunity: 0,
+      blastCd: 0,
       poisonOwner: null,
       spawnShield: bot ? 2 : RULES.playerShield,
       revealUntil: 0,
@@ -189,6 +194,7 @@ export class World {
     }
     p.pending--;
     this.offer(p);
+    if (!p.pending) p.levelGuard = 0;
     return true;
   }
   offer(p) {
@@ -204,6 +210,7 @@ export class World {
     if (!p.choices.length) p.pending = 0;
   }
   gain(p, amount) {
+    const wasPending = p.pending > 0;
     p.xp += amount;
     p.score += amount;
     while (p.xp >= p.level * 55) {
@@ -213,11 +220,25 @@ export class World {
       if (p.alive) p.hp = Math.min(p.maxHp, p.hp + 18);
     }
     if (p.pending && !p.choices.length) this.offer(p);
+    if (!wasPending && p.pending && p.alive && !p.bot) {
+      p.levelGuard = RULES.levelGuardDuration;
+      p.charge = p.dashTime = p.vx = p.vz = 0;
+      p.input.charge = p.input.dash = p.input.heal = p.input.quickShot = false;
+      // Cancel without releasing during a swept-hit iteration over this pool.
+      for (const arrow of this.arrows.active)
+        if (arrow.owner === p.id) arrow.cancelled = true;
+      for (const target of this.players.values())
+        if (target.poisonOwner === p.id) {
+          target.poison = target.poisonDps = 0;
+          target.poisonOwner = null;
+        }
+    }
   }
   damage(p, amount, owner) {
-    if (!p.alive || p.spawnShield > 0) return;
+    if (!p.alive || p.spawnShield > 0 || p.levelGuard > 0) return 0;
     const source = this.players.get(owner);
-    if (source && !this.mode.canDamage(source, p)) return;
+    if (source && (!this.mode.canDamage(source, p) || source.levelGuard > 0))
+      return 0;
     const dealt = Math.min(p.hp, amount);
     p.hp -= amount;
     this.events.push({
@@ -260,6 +281,7 @@ export class World {
           18,
         );
     }
+    return dealt;
   }
   respawn(id) {
     const p = this.players.get(id);
@@ -280,6 +302,10 @@ export class World {
       dashTime: 0,
       poison: 0,
       poisonDps: 0,
+      levelGuard: 0,
+      slowTime: 0,
+      slowImmunity: 0,
+      blastCd: 0,
       shotCd: 0,
       spawnShield: p.bot ? 2 : RULES.playerShield,
       revealUntil: 0,
@@ -290,18 +316,36 @@ export class World {
     return true;
   }
   fire(p, quick = false) {
-    if (p.charge < 0.08 || p.shotCd > 0 || !p.alive) return false;
+    if (p.charge < 0.08 || p.shotCd > 0 || !p.alive || p.levelGuard > 0)
+      return false;
     let fired = false;
     const q = clamp(p.charge, 0, 1),
       spread = p.upgrades.multishot ? [-0.16, 0, 0.16] : [0];
+    if (p.upgrades.rear) spread.push(Math.PI);
     for (const offset of spread) {
       const a = this.arrows.acquire();
       if (!a) break;
       fired = true;
+      const primary = offset === 0,
+        rear = offset === Math.PI;
       const angle = p.angle + offset,
         speed = 19 + q * 23;
       a.hits.clear();
       Object.assign(a, {
+        cancelled: false,
+        distance: 0,
+        ricochet: primary ? p.upgrades.ricochet || 0 : 0,
+        frost: primary && !!p.upgrades.frost,
+        blast: primary && !!p.upgrades.blast,
+        longshot: primary && !!p.upgrades.longshot,
+        effect:
+          primary && p.upgrades.frost
+            ? "frost"
+            : primary && p.upgrades.blast
+              ? "blast"
+              : p.upgrades.poison && !rear
+                ? "poison"
+                : "normal",
         id: ++this.nextId,
         owner: p.id,
         x: p.x + Math.cos(angle) * 0.9,
@@ -311,15 +355,16 @@ export class World {
         life: 0.5 + q * 0.9,
         damage:
           RULES.arrowDamage *
-          (offset ? RULES.sideArrowScale : 1) *
+          (rear ? RULES.rearArrowScale : offset ? RULES.sideArrowScale : 1) *
           (p.bot ? RULES.botDamageScale : 1),
         poisonDps:
           (p.upgrades.poison || 0) *
           RULES.poisonDps *
+          (primary ? 1 : rear ? 0 : RULES.sideArrowScale) *
           (p.bot ? RULES.botDamageScale : 1),
         pierce: p.upgrades.pierce || 0,
         bounce: p.upgrades.bounce || 0,
-        poison: p.upgrades.poison || 0,
+        poison: rear ? 0 : p.upgrades.poison || 0,
       });
     }
     if (!fired) return false;
@@ -331,7 +376,7 @@ export class World {
     return true;
   }
   quickShot(p) {
-    if (!p.alive || p.shotCd > 0) return false;
+    if (!p.alive || p.shotCd > 0 || p.levelGuard > 0) return false;
     const target = selectTarget(
       p,
       [...this.players.values()].filter((q) => this.mode.canDamage(p, q)),
@@ -367,6 +412,7 @@ export class World {
             o !== p &&
             o.alive &&
             o.spawnShield <= 0 &&
+            o.levelGuard <= 0 &&
             (!o.hidden || Math.hypot(o.x - p.x, o.z - p.z) < 5),
         )
         .sort(
@@ -447,18 +493,18 @@ export class World {
       p.spawnShield = Math.max(0, p.spawnShield - dt);
       p.healCd = Math.max(0, p.healCd - dt);
       const i = p.input;
-      p.angle = i.angle;
       p.seq = i.seq;
-      if (i.heal && p.healCd === 0 && p.hp < p.maxHp) {
+      if (advanceMovement(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]))
+        this.events.push({ type: "dash", x: p.x, z: p.z, owner: p.id });
+      p.blastCd = Math.max(0, p.blastCd - dt);
+      if (i.heal && p.levelGuard <= 0 && p.healCd === 0 && p.hp < p.maxHp) {
         p.hp = Math.min(p.maxHp, p.hp + 25);
         p.healCd = 14;
         this.events.push({ type: "heal", x: p.x, z: p.z, owner: p.id });
       }
       p.input.heal = false;
-      if (advanceMovement(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]))
-        this.events.push({ type: "dash", x: p.x, z: p.z, owner: p.id });
       p.input.dash = false;
-      const quick = i.quickShot && !i.charge;
+      const quick = i.quickShot && !i.charge && p.levelGuard <= 0;
       p.input.quickShot = false;
       if (quick) {
         this.quickShot(p);
@@ -466,7 +512,8 @@ export class World {
         // auto-shot gesture, so a missing target must not release that partial draw.
         p.charge = 0;
       }
-      if (i.charge) {
+      if (p.levelGuard > 0) p.charge = 0;
+      else if (i.charge) {
         p.charge = clamp(
           p.charge +
             dt /
@@ -491,9 +538,9 @@ export class World {
         this.damage(p, dt * (p.poisonDps || RULES.poisonDps), p.poisonOwner);
       } else if (p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + dt * 0.8);
       if (!p.alive) continue;
-      if (p.dashTime <= 0)
+      if (p.dashTime <= 0 && p.levelGuard <= 0)
         for (const q of this.grid.query(p.x, p.z, RULES.radius * 2)) {
-          if (!q.alive || q.dashTime > 0) continue;
+          if (!q.alive || q.dashTime > 0 || q.levelGuard > 0) continue;
           const dx = p.x - q.x,
             dz = p.z - q.z,
             d = Math.hypot(dx, dz),
@@ -515,7 +562,12 @@ export class World {
       p.vz = dt ? (p.z - oldZ) / dt : 0;
       this.grid.insert(p, RULES.radius);
       for (const o of this.orbGrid.query(p.x, p.z, 1.5)) {
-        if (o.collected || Math.hypot(o.x - p.x, o.z - p.z) > 1.3) continue;
+        if (
+          p.levelGuard > 0 ||
+          o.collected ||
+          Math.hypot(o.x - p.x, o.z - p.z) > 1.3
+        )
+          continue;
         o.collected = true;
         this.gain(p, o.value);
         this.events.push({
@@ -537,9 +589,15 @@ export class World {
       const a = this.arrows.active[n],
         ox = a.x,
         oz = a.z;
+      if (a.cancelled || this.players.get(a.owner)?.levelGuard > 0) {
+        this.arrows.release(n);
+        continue;
+      }
+      const priorDistance = a.distance;
       a.x += a.vx * dt;
       a.z += a.vz * dt;
       a.life -= dt;
+      a.distance += Math.hypot(a.x - ox, a.z - oz);
       let dead = a.life <= 0;
       if (Math.abs(a.x) > RULES.size / 2 || Math.abs(a.z) > RULES.size / 2) {
         if (a.bounce > 0) {
@@ -568,7 +626,8 @@ export class World {
             (this.players.has(a.owner) &&
               !this.mode.canDamage(this.players.get(a.owner), p)) ||
             a.hits.has(p.id) ||
-            p.dashTime > 0
+            p.dashTime > 0 ||
+            p.levelGuard > 0
           )
             continue;
           const t = segmentFraction(
@@ -590,15 +649,14 @@ export class World {
           }
           const p = hit.p;
           a.hits.add(p.id);
-          this.damage(p, a.damage, a.owner);
-          p.hidden = false;
-          if (a.poison && p.spawnShield <= 0) {
-            if (p.poison <= 0 || a.poisonDps >= p.poisonDps) {
-              p.poisonDps = a.poisonDps;
-              p.poisonOwner = a.owner;
-            }
-            p.poison = RULES.poisonDuration;
+          const hitDistance =
+            priorDistance + Math.hypot(a.x - ox, a.z - oz) * hit.t;
+          const struck = applyArrowImpact(this, a, p, hitDistance);
+          if (a.cancelled) {
+            dead = true;
+            break;
           }
+          if (struck && redirectRicochet(this, a, p)) break;
           if (a.pierce > 0) a.pierce--;
           else {
             dead = true;
@@ -636,6 +694,9 @@ export class World {
         score: p.score,
         alive: p.alive,
         charge: p.charge,
+        levelGuard: p.levelGuard,
+        slowTime: p.slowTime,
+        slowImmunity: p.slowImmunity,
         shotCd: p.shotCd,
         dashCd: p.dashCd,
         healCd: p.healCd,
@@ -657,6 +718,7 @@ export class World {
         z: a.z,
         angle: Math.atan2(a.vz, a.vx),
         poison: a.poison,
+        effect: a.effect,
       })),
       orbs: this.orbs.active.map((o) => ({
         id: o.id,

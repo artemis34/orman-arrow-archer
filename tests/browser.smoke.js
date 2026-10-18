@@ -24,6 +24,8 @@ async function returnToLobby(page, touch = false) {
   if (await page.locator("#death").isVisible()) await activate("#back-lobby");
   else
     try {
+      if (!(await page.locator("#leader-panel").isVisible()))
+        await activate("#leaders-toggle");
       await activate("#exit", 1500);
     } catch (error) {
       if (!(await page.locator("#death").isVisible())) throw error;
@@ -49,6 +51,7 @@ try {
   await page.keyboard.down("KeyW");
   await page.waitForTimeout(600);
   await page.keyboard.up("KeyW");
+  await expect(page.locator("#dash")).toBeEnabled({ timeout: 6500 });
   await page.mouse.move(950, 410);
   await page.mouse.down();
   await page.waitForTimeout(1000);
@@ -63,7 +66,7 @@ try {
   await page.waitForTimeout(100);
   await page.keyboard.press("Space");
   await page.waitForTimeout(100);
-  await expect(page.locator("#dash-time")).not.toHaveText("HAZIR", {
+  await expect(page.locator("#dash-time")).toHaveText(/\d/, {
     timeout: 8000,
   });
   await page.screenshot({ path: "/tmp/archer-validation/game-desktop.png" });
@@ -99,9 +102,12 @@ try {
   await m.screenshot({ path: "/tmp/archer-validation/game-mobile.png" });
   // A tap on open arena space is an auto-shot request, even with no target.
   await m.touchscreen.tap(195, 330);
-  await expect(m.locator("#toast")).toContainText(
-    /Menzilde açık hedef yok|Otomatik atış/,
-  );
+  await expect
+    .poll(
+      async () =>
+        `${await m.locator("#toast").textContent()} ${await m.locator("#charge-hint").textContent()}`,
+    )
+    .toMatch(/Hedef yok|YENİ ATIŞ/);
   // Bots may leave line of sight between a HUD update and a tap. Retry only
   // when the UI offers a target, as a player would, until a shot is confirmed.
   const tapBox = await m.locator("#aim-stick").boundingBox();
@@ -117,11 +123,11 @@ try {
             tapBox.x + tapBox.width * 0.7,
             tapBox.y + tapBox.height / 2,
           );
-        return m.locator("#toast").textContent();
+        return m.locator("#charge-hint").textContent();
       },
       { timeout: 30000, intervals: [100, 200, 300] },
     )
-    .toContain("Otomatik atış");
+    .toContain("YENİ ATIŞ");
   // Start a fresh match so combat during target testing cannot affect stick tests.
   await m.reload();
   await m.locator("#play").click();
@@ -205,7 +211,7 @@ try {
   });
   await m.locator("#dash").tap();
   await m.waitForTimeout(150);
-  await expect(m.locator("#dash-time")).not.toHaveText("HAZIR", {
+  await expect(m.locator("#dash-time")).toHaveText(/\d/, {
     timeout: 8000,
   });
   await m.setViewportSize({ width: 844, height: 390 });
@@ -215,8 +221,8 @@ try {
     await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     true,
   );
-  const leaderboard = await m.locator(".arena-leaders").boundingBox(),
-    charge = await m.locator(".arena-charge").boundingBox();
+  const leaderboard = await m.locator("#leaders-toggle").boundingBox(),
+    charge = await m.locator(".arena-actions").boundingBox();
   assert.ok(
     leaderboard.y + leaderboard.height <= charge.y,
     "Landscape HUD panels must not overlap",

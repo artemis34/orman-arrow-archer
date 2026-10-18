@@ -19,7 +19,13 @@ export function selectTarget(
   let nearest = null,
     best = range;
   for (const p of players) {
-    if (p.id === shooter.id || !p.alive || p.spawnShield > 0) continue;
+    if (
+      p.id === shooter.id ||
+      !p.alive ||
+      p.spawnShield > 0 ||
+      p.levelGuard > 0
+    )
+      continue;
     const distance = Math.hypot(p.x - shooter.x, p.z - shooter.z);
     if (distance > best || (p.hidden && distance >= 5)) continue;
     if (

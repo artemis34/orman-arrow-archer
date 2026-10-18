@@ -1,3 +1,4 @@
+import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
 import { selectTarget } from "../shared/aim.js";
 import { preferences } from "./preferences.js";
@@ -35,6 +36,7 @@ try {
 const audio = new AudioEngine(),
   controls = new Controls($("arena"), scene, audio),
   atHome = new World({ bots: 7 });
+const panels = setupPanels();
 scene.setMap(atHome.obstacles);
 let playing = false,
   transport = null,
@@ -49,7 +51,8 @@ let playing = false,
   upgradesCollapsed = false,
   lastLevel = 1,
   toastTimer,
-  joining = false;
+  joining = false,
+  guardWasActive = false;
 const initialServer =
   new URLSearchParams(location.search).get("server") ||
   preferences.get("wildbow-server") ||
@@ -137,20 +140,33 @@ addEventListener("keydown", (e) => {
 bindAction($("upgrades-collapse"), () => {
   upgradesCollapsed = true;
   show("upgrades", false);
+  show("upgrade-reminder", !!choicesKey);
 });
 bindAction($("upgrade-reminder"), () => {
   upgradesCollapsed = !upgradesCollapsed;
   show("upgrades", !upgradesCollapsed);
+  show("upgrade-reminder", upgradesCollapsed && !!choicesKey);
 });
 function toast(message) {
   text("toast", message);
   show("toast", true);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => show("toast", false), 2800);
+  toastTimer = setTimeout(() => show("toast", false), 1100);
 }
 function consume(next) {
   state = next;
   if (!playing) return;
+  const me = next.players.find((p) => p.id === myId);
+  if (me) {
+    const guarded = me.levelGuard > 0;
+    if (guarded && !guardWasActive) {
+      controls.reset();
+      panels.close();
+    }
+    controls.active =
+      me.alive && !guarded && $("help").classList.contains("hidden");
+    guardWasActive = guarded;
+  }
   for (const e of next.events || []) {
     if (e.type === "kill") {
       const row = document.createElement("div");
@@ -169,17 +185,31 @@ function consume(next) {
     } else if (e.type === "shot") {
       if (e.owner === myId) {
         audio.play("shot");
-        if (e.quick) toast("Otomatik atış");
       }
+    } else if (
+      e.type === "blast" ||
+      e.type === "frost" ||
+      e.type === "ricochet"
+    ) {
+      scene.burst(
+        e.x,
+        e.z,
+        e.type === "blast"
+          ? 0xffbd73
+          : e.type === "frost"
+            ? 0x9ce6fa
+            : 0xeee9be,
+        e.type === "blast" ? 12 : 5,
+      );
     } else if (e.type === "gem" && e.owner === myId) {
       scene.burst(e.x, e.z, e.rare ? 0xffd680 : 0xd1f59b, e.rare ? 12 : 4);
-      if (e.rare) toast("Altın kristal · +60 XP");
+      if (e.rare) toast("✧ +60 XP");
       audio.play("gem");
     } else if (e.type === "heal") {
       scene.burst(e.x, e.z, 0xa8efa1, 14);
       if (e.owner === myId) {
         audio.play("level");
-        toast("Orman nefesi · +25 can");
+        toast("+25 CAN");
       }
     } else if (e.type === "dash") {
       scene.burst(e.x, e.z, 0xdbedbc, 6);
@@ -230,7 +260,8 @@ async function join() {
     show("hud", true);
     document.body.classList.add("playing");
     text("connection", transport.online ? "ONLINE" : "YEREL");
-    toast("Ormana hoş geldin. Kristalleri topla, yayını ger!");
+    panels.close();
+    guardWasActive = false;
   } catch (error) {
     candidate?.close();
     text("join-status", error.message);
@@ -250,6 +281,7 @@ function leave() {
   transport?.close();
   transport = null;
   myId = null;
+  panels.close();
   state = atHome.snapshot();
   for (const id of ["hud", "death", "upgrades", "help", "upgrade-reminder"])
     show(id, false);
@@ -279,12 +311,25 @@ function updateHud(current) {
   $("health-fill").style.width = `${(me.hp / me.maxHp) * 100}%`;
   $("xp-fill").style.width = `${(me.xp / (me.level * 55)) * 100}%`;
   text("xp-text", `${me.xp} / ${me.level * 55}`);
-  text("dash-time", me.dashCd > 0.05 ? `${me.dashCd.toFixed(1)}s` : "HAZIR");
+  text("dash-time", me.dashCd > 0.05 ? me.dashCd.toFixed(1) : "");
   $("dash").classList.toggle("cooldown", me.dashCd > 0.05);
-  text("heal-time", me.healCd > 0.05 ? `${me.healCd.toFixed(0)}s` : "+25 CAN");
+  text("heal-time", me.healCd > 0.05 ? me.healCd.toFixed(0) : "");
   $("heal").classList.toggle("cooldown", me.healCd > 0.05 || me.hp >= me.maxHp);
   $("health-fill").classList.toggle("critical", me.hp < me.maxHp * 0.3);
+  $("dash").disabled = $("heal").disabled = me.levelGuard > 0;
+  $("hud").classList.toggle("guarded", me.levelGuard > 0);
+  text(
+    "guard-time",
+    me.levelGuard > 0 ? `KORUMA ${me.levelGuard.toFixed(1)}s` : "",
+  );
+  text(
+    "reminder-time",
+    me.levelGuard > 0 ? `${Math.ceil(me.levelGuard)}s` : "",
+  );
   const charge = Math.round(me.charge * 100);
+  document
+    .querySelector(".arena-charge")
+    .classList.toggle("hidden", charge <= 0);
   text("charge-percent", charge + "%");
   $("charge-fill").style.width = charge + "%";
   const autoTarget = controls.isTouch
@@ -306,15 +351,19 @@ function updateHud(current) {
   );
   text(
     "player-status",
-    me.spawnShield > 0
-      ? "DOĞUŞ KALKANI"
-      : me.hidden
-        ? "ÇALIDA GİZLENDİN"
-        : "İZİNİ BIRAK",
+    me.levelGuard > 0
+      ? "SEÇİM KORUMASI"
+      : me.spawnShield > 0
+        ? "DOĞUŞ KALKANI"
+        : me.hidden
+          ? "ÇALIDA GİZLENDİN"
+          : "İZİNİ BIRAK",
   );
   $("connection").title = transport.online
     ? `Gecikme: ${transport.ping} ms`
     : "Botlarla antrenman";
+  const ranking = [...current.players].sort((a, b) => b.score - a.score);
+  text("my-rank", Math.max(1, ranking.findIndex((p) => p.id === myId) + 1));
   const sorted = [...current.players]
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -356,7 +405,7 @@ function updateHud(current) {
   }
   if (me.level > lastLevel) {
     audio.play("level");
-    toast(`Seviye ${me.level} — yeni bir yetenek seç!`);
+
     lastLevel = me.level;
   }
   const ck =
@@ -368,7 +417,7 @@ function updateHud(current) {
     text("upgrade-count", me.pending > 1 ? `· ${me.pending} bekliyor` : "");
     upgradesCollapsed = false;
     show("upgrades", !!ck);
-    show("upgrade-reminder", !!ck);
+    show("upgrade-reminder", false);
     $("upgrade-options").replaceChildren(
       ...me.choices.map((key, i) => {
         const u = UPGRADES[key],
@@ -488,8 +537,7 @@ function frame(now) {
     hudAt = now;
   }
 }
-controls.onNoTarget = () =>
-  toast("Menzilde açık hedef yok. Yaklaş veya elle nişan al.");
+controls.onNoTarget = () => toast("Hedef yok");
 show("loading", false);
 show("lobby", true);
 requestAnimationFrame(frame);

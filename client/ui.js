@@ -1,9 +1,9 @@
 /** Native click remains for mouse/keyboard; touch also works with a held joystick.
  * Mobile browsers can suppress synthetic clicks when another finger is down.
  */
+let lastTouchAction = -Infinity;
 export function bindAction(button, action) {
-  let finger = null,
-    lastTouch = -Infinity;
+  let finger = null;
   button.addEventListener("pointerdown", (event) => {
     if (event.pointerType !== "touch" || finger || button.disabled) return;
     event.preventDefault();
@@ -26,7 +26,7 @@ export function bindAction(button, action) {
     if (finger?.id !== event.pointerId) return;
     const activate = !finger.dragged && !button.disabled;
     finger = null;
-    lastTouch = performance.now();
+    lastTouchAction = performance.now();
     event.preventDefault();
     if (activate) action();
   });
@@ -36,7 +36,19 @@ export function bindAction(button, action) {
   button.addEventListener("pointercancel", cancel);
   button.addEventListener("lostpointercapture", cancel);
   button.addEventListener("click", (event) => {
-    if (event.detail !== 0 && performance.now() - lastTouch < 700) return;
+    if (
+      event.pointerType === "touch" ||
+      event.sourceCapabilities?.firesTouchEvents
+    )
+      return;
+    // A touch may reveal a different button under the same point. Safari's
+    // compatibility MouseEvent has no pointerType; never activate that new card.
+    if (
+      event.detail !== 0 &&
+      !event.pointerType &&
+      performance.now() - lastTouchAction < 700
+    )
+      return;
     if (!button.disabled) action();
   });
 }

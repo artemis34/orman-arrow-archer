@@ -7,10 +7,22 @@ export const RULES = Object.freeze({
   playerHealth: 150,
   botHealth: 100,
   playerShield: 4,
+  levelGuardDuration: 4,
+  frostDuration: 0.65,
+  frostImmunity: 2.2,
+  frostSlow: 0.18,
+  ricochetRange: 6,
+  ricochetScale: 0.4,
+  blastDamage: 4,
+  blastRadius: 2,
+  blastCooldown: 1.1,
+  longshotRange: 12,
+  longshotBonus: 0.2,
   botDamageScale: 0.75,
   arrowDamage: 15,
   shotCooldown: 0.55,
   sideArrowScale: 0.3,
+  rearArrowScale: 0.5,
   poisonDps: 1,
   poisonDuration: 3,
   speedPerUpgrade: 0.08,
@@ -49,6 +61,36 @@ export const UPGRADES = Object.freeze({
     icon: "⌁",
     description: "Arena sınırından bir ek kez seker.",
     max: 2,
+  },
+  ricochet: {
+    name: "Zincir ok",
+    icon: "↝",
+    max: 1,
+    description: "Yakın bir rakibe %40 hasarla seker.",
+  },
+  frost: {
+    name: "Buz oku",
+    icon: "❄",
+    max: 1,
+    description: "0,65 sn %18 yavaşlatır. Yenileme: 2,2 sn.",
+  },
+  blast: {
+    name: "Kor patlaması",
+    icon: "✹",
+    max: 1,
+    description: "Yakındaki diğer rakiplere 4 hasar. 1,1 sn.",
+  },
+  rear: {
+    name: "Artçı ok",
+    icon: "↔",
+    max: 1,
+    description: "Arkaya %50 hasarlı ek bir ok atarsın.",
+  },
+  longshot: {
+    name: "Uzak avcı",
+    icon: "◎",
+    max: 1,
+    description: "12 birim uçan oka %20 ek hasar.",
   },
   poison: {
     name: "Zehir",
@@ -101,7 +143,9 @@ export function moveBody(p, input, dt, obstacles) {
   const speed =
     p.dashTime > 0
       ? RULES.dashSpeed
-      : RULES.speed * (1 + RULES.speedPerUpgrade * (p.upgrades?.speed || 0));
+      : RULES.speed *
+        (1 + RULES.speedPerUpgrade * (p.upgrades?.speed || 0)) *
+        (p.slowTime > 0 ? 1 - RULES.frostSlow : 1);
   const move = p.dashTime > 0 ? { x: p.dashX, z: p.dashZ } : input;
   p.x = clamp(
     p.x + move.x * speed * dt,
@@ -138,9 +182,16 @@ export function moveBody(p, input, dt, obstacles) {
 
 /** One movement tick shared by server authority, prediction, and input replay. */
 export function advanceMovement(p, input, dt, obstacles) {
-  p.angle = input.angle;
+  p.levelGuard = Math.max(0, (p.levelGuard || 0) - dt);
+  p.slowTime = Math.max(0, (p.slowTime || 0) - dt);
+  p.slowImmunity = Math.max(0, (p.slowImmunity || 0) - dt);
   p.dashCd = Math.max(0, p.dashCd - dt);
   p.dashTime = Math.max(0, p.dashTime - dt);
+  if (p.levelGuard > 0) {
+    p.dashTime = 0;
+    return false;
+  }
+  p.angle = input.angle;
   const started = input.dash && p.dashCd === 0;
   if (started) {
     const length = Math.hypot(input.x, input.z);

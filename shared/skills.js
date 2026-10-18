@@ -1,0 +1,100 @@
+import { RULES } from "./config.js";
+import { clearShot, selectTarget } from "./aim.js";
+/** All secondary effects are authoritative, bounded, and never recursively hit. */
+export function applyArrowImpact(world, arrow, target, distance = 0) {
+  const damage =
+    arrow.damage *
+    (arrow.longshot && distance >= RULES.longshotRange
+      ? 1 + RULES.longshotBonus
+      : 1);
+  const dealt = world.damage(target, damage, arrow.owner);
+  if (!dealt) return false;
+  target.hidden = false;
+  // Level-up protection cancels existing attacks as well as new shots.
+  if (arrow.cancelled || world.players.get(arrow.owner)?.levelGuard > 0)
+    return true;
+  if (arrow.poison && target.alive) {
+    if (target.poison <= 0 || arrow.poisonDps >= target.poisonDps) {
+      target.poisonDps = arrow.poisonDps;
+      target.poisonOwner = arrow.owner;
+    }
+    target.poison = RULES.poisonDuration;
+  }
+  if (arrow.frost && target.alive && target.slowImmunity <= 0) {
+    target.slowTime = RULES.frostDuration;
+    target.slowImmunity = RULES.frostImmunity;
+    world.events.push({
+      type: "frost",
+      x: target.x,
+      z: target.z,
+      target: target.id,
+      owner: arrow.owner,
+    });
+  }
+  const owner = world.players.get(arrow.owner);
+  if (arrow.blast && owner?.alive && owner.blastCd <= 0) {
+    owner.blastCd = RULES.blastCooldown;
+    world.events.push({
+      type: "blast",
+      x: target.x,
+      z: target.z,
+      target: target.id,
+      owner: arrow.owner,
+    });
+    for (const other of world.grid.query(
+      target.x,
+      target.z,
+      RULES.blastRadius,
+    )) {
+      if (
+        other.id === target.id ||
+        other.id === arrow.owner ||
+        !other.alive ||
+        other.dashTime > 0 ||
+        Math.hypot(other.x - target.x, other.z - target.z) >
+          RULES.blastRadius ||
+        !clearShot(target, other, world.obstacles)
+      )
+        continue;
+      world.damage(
+        other,
+        RULES.blastDamage * (owner.bot ? RULES.botDamageScale : 1),
+        arrow.owner,
+      );
+    }
+  }
+  return true;
+}
+export function redirectRicochet(world, arrow, impact) {
+  if (!arrow.ricochet || arrow.cancelled) return false;
+  const owner = world.players.get(arrow.owner);
+  if (!owner?.alive || owner.levelGuard > 0) return false;
+  const candidates = [
+    ...world.grid.query(impact.x, impact.z, RULES.ricochetRange),
+  ].filter((p) => !arrow.hits.has(p.id) && world.mode.canDamage(owner, p));
+  const next = selectTarget(
+    { ...impact, id: arrow.owner },
+    candidates,
+    world.obstacles,
+    { range: RULES.ricochetRange },
+  );
+  if (!next) return false;
+  const angle = Math.atan2(next.z - impact.z, next.x - impact.x),
+    speed = Math.hypot(arrow.vx, arrow.vz);
+  arrow.x = impact.x + Math.cos(angle) * 0.85;
+  arrow.z = impact.z + Math.sin(angle) * 0.85;
+  arrow.vx = Math.cos(angle) * speed;
+  arrow.vz = Math.sin(angle) * speed;
+  arrow.damage *= RULES.ricochetScale;
+  arrow.poisonDps *= RULES.ricochetScale;
+  arrow.ricochet--;
+  arrow.life = Math.max(arrow.life, 0.28);
+  world.events.push({
+    type: "ricochet",
+    x: impact.x,
+    z: impact.z,
+    owner: arrow.owner,
+    target: impact.id,
+  });
+  return true;
+}

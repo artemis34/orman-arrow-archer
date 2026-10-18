@@ -137,7 +137,22 @@ export class ArenaScene {
     headGeo.rotateZ(-Math.PI / 2);
     headGeo.translate(0.68, 0, 0);
     const arrowMat = new THREE.MeshStandardMaterial({ color: 0xf9e1ab });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xe7f1c5 });
+    this.arrowHeadMaterials = Object.fromEntries(
+      Object.entries({
+        normal: 0xe7f1c5,
+        frost: 0x8cdfff,
+        blast: 0xffae67,
+        poison: 0xc1a0ed,
+      }).map(([key, color]) => [
+        key,
+        new THREE.MeshStandardMaterial({
+          color,
+          emissive: color,
+          emissiveIntensity: 0.15,
+        }),
+      ]),
+    );
+    const headMat = this.arrowHeadMaterials.normal;
     for (let i = 0; i < RULES.maxArrows; i++) {
       const g = new THREE.Group();
       g.add(
@@ -556,9 +571,11 @@ export class ArenaScene {
         v.legs[0].rotation.z = stride * 0.32;
         v.legs[1].rotation.z = -stride * 0.32;
         v.body.rotation.z = p.dashTime > 0 ? -0.12 : stride * 0.015;
-        v.base.visible = p.id === myId;
-        v.shield.visible = p.spawnShield > 0;
-        v.label.visible = playing;
+        v.base.visible = p.id === myId || p.slowTime > 0;
+        v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
+        v.shield.visible = p.spawnShield > 0 || p.levelGuard > 0;
+        v.shield.material.color.setHex(p.levelGuard > 0 ? 0x9edce8 : 0xd5f0b1);
+        v.label.visible = playing && p.id !== myId;
 
         v.string.geometry.attributes.position.setXYZ(
           1,
@@ -593,6 +610,8 @@ export class ArenaScene {
         if (a) {
           m.position.set(a.x, 1, a.z);
           m.rotation.y = -a.angle;
+          m.children[1].material =
+            this.arrowHeadMaterials[a.effect] || this.arrowHeadMaterials.normal;
         }
       }
       this.gems.count = state.orbs.length;

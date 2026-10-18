@@ -128,6 +128,7 @@ test("death drops XP, enforces respawn delay and resets progression", () => {
   position(a, 0, 0);
   position(b, 4, 0);
   w.gain(b, 100);
+  b.levelGuard = 0; // This fixture checks death after the selection grace period.
   w.damage(b, 200, "a");
   assert.equal(b.alive, false);
   assert.equal(a.kills, 1);

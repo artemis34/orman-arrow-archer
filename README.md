@@ -38,7 +38,9 @@ npm start
 - Oyuncu 150 can ve 4 saniye doğuş kalkanıyla başlar; ilk başarılı atış kalkanı kaldırır. Doğuş noktası rakiplerden en az 10 birim uzak seçilir; uygun yer yoksa örneklenen en güvenli nokta kullanılır. Botlar 100 cana sahiptir ve %25 daha az ok hasarı verir. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
 - Otomatik atış 22 birim içindeki görünür, sipersiz ve doğuş koruması olmayan en yakın rakibi seçer. Okun hızı/menzili için %55 şarj eşdeğeri ve 0,65 saniye bekleme kullanır; yay hızı yeteneği bu beklemeyi kısaltır. Hareketli hedefe kısa öngörü uygulanır; oklar fiziksel olarak uçar ve kaçılabilir. Temel ok her şarj seviyesinde 15 hasar verir; tam şarj daha hızlı ve uzağa giden ok sağlar. Elle atışta da 0,55 saniye bekleme vardır; hızlı tıklamayla bu süre atlanamaz. Çevrimiçinde hedef seçimi ve atış sunucu tarafından doğrulanır.
 - Çoklu atışın yan okları %30 hasar verir. Zehir 3 saniye sürer ve kademe başına toplam 3 ek hasar verir; süreler üst üste eklenmez. Hız yeteneği kademe başına %8, yay hızı %12; Orman kalbi +20 azami can ve 25 iyileştirme verir.
-- Yetenekler ekranı örtmeyen alt kartlardan seçilir; oyun, yürüyüş ve atış devam eder. Kartları küçültüp merkezdeki yavaşça beliren hatırlatıcıyla yeniden açabilirsin. Masaüstünde 1–3 tuşları da seçer. Biriken seviyeler sırayla sunulur.
+- Seviye atlayınca en fazla 4 saniye sabit ve hasara karşı korumalı kalırsın. Bu sırada saldırı/atılma/aktif iyileştirme yapılmaz; mevcut saldırıların iptal edilir. Bekleyen seçimleri bitirince erken dönersin; süre bitince kart seçilmemiş olsa da savaş sürer. Biriken seçimler süreyi yenilemez. Kartlar altta, küçültülebilir; 1–3 tuşları da seçer.
+- HUD varsayılan olarak küçük harita, sağ üst arena menüsü, ince can/XP şeridi ve iki yetenek ikonudur. Harita, sıralama/ses/çıkış ve oyuncu ayrıntıları dokununca açılır; başka panel açınca veya arenaya dokununca kapanır. Bekleyen kart hatırlatıcısı yalnızca kartlar küçültülmüşken görünür.
+- Yeni seçenekler: Zincir ok, Buz oku, Kor patlaması, Artçı ok, Uzak avcı. [Araştırma kaynağı ve PvP denge kararları](docs/skill-design.md).
 - Ses kullanıcı etkileşiminden sonra Web Audio ile üretilir; sessiz seçimi cihazda hatırlanır. Uyumlu cihazlarda isabette hafif titreşim.
 
 ## Mimari
@@ -54,12 +56,14 @@ client/
   forest.js       Birleştirilen çevre geometrileri, patikalar ve bitkiler
   hud.css         Köşelerde HUD, kompakt yetenek kartları, mobil yerleşimler
   ui.js           Joystick tutulurken de çalışan dokunmatik kart düğmeleri
+  panels.js       İsteğe göre açılan ve birbirini kapatan küçük HUD panelleri
   style.css       Ana menü ve öğretici
 shared/
   config.js       Kurallar, doğrulama, ortak hareket ve kozmetik tanımları
   spatial.js      Uniform grid, swept segment-circle testleri, sınırlı nesne havuzu
   aim.js          Görüş hattı, en yakın hedef ve hareketli hedef öngörüsü
   world.js        Otoriter simülasyon, FSM botlar, yetenekler, görünürlük
+  skills.js       Sekme, buz, alan etkisi ve mesafe bonusunun sunucu hesapları
 server/index.js   Express, Socket.io, 30 Hz döngü, bağlantı/mesaj sınırları
 public/           Statik varlıklar
  tests/           Simülasyon, ağ ve Chromium testleri
@@ -78,13 +82,13 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 38 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 49 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
 
 `npm run test:browser`: yerelde çalışan uygulamayı Chromium'da açar. Masaüstü ve mobil, dokunarak otomatik atış, şarj/bırakma, atılma ve online katılma. `CHROMIUM_PATH` ile mevcut Chromium yolu seçilir (varsayılan `/usr/bin/chromium`). Ekran görüntüleri `/tmp/archer-validation/` altında tutulur.
 
-`npm run test:hud`: gerçek Socket.io otoritesiyle masaüstü, tablet, 390×844 ve 375×667 telefon, 844×390 yatay görünüm. Kartların oyun alanını kapatmadığını, joystick tutulurken ikinci parmakla seçim yapılabildiğini, bekleyen seçimleri ve küçült/aç davranışını doğrular. Geliştirme sunucusunda çalıştırmak için `PORT=3002 npm run dev`, ardından `TEST_SERVER_URL=http://127.0.0.1:3002 npm run test:hud`.
+`npm run test:hud`: gerçek Socket.io otoritesiyle masaüstü, tablet, 390×844 ve 375×667 telefon, 844×390 yatay görünüm. Kalıcı HUD alanının ekranın %10’undan az olduğunu, panellerin açılıp kapanmasını, koruma sırasında sabitlik/hasarsızlığı, erken seçimi ve süre sonunda kontrolün dönmesini doğrular; koruma bitince ikinci parmakla seçim de çalışır. Geliştirme sunucusunda çalıştırmak için `PORT=3002 npm run dev`, ardından `TEST_SERVER_URL=http://127.0.0.1:3002 npm run test:hud`.
 
 Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
 
