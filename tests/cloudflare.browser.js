@@ -119,12 +119,20 @@ async function open(mobile, name) {
   };
 }
 async function exit(page, touch) {
-  const activate = (selector) =>
-    page.locator(selector)[touch ? "tap" : "click"]();
+  const activate = (selector, timeout = 5000) =>
+    page.locator(selector)[touch ? "tap" : "click"]({ timeout });
   if (await page.locator("#death").isVisible()) await activate("#back-lobby");
   else {
-    await activate("#leaders-toggle");
-    await activate("#exit");
+    try {
+      if (!(await page.locator("#leader-panel").isVisible()))
+        await activate("#leaders-toggle");
+      await activate("#exit", 1500);
+    } catch (error) {
+      // The arena keeps running while menus are open. A bot may kill this
+      // player between the initial visibility check and the actual exit tap.
+      if (!(await page.locator("#death").isVisible())) throw error;
+      await activate("#back-lobby");
+    }
   }
   await expect(page.locator("#lobby")).toBeVisible();
 }
