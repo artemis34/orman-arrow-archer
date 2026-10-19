@@ -25,16 +25,9 @@ export class LocalTransport {
   }
   close() {}
 }
-export class SocketTransport {
-  constructor(
-    url,
-    onState,
-    onDisconnect,
-    { createSocket = io, connectTimeout = 75000 } = {},
-  ) {
-    this.createSocket = createSocket;
-    this.connectTimeout = connectTimeout;
-    this.url = url;
+/** Prediction and interpolation are shared by both online protocols. */
+export class NetworkTransport {
+  constructor(onState, onDisconnect) {
     this.online = true;
     this.onState = onState;
     this.onDisconnect = onDisconnect;
@@ -44,87 +37,23 @@ export class SocketTransport {
     this.ping = 0;
     this.predicted = null;
   }
-  connect(name, skin) {
-    return new Promise((resolve, reject) => {
-      let ready = false;
-      this.socket = this.createSocket(this.url, {
-        transports: ["websocket", "polling"],
-        timeout: 60000,
-        tryAllTransports: true,
-        reconnection: false,
-      });
-      const timer = (this.connectTimer = setTimeout(() => {
-        this.close();
-        reject(
-          new Error(
-            "Sunucu yanıt vermedi. Ücretsiz sunucunun uyanması zaman alabilir.",
-          ),
-        );
-      }, this.connectTimeout));
-      this.socket.on("connect", () => this.socket.emit("join", { name, skin }));
-      this.socket.on("welcome", (data) => {
-        clearTimeout(timer);
-        ready = true;
-        this.id = data.id;
-        this.obstacles = data.obstacles;
-        resolve(data);
-        this.pingTimer = setInterval(() => {
-          const start = performance.now();
-          this.socket.timeout(3000).emit("latency", (error) => {
-            if (!error) this.ping = Math.round(performance.now() - start);
-          });
-        }, 2000);
-      });
-      this.socket.on("state", (state) => {
-        const now = performance.now();
-        this.snapshots.push({ state, at: now });
-        while (this.snapshots.length > 8) this.snapshots.shift();
-        const me = state.players.find((p) => p.id === this.id);
-        if (me) {
-          this.pending = this.pending.filter((i) => i.seq > me.seq);
-          this.predicted = { ...me, upgrades: { ...me.upgrades } };
-          if (this.predicted.alive)
-            for (const i of this.pending)
-              advanceMovement(
-                this.predicted,
-                i,
-                1 / RULES.tick,
-                this.obstacles,
-              );
-        }
-        this.onState(state);
-      });
-      this.socket.on("full", () => {
-        clearTimeout(timer);
-        this.close();
-        reject(new Error("Arena dolu. Biraz sonra tekrar dene."));
-      });
-      this.socket.on("connect_error", () => {
-        if (!ready) {
-          clearTimeout(timer);
-          this.close();
-          reject(
-            new Error(
-              "Sunucuya bağlanılamadı. Adresi kontrol et veya antrenmanı seç.",
-            ),
-          );
-        }
-      });
-      this.socket.on("disconnect", () => {
-        if (ready) this.onDisconnect();
-        else {
-          clearTimeout(timer);
-          this.close();
-          reject(
-            new Error("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin."),
-          );
-        }
-      });
-    });
+  acceptState(state) {
+    const now = performance.now();
+    this.snapshots.push({ state, at: now });
+    while (this.snapshots.length > 8) this.snapshots.shift();
+    const me = state.players.find((p) => p.id === this.id);
+    if (me) {
+      this.pending = this.pending.filter((i) => i.seq > me.seq);
+      this.predicted = { ...me, upgrades: { ...me.upgrades } };
+      if (this.predicted.alive)
+        for (const i of this.pending)
+          advanceMovement(this.predicted, i, 1 / RULES.tick, this.obstacles);
+    }
+    this.onState(state);
   }
   step(input) {
     input = cleanInput({ ...input, seq: ++this.seq });
-    this.socket.emit("input", input);
+    this.send("input", input);
     this.pending.push(input);
     if (this.pending.length > 120) this.pending.shift();
     if (this.predicted?.alive)
@@ -195,11 +124,87 @@ export class SocketTransport {
       }),
     };
   }
-  choose(k) {
-    this.socket.emit("upgrade", k);
+  choose(key) {
+    this.send("upgrade", key);
   }
   respawn() {
-    this.socket.emit("respawn");
+    this.send("respawn");
+  }
+}
+export class SocketTransport extends NetworkTransport {
+  constructor(
+    url,
+    onState,
+    onDisconnect,
+    { createSocket = io, connectTimeout = 75000 } = {},
+  ) {
+    super(onState, onDisconnect);
+    this.createSocket = createSocket;
+    this.connectTimeout = connectTimeout;
+    this.url = url;
+  }
+  connect(name, skin) {
+    return new Promise((resolve, reject) => {
+      let ready = false;
+      this.socket = this.createSocket(this.url, {
+        transports: ["websocket", "polling"],
+        timeout: 60000,
+        tryAllTransports: true,
+        reconnection: false,
+      });
+      const timer = (this.connectTimer = setTimeout(() => {
+        this.close();
+        reject(
+          new Error(
+            "Sunucu yanıt vermedi. Ücretsiz sunucunun uyanması zaman alabilir.",
+          ),
+        );
+      }, this.connectTimeout));
+      this.socket.on("connect", () => this.socket.emit("join", { name, skin }));
+      this.socket.on("welcome", (data) => {
+        clearTimeout(timer);
+        ready = true;
+        this.id = data.id;
+        this.obstacles = data.obstacles;
+        resolve(data);
+        this.pingTimer = setInterval(() => {
+          const start = performance.now();
+          this.socket.timeout(3000).emit("latency", (error) => {
+            if (!error) this.ping = Math.round(performance.now() - start);
+          });
+        }, 2000);
+      });
+      this.socket.on("state", (state) => this.acceptState(state));
+      this.socket.on("full", () => {
+        clearTimeout(timer);
+        this.close();
+        reject(new Error("Arena dolu. Biraz sonra tekrar dene."));
+      });
+      this.socket.on("connect_error", () => {
+        if (!ready) {
+          clearTimeout(timer);
+          this.close();
+          reject(
+            new Error(
+              "Sunucuya bağlanılamadı. Adresi kontrol et veya antrenmanı seç.",
+            ),
+          );
+        }
+      });
+      this.socket.on("disconnect", () => {
+        if (ready) this.onDisconnect();
+        else {
+          clearTimeout(timer);
+          this.close();
+          reject(
+            new Error("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin."),
+          );
+        }
+      });
+    });
+  }
+  send(type, data) {
+    this.socket.emit(type, data);
   }
   close() {
     clearTimeout(this.connectTimer);

@@ -722,7 +722,7 @@ export class World {
     if (this.orbs.active.length < RULES.maxOrbs && this.random() < dt * 12)
       this.spawnOrb();
   }
-  snapshot(viewerId) {
+  snapshot(viewerId, events = this.events) {
     const viewer = this.players.get(viewerId);
     const visible = (p) =>
       !p.hidden ||
@@ -784,7 +784,7 @@ export class World {
         rare: o.rare,
       })),
       powerups: this.powerups.snapshot(),
-      events: this.events.filter((e) => {
+      events: events.filter((e) => {
         if (e.type === "kill") return true; // Kill feed has names, no coordinates.
         const subject = this.players.get(e.target || e.owner);
         return !subject || visible(subject);

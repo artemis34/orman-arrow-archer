@@ -354,6 +354,24 @@ canvas#arena {
   font-size: 10px;
   color: var(--muted);
 }
+.room-entry {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.room-entry input {
+  min-width: 0;
+  flex: 1;
+}
+#copy-invite {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #d4f39412;
+  color: var(--lime);
+  font-size: 11px;
+  padding: 12px 10px;
+}
 #server-field {
   margin-bottom: 14px;
 }

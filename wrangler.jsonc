@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wildbow-archer",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": true,
+  "build": {
+    "command": "npm run build:cloudflare",
+    "watch_dir": ["client", "shared", "public", "index.html", "vite.config.js"],
+  },
+  "assets": {
+    "directory": "./dist-cloudflare",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health"],
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ARENAS", "class_name": "ArenaRoom" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ArenaRoom"] }],
+}

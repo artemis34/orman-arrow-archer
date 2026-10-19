@@ -1,8 +1,10 @@
 # Wildbow · Archer.io
 
-[Ücretsiz botlu arenayı oyna](https://rawcdn.githack.com/artemis34/orman-arrow-archer/cdc0c5f8f5f167ebcee4b10ac924fc11771b0d5c/index.html) · [Çok oyunculu sunucuyu Render’da kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer)
+[Ücretsiz botlu arenayı oyna](https://rawcdn.githack.com/artemis34/orman-arrow-archer/cdc0c5f8f5f167ebcee4b10ac924fc11771b0d5c/index.html) · [Cloudflare’da online arenayı kur](https://deploy.workers.cloudflare.com/?url=https://github.com/artemis34/orman-arrow-archer)
 
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
+
+Cloudflare sürümü yerel WebSocket + Durable Objects kullanır ve varsayılan olarak online açılır. Aynı oda koduna katılan en çok 16 insan ve 7 bot ortak, otoriter bir dünyada oynar. Davet bağlantısı oda kodunu taşır. [Kurulum ve ücretsiz kota ayrıntıları](docs/cloudflare.md).
 
 ## Çalıştırma
 
@@ -22,7 +24,9 @@ npm start
 
 ## Ücretsiz yayın
 
-**Hemen oynanabilir CDN sürümü:** Yukarıdaki botlu arena bağlantısı ücretsiz raw.githack CDN üzerinde yayımlanmıştır; hesap gerekmez. CDN ilk ziyarette **External Content Notice** gösterirse **Open the page** düğmesine bas; oyun bundan sonra açılır. Her main push’unda GitHub Actions üretim paketini `gh-pages` dalına gönderir ve sabit commit bağlantısının HTML/JS dosyalarını HTTPS üzerinden kontrol eder. Statik sürümde botlu antrenman çalışır; gerçek oyuncular için Socket.io sunucusu gerekir. CDN bir üçüncü taraf ücretsiz hizmetidir; hizmet sürekliliği garantisi yoktur.
+**Çok oyunculu Cloudflare sürümü:** [Cloudflare’da kur](https://deploy.workers.cloudflare.com/?url=https://github.com/artemis34/orman-arrow-archer). Statik oyun dosyaları ve Durable Objects oda sunucuları aynı Worker üzerinden sunulur; ayrı bir Node servisi gerekmez. Ücretsiz plana uygun SQLite sınıf migrasyonu yapılandırılmıştır. Son oyuncu ayrıldığında oda/bot döngüsü durur; 90 saniye girdi göndermeyen bağlantılar temizlenir. Kurulum tamamlanmadan bir `workers.dev` adresi canlı kabul edilmez. [Hesap bağlantısı, GitHub otomatik yayın ve kota bilgileri](docs/cloudflare.md).
+
+**Hemen oynanabilir CDN sürümü:** Yukarıdaki botlu arena bağlantısı ücretsiz raw.githack CDN üzerinde yayımlanmıştır; hesap gerekmez. CDN ilk ziyarette **External Content Notice** gösterirse **Open the page** düğmesine bas; oyun bundan sonra açılır. Her main push’unda GitHub Actions üretim paketini `gh-pages` dalına gönderir ve sabit commit bağlantısının HTML/JS dosyalarını HTTPS üzerinden kontrol eder. Statik sürümde botlu antrenman çalışır; gerçek oyuncular için Cloudflare veya Node oyun sunucusu gerekir. CDN bir üçüncü taraf ücretsiz hizmetidir; hizmet sürekliliği garantisi yoktur.
 
 **Tam çok oyunculu oyun — Render:** [Render Blueprint ile kur](https://render.com/deploy?repo=https://github.com/artemis34/orman-arrow-archer). Ücretsiz hesabında depoyu bağla; `render.yaml` içindeki Free web service planını seçerek kurulumu tamamla. Build `npm ci --include=dev && npm run build`, start `npm start`, sağlık kontrolü `/health`. Verilen HTTPS adresi hem siteyi hem Socket.io sunucusunu sunar. Menüde Çok oyunculu seç; kendi site adresi otomatik dolacaktır. Aynı adrese bağlanan oyuncular aynı arenada buluşur. Free plan boşta uyuyabilir; ilk açılış gecikebilir. Sağlayıcının güncel ücretsiz kota ve koşulları geçerlidir. Bu dosya servisi otomatik oluşturmaz ve kart/ücret gerektiren plana yükseltmez.
 
@@ -51,7 +55,8 @@ client/
   main.js         Menü, HUD, uygulama yaşam döngüsü
   scene.js        Three.js sahnesi, havuzlanmış ok/EXP/efekt görselleri
   controls.js     Klavye/fare ve bağımsız pointer yakalamalı çift joystick
-  transport.js    Yerel antrenman / Socket.io adaptörleri, prediction & interpolation
+  transport.js    Yerel/Socket.io adaptörleri ve ortak prediction/interpolation
+  websocket.js    Cloudflare yerel WebSocket adaptörü
   presentation.js Kare hızından bağımsız poz yumuşatma ve mesafeye bağlı yürüyüş
   audio.js        Web Audio sentezi
   forest.js       Birleştirilen çevre geometrileri, patikalar ve bitkiler
@@ -65,6 +70,8 @@ shared/
   aim.js          Görüş hattı, kararlı en düşük can hedefi ve hareketli hedef öngörüsü
   world.js        Otoriter simülasyon, FSM botlar, yetenekler, görünürlük
   skills.js       Sekme, buz, alan etkisi ve mesafe bonusunun sunucu hesapları
+cloudflare/worker.js Durable Objects odaları, 30 Hz otorite / 15 Hz yayın
+wrangler.jsonc    Cloudflare Free planı, statik dosyalar, SQLite sınıf migrasyonu
 server/index.js   Express, Socket.io, 30 Hz döngü, bağlantı/mesaj sınırları
 public/           Statik varlıklar
  tests/           Simülasyon, ağ ve Chromium testleri
@@ -83,7 +90,9 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 66 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm run dev:cloudflare` gerçek yerel Cloudflare çalışma ortamını başlatır; `npm run test:cloudflare` iki oyuncu, oda yalıtımı, kapasite, payload/origin sınırları ve boş oda kapanışını doğrular. `npm run test:cloudflare:browser` masaüstü/dokunmatik iki oyuncuyu aynı odada oynatır ve yavaş mobil çizim sırasında da girdi/şarjın devam ettiğini denetler.
+
+`npm test`: 76 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:interaction`: gerçek Socket.io otoritesiyle otomatik atış, erken yetenek seçimi, 568×320 yatay telefonda okunabilir kartlar, ölüm/yeniden doğuş, ses ve çıkış. Chromium'da joystick basılı kalırken ikinci parmakla yeniden doğuş/ses/çıkış doğrulanır. `PLAYWRIGHT_ENGINE=webkit npm run test:interaction` WebKit motorunda dokunmatik sayfa uyumluluğunu kontrol eder; CI her iki motoru kurup çalıştırır. Bu, fiziksel iPhone testi değildir.
 

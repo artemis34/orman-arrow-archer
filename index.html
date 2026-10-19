@@ -75,13 +75,40 @@
             ><button id="online-mode">◎ Çok oyunculu</button>
           </div>
           <div id="server-field" class="hidden">
-            <label for="server-url">SUNUCU ADRESİ</label
-            ><input
-              id="server-url"
-              type="url"
-              placeholder="https://sunucun.onrender.com"
-            />
-            <p class="field-note">Aynı adrese bağlanan arkadaşlarınla oyna.</p>
+            <div id="server-address">
+              <label for="server-url">SUNUCU ADRESİ</label
+              ><input
+                id="server-url"
+                type="url"
+                placeholder="https://sunucun.onrender.com"
+              />
+              <p class="field-note">
+                Aynı adrese bağlanan arkadaşlarınla oyna.
+              </p>
+            </div>
+            <div id="room-field" class="hidden">
+              <label for="room-code">ODA KODU</label>
+              <div class="room-entry">
+                <input
+                  id="room-code"
+                  maxlength="24"
+                  value="arena"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-describedby="room-note"
+                /><button
+                  id="copy-invite"
+                  type="button"
+                  aria-label="Oda davetini kopyala"
+                >
+                  Davet ↗
+                </button>
+              </div>
+              <p id="room-note" class="field-note">
+                Birlikte oynamak için aynı kodu kullanın.
+              </p>
+            </div>
           </div>
           <button id="play" class="primary">
             Arenaya katıl <span>↗</span>

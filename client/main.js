@@ -19,6 +19,8 @@ import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
 import { LocalTransport, SocketTransport } from "./transport.js";
+import { WebSocketTransport } from "./websocket.js";
+import { roomCode } from "../shared/online.js";
 import { World } from "../shared/world.js";
 import { SKINS, UPGRADES, RULES } from "../shared/config.js";
 const $ = (id) => document.getElementById(id),
@@ -39,6 +41,9 @@ const audio = new AudioEngine(),
   atHome = new World({ bots: 7 });
 const panels = setupPanels();
 scene.setMap(atHome.obstacles);
+const query = new URLSearchParams(location.search);
+const cloudflare =
+  import.meta.env.MODE === "cloudflare" || query.get("network") === "websocket";
 let playing = false,
   transport = null,
   state = atHome.snapshot(),
@@ -55,7 +60,8 @@ let playing = false,
   joining = false,
   guardWasActive = false;
 const initialServer =
-  new URLSearchParams(location.search).get("server") ||
+  (cloudflare ? query.get("server") || location.origin : null) ||
+  query.get("server") ||
   preferences.get("wildbow-server") ||
   import.meta.env.VITE_SERVER_URL ||
   (["localhost", "127.0.0.1"].includes(location.hostname) ||
@@ -63,6 +69,9 @@ const initialServer =
     ? location.origin
     : "");
 $("server-url").value = initialServer;
+$("room-code").value = roomCode(query.get("room") || "arena") || "arena";
+show("server-address", !cloudflare);
+show("room-field", cloudflare);
 $("player-name").value = preferences.get("wildbow-name") || "Gezgin";
 for (const [i, s] of SKINS.entries()) {
   const b = document.createElement("button");
@@ -88,7 +97,9 @@ function setMode(next) {
     "join-status",
     mode === "practice"
       ? "Botlarla anında oyna · Hesap gerekmez"
-      : "Gerçek oyuncular · Sunucu bağlantısı gerekir",
+      : cloudflare
+        ? "Aynı oda koduyla arkadaşlarınla oyna"
+        : "Gerçek oyuncular · Sunucu bağlantısı gerekir",
   );
   text(
     "server-label",
@@ -99,6 +110,25 @@ function setMode(next) {
 }
 $("practice-mode").onclick = () => setMode("practice");
 $("online-mode").onclick = () => setMode("online");
+setMode(cloudflare ? "online" : "practice");
+bindAction($("copy-invite"), async () => {
+  const room = roomCode($("room-code").value);
+  if (!room) {
+    text("join-status", "Oda kodu 3–24 harf, rakam veya tire içermeli.");
+    return;
+  }
+  const invite = new URL(location.href);
+  invite.searchParams.set("room", room);
+  // A shared external/static frontend must retain its explicit server adapter.
+  if (query.get("network")) invite.searchParams.set("network", "websocket");
+  try {
+    await navigator.clipboard.writeText(invite.href);
+    text("join-status", "Davet bağlantısı kopyalandı.");
+  } catch {
+    text("join-status", "Adres çubuğundaki bağlantıyı paylaşabilirsin.");
+    history.replaceState(null, "", invite);
+  }
+});
 function syncSound() {
   for (const b of document.querySelectorAll(".sound-button")) {
     b.textContent = audio.enabled ? "♫" : "♩";
@@ -243,15 +273,28 @@ async function join() {
       url = parsed.origin;
       preferences.set("wildbow-server", url);
       text("join-status", "Arenaya bağlanılıyor…");
-      candidate = new SocketTransport(url, consume, () => {
+      const onDisconnect = () => {
         leave();
         text(
           "join-status",
           "Bağlantı kesildi. Tekrar katılabilir veya antrenmanı seçebilirsin.",
         );
-      });
+      };
+      if (cloudflare) {
+        const room = roomCode($("room-code").value);
+        if (!room)
+          throw new Error("Oda kodu 3–24 harf, rakam veya tire içermeli.");
+        candidate = new WebSocketTransport(url, consume, onDisconnect, {
+          room,
+        });
+      } else candidate = new SocketTransport(url, consume, onDisconnect);
     } else candidate = new LocalTransport();
     const welcome = await candidate.connect(name, skin);
+    if (cloudflare && candidate.online) {
+      const invite = new URL(location.href);
+      invite.searchParams.set("room", welcome.room);
+      history.replaceState(null, "", invite);
+    }
     transport = candidate;
     myId = welcome.id;
     playing = true;
@@ -558,13 +601,16 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
+  // Background mobile tabs stop sending input, allowing abandoned Cloudflare
+  // sessions to expire instead of leaving a bot arena running indefinitely.
+  if (cloudflare && playing && transport?.online && document.hidden) return;
   accumulator += dt;
   while (accumulator >= 1 / RULES.tick) {
-    if (playing && transport) {
+    if (playing && transport && !transport.online) {
       const me = state?.players.find((p) => p.id === myId);
       const next = transport.step(controls.sample(me, state, scene.obstacles));
       if (next) consume(next);
-    } else {
+    } else if (!playing) {
       atHome.step();
       state = atHome.snapshot();
     }
@@ -587,6 +633,13 @@ function frame(now) {
     hudAt = now;
   }
 }
+// Network input must keep its cadence even when rendering is slow. Otherwise a
+// busy mobile GPU can trigger the authority's stale-input watchdog mid-draw.
+setInterval(() => {
+  if (!playing || !transport?.online || document.hidden) return;
+  const me = state?.players.find((p) => p.id === myId);
+  transport.step(controls.sample(me, state, scene.obstacles));
+}, 1000 / RULES.tick);
 controls.onNoTarget = () => toast("Hedef yok");
 show("loading", false);
 show("lobby", true);
