@@ -107,10 +107,10 @@ function syncSound() {
   }
 }
 for (const b of document.querySelectorAll(".sound-button"))
-  b.onclick = () => {
+  bindAction(b, () => {
     audio.toggle();
     syncSound();
-  };
+  });
 syncSound();
 let focusBeforeHelp = null;
 function help(open) {
@@ -302,12 +302,12 @@ function leave() {
       : "Çok oyunculu arenaya yeniden katılabilirsin.",
   );
 }
-$("exit").onclick = leave;
-$("back-lobby").onclick = leave;
-$("respawn").onclick = () => {
+bindAction($("exit"), leave);
+bindAction($("back-lobby"), leave);
+bindAction($("respawn"), () => {
   transport?.respawn();
   controls.reset();
-};
+});
 function updateHud(current) {
   const me = current?.players.find((p) => p.id === myId);
   if (!me) return;

@@ -100,6 +100,68 @@ test("respawn transitions snap rather than sliding across the whole arena", () =
     t.close();
   }
 });
+test("interpolation keeps current protection, health and death on the predicted player", () => {
+  const { t, socket } = harness();
+  try {
+    const publish = (changes) =>
+      socket.emit("state", {
+        players: [player(changes)],
+        arrows: [],
+        orbs: [],
+      });
+    for (let i = 0; i < 4; i++)
+      publish({ x: i, hp: 100, levelGuard: 2, choices: ["draw"] });
+    publish({ x: 4, hp: 64, levelGuard: 0, choices: [] });
+    const now = performance.now();
+    t.snapshots.forEach((s, i) => (s.at = now - (4 - i) * 33));
+    let me = t.view().players[0];
+    assert.equal(me.x, t.predicted.x);
+    assert.equal(me.levelGuard, 0);
+    assert.equal(me.hp, 64);
+    assert.deepEqual(me.choices, []);
+    publish({ x: 4, hp: 0, alive: false });
+    me = t.view().players[0];
+    assert.equal(me.alive, false);
+    assert.equal(me.hp, 0);
+  } finally {
+    t.close();
+  }
+});
+test("remote motion stays buffered while protection and concealment update immediately", () => {
+  const { t, socket } = harness();
+  try {
+    t.id = "viewer";
+    for (let i = 0; i < 5; i++)
+      socket.emit("state", {
+        players: [player({ x: i, hp: i === 4 ? 80 : 100 })],
+        arrows: [],
+        orbs: [],
+      });
+    const now = performance.now();
+    t.snapshots.forEach((s, i) => (s.at = now - (4 - i) * 33));
+    const remote = t.view().players[0];
+    assert.ok(
+      remote.x > 1 && remote.x < 2,
+      "remote transforms retain smooth interpolation",
+    );
+    assert.equal(remote.hp, 80);
+    socket.emit("state", {
+      players: [player({ x: 4, levelGuard: 3 })],
+      arrows: [],
+      orbs: [],
+    });
+    assert.equal(t.view().players[0].levelGuard, 3);
+    assert.equal(t.view().players[0].x, 4);
+    socket.emit("state", { players: [], arrows: [], orbs: [] });
+    assert.equal(
+      t.view().players.length,
+      0,
+      "a concealed enemy cannot linger in the render buffer",
+    );
+  } finally {
+    t.close();
+  }
+});
 test("polling fallback works when the network refuses WebSockets", async () => {
   const http = createServer(),
     io = new Server(http, { transports: ["polling"], allowUpgrades: false });

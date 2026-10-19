@@ -693,3 +693,23 @@ body.playing #arena {
     animation: none;
   }
 }
+/* Short landscape phones leave too little width between the bottom controls.
+   Put the full descriptions above the arena centre instead of narrow columns. */
+@media (max-height: 500px) and (max-width: 700px) and (pointer: coarse) {
+  .upgrade-dock {
+    top: max(12px, env(safe-area-inset-top));
+    bottom: auto;
+    width: calc(100vw - 220px);
+    max-height: calc(50dvh - 24px);
+    overflow-y: auto;
+    pointer-events: auto;
+    touch-action: pan-y;
+  }
+  .upgrade-dock-heading {
+    letter-spacing: 0;
+    gap: 4px;
+  }
+  #guard-time {
+    font-size: 8px;
+  }
+}

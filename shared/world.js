@@ -513,6 +513,7 @@ export class World {
     this.mode.step(this, dt);
     this.grid.clear();
     this.orbGrid.clear();
+    const starts = new Map();
     for (const o of this.orbs.active) this.orbGrid.insert(o);
     for (const p of this.players.values()) {
       if (!p.alive) {
@@ -521,6 +522,7 @@ export class World {
       }
       const oldX = p.x,
         oldZ = p.z;
+      starts.set(p, { x: oldX, z: oldZ });
       if (p.bot) this.botInput(p, dt);
       p.shotCd = Math.max(0, p.shotCd - dt);
       p.spawnShield = Math.max(0, p.spawnShield - dt);
@@ -620,6 +622,16 @@ export class World {
         });
       }
       this.powerups.collect(p, this.events);
+    }
+    // A later player can push an earlier one after its velocity/grid insertion.
+    // Publish and collide against the final positions of the entire tick.
+    this.grid.clear();
+    for (const p of this.players.values()) {
+      if (!p.alive) continue;
+      const start = starts.get(p);
+      p.vx = start && dt && p.levelGuard <= 0 ? (p.x - start.x) / dt : 0;
+      p.vz = start && dt && p.levelGuard <= 0 ? (p.z - start.z) / dt : 0;
+      this.grid.insert(p, RULES.radius);
     }
     for (let n = this.orbs.active.length - 1; n >= 0; n--)
       if (this.orbs.active[n].collected) {

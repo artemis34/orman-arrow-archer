@@ -83,7 +83,9 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 ## Doğrulama
 
-`npm test`: 63 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 66 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+
+`npm run test:interaction`: gerçek Socket.io otoritesiyle otomatik atış, erken yetenek seçimi, 568×320 yatay telefonda okunabilir kartlar, ölüm/yeniden doğuş, ses ve çıkış. Chromium'da joystick basılı kalırken ikinci parmakla yeniden doğuş/ses/çıkış doğrulanır. `PLAYWRIGHT_ENGINE=webkit npm run test:interaction` WebKit motorunda dokunmatik sayfa uyumluluğunu kontrol eder; CI her iki motoru kurup çalıştırır. Bu, fiziksel iPhone testi değildir.
 
 `npm run test:powerups`: gerçek dokunmatik hareketle iki buff türünü toplar; oyunu durdurmadığını, sürenin bitmesini, noktaların beklemesini, can metninin okunmasını, yatay görünümü ve ölümde temizliği doğrular.
 
@@ -100,6 +102,8 @@ Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir
 ## Sağlamlık ve yayın kontrolleri
 
 Girdi paketleri aynı sunucu turunda birikse de atılma ve can yenileme basışları kaybolmaz. Sunucu ve istemci hareket tahmini/bekleyen girdi tekrarı aynı hareket fonksiyonunu kullanır. Yeniden doğuş konumlarına interpolasyon uygulanmaz. WebSocket engelliyse Socket.io HTTP polling’e dönebilir; ücretsiz sunucunun uyanması için bağlantıya zaman tanınır.
+
+Ölüm, can, seçim koruması ve görünürlük en son sunucu verisinden gösterilir; yalnızca konum ve dönüşler yumuşatılır. Böylece eski bir ağ karesi korumayı sürüyor gibi göstermez. Kalabalıkta itişmelerden sonra hız ve ok çarpışma grid'i son konumlara göre hesaplanır. Yeniden doğuş, ses ve çıkış düğmeleri joystick tutulurken de çalışır. Dar yatay telefonlarda yetenek açıklamaları üst orta şeride geçerek karakteri ve alt kontrolleri açık bırakır. Geliştirme sunucusunun canlı yenileme bağlantısı uygulamanın kendi HTTP portunu kullanır.
 
 Zehirle ölen oyuncu aynı turda XP toplayamaz. Gizlenen oyuncuların konumları hasar olaylarıyla da uzak istemcilere gönderilmez. Depolama veya Web Audio erişimi olmayan tarayıcılarda oyun, bu isteğe bağlı özellikler olmadan açılır. Mobil odak kaybı joystick yakalamasını temizler; yatay görünümde menü ve HUD ayrı yerleşim kullanır.
 

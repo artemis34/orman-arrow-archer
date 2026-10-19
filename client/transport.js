@@ -145,9 +145,13 @@ export class SocketTransport {
       }
     const t = Math.max(0, Math.min(1, (now - a.at) / (b.at - a.at || 1)));
     const old = new Map(a.state.players.map((p) => [p.id, p]));
+    const buffered = new Map(b.state.players.map((p) => [p.id, p]));
+    const oldArrows = new Map(a.state.arrows.map((p) => [p.id, p]));
     return {
       ...last.state,
-      players: b.state.players.map((p) => {
+      // Only transforms use the interpolation buffer. Life, protection, HP,
+      // choices and visibility must reflect the newest authoritative snapshot.
+      players: last.state.players.map((p) => {
         if (p.id === this.id && this.predicted)
           return {
             ...p,
@@ -156,26 +160,31 @@ export class SocketTransport {
             angle: this.predicted.angle,
           };
         const prev = old.get(p.id);
+        const next = buffered.get(p.id);
         if (
           !prev ||
+          !next ||
           !p.alive ||
           !prev.alive ||
-          Math.hypot(p.x - prev.x, p.z - prev.z) > 8
+          !next.alive ||
+          p.levelGuard > 0 ||
+          Math.hypot(p.x - next.x, p.z - next.z) > 8 ||
+          Math.hypot(next.x - prev.x, next.z - prev.z) > 8
         )
           return p;
         const da = Math.atan2(
-          Math.sin(p.angle - prev.angle),
-          Math.cos(p.angle - prev.angle),
+          Math.sin(next.angle - prev.angle),
+          Math.cos(next.angle - prev.angle),
         );
         return {
           ...p,
-          x: prev.x + (p.x - prev.x) * t,
-          z: prev.z + (p.z - prev.z) * t,
+          x: prev.x + (next.x - prev.x) * t,
+          z: prev.z + (next.z - prev.z) * t,
           angle: prev.angle + da * t,
         };
       }),
       arrows: b.state.arrows.map((p) => {
-        const prev = a.state.arrows.find((v) => v.id === p.id);
+        const prev = oldArrows.get(p.id);
         return prev
           ? {
               ...p,

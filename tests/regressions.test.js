@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
+import { RULES } from "../shared/config.js";
 const empty = () => {
   const w = new World({ bots: 0 });
   w.obstacles = [];
@@ -60,4 +61,25 @@ test("a posthumous elimination retains kill credit without healing the dead atta
   assert.ok(a.score >= 65);
   assert.equal(a.alive, false);
   assert.equal(a.hp, 0);
+});
+test("crowd pushes publish final velocities and rebuild the projectile collision grid", () => {
+  const w = empty(),
+    origins = new Map();
+  while (w.orbs.active.length) w.orbs.release(0);
+  for (let i = 0; i < 12; i++) {
+    const p = w.addPlayer(String(i));
+    Object.assign(p, {
+      x: 5.3 + (i % 4) * 0.3,
+      z: 5.3 + Math.floor(i / 4) * 0.3,
+    });
+    origins.set(p, { x: p.x, z: p.z });
+  }
+  w.step();
+  for (const [p, start] of origins) {
+    assert.ok(Math.abs(p.vx - (p.x - start.x) * RULES.tick) < 1e-9);
+    assert.ok(Math.abs(p.vz - (p.z - start.z) * RULES.tick) < 1e-9);
+    for (const dx of [-RULES.radius + 0.01, RULES.radius - 0.01])
+      for (const dz of [-RULES.radius + 0.01, RULES.radius - 0.01])
+        assert.ok(w.grid.query(p.x + dx, p.z + dz, 0.01).has(p));
+  }
 });

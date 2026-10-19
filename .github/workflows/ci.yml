@@ -13,6 +13,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       pages_enabled: ${{ steps.pages.outputs.result }}
     steps:
@@ -23,9 +24,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run check
       - run: npm run build
       - name: Install test browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Validate production server and desktop/mobile controls
         shell: bash
         run: |
@@ -42,6 +44,8 @@ jobs:
           npm run test:hud
           npm run test:audio
           npm run test:powerups
+          npm run test:interaction
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:interaction
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -76,6 +80,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
