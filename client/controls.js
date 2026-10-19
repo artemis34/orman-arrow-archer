@@ -100,6 +100,13 @@ export class Controls {
       this.reset();
     });
     addEventListener("focus", () => (this.focused = !document.hidden));
+    const resume = (event) => {
+      // A real gesture can return focus before mobile browsers emit `focus`.
+      // Existing held fingers stay reset; only fresh input resumes play.
+      if (event.isTrusted && !document.hidden) this.focused = true;
+    };
+    addEventListener("pointerdown", resume, { capture: true });
+    addEventListener("keydown", resume, { capture: true });
     document.addEventListener("visibilitychange", () => {
       this.focused = !document.hidden && document.hasFocus();
       if (document.hidden) this.reset();

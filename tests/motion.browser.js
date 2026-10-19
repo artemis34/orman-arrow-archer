@@ -205,7 +205,11 @@ try {
   await expect.poll(() => actor.charge).toBe(0);
   assert.equal(shots, beforeBlur);
   await touch("touchCancel", []);
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  const freshAim = await finger("#aim-stick", 9, 0, -30);
+  await touch("touchStart", [freshAim]);
+  await expect.poll(() => actor.charge).toBeGreaterThan(0.2);
+  await touch("touchCancel", []);
+  await expect.poll(() => actor.charge).toBe(0);
 
   // A new pair of fingers works after cancellation and after rotation.
   await page.setViewportSize({ width: 844, height: 390 });
