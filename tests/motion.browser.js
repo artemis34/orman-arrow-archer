@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
+import { pauseStaleInput } from "../shared/online.js";
 import { annotateFailure } from "./report.js";
 
 // Real browser controls + real authority, with ordered 130–210 ms RTT jitter.
@@ -16,6 +17,7 @@ const http = createServer(),
   io = new Server(http, { cors: { origin: true } });
 const pending = new Set();
 let actor,
+  frozenDraw = false,
   shots = 0,
   received = [];
 io.on("connection", (socket) => {
@@ -41,11 +43,13 @@ io.on("connection", (socket) => {
   socket.on("join", (data) => {
     actor = world.addPlayer(socket.id, data.name);
     Object.assign(actor, { x: -10, z: -10 });
+    socket.data.lastInputAt = Date.now();
     socket.emit("welcome", { id: actor.id, obstacles: [], rules: RULES });
   });
   socket.on("input", (input) =>
     ordered("input", () => {
       received.push(input);
+      socket.data.lastInputAt = Date.now();
       world.setInput(socket.id, input);
     }),
   );
@@ -57,6 +61,13 @@ io.on("connection", (socket) => {
 await new Promise((resolve) => http.listen(0, "127.0.0.1", resolve));
 const tick = setInterval(() => {
   while (world.orbs.active.length) world.orbs.release(0);
+  for (const [id, socket] of io.sockets.sockets) {
+    const p = world.players.get(id);
+    if (p) {
+      pauseStaleInput(p, Date.now() - socket.data.lastInputAt);
+      if (p.inputStale && p.charge > 0) frozenDraw = true;
+    }
+  }
   world.step();
   shots += world.events.filter((e) => e.type === "shot").length;
   for (const [id, socket] of io.sockets.sockets)
@@ -153,6 +164,17 @@ try {
   await touch("touchStart", [move, aim]);
   await expect.poll(() => actor.input.x).toBeGreaterThan(0.7);
   const beforeShot = shots;
+  // Reproduce the 465 ms input gap seen on the public Cloudflare browser run.
+  // A busy renderer can block JS timers even when input uses its own timer.
+  await page.evaluate(() => {
+    const end = performance.now() + 600;
+    while (performance.now() < end) {}
+  });
+  assert.ok(
+    frozenDraw,
+    "the real authority must observe and freeze a stalled draw",
+  );
+  assert.equal(shots, beforeShot, "the stall itself cannot fire the bow");
   // Lift the aiming finger only: one arrow fires, walking stays held.
   await touch("touchEnd", [aim]);
   await expect.poll(() => shots).toBe(beforeShot + 1);
@@ -186,7 +208,7 @@ try {
   await expect.poll(() => actor.input.x).toBe(0);
   assert.deepEqual(errors, []);
   console.log(
-    "MOTION_BROWSER_OK: real two-finger controls with 130–210ms RTT/jitter, neutral thumb, independent aim/movement, either release order, cancelled-shot safety, portrait/landscape and recovery.",
+    "MOTION_BROWSER_OK: real two-finger controls with 130–210ms RTT/jitter, a 600ms renderer stall, neutral thumb, independent aim/movement, either release order, cancelled-shot safety, portrait/landscape and recovery.",
   );
 } catch (error) {
   for (const page of browser

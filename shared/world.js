@@ -152,6 +152,7 @@ export class World {
       choices: [],
       pending: 0,
       input: cleanInput(),
+      inputStale: false,
       seq: 0,
       poison: 0,
       poisonDps: 0,
@@ -188,6 +189,7 @@ export class World {
       next.quickShot ||= p.input.quickShot;
       next.cancelShot ||= p.input.cancelShot;
       p.input = next;
+      p.inputStale = false;
     }
   }
   choose(id, key) {
@@ -326,6 +328,7 @@ export class World {
       vx: 0,
       vz: 0,
       input: cleanInput(),
+      inputStale: false,
     });
     return true;
   }
@@ -553,17 +556,18 @@ export class World {
       }
       if (p.levelGuard > 0) p.charge = 0;
       else if (i.charge) {
-        p.charge = clamp(
-          p.charge +
-            dt /
-              ((RULES.drawTime *
-                Math.pow(RULES.drawFactor, p.upgrades.draw || 0)) /
-                attackRate(p)),
-          0,
-          1,
-        );
+        if (!p.inputStale)
+          p.charge = clamp(
+            p.charge +
+              dt /
+                ((RULES.drawTime *
+                  Math.pow(RULES.drawFactor, p.upgrades.draw || 0)) /
+                  attackRate(p)),
+            0,
+            1,
+          );
         p.hidden = false;
-      } else if (p.charge) {
+      } else if (p.charge && !p.inputStale) {
         this.fire(p);
         p.charge = 0;
       }

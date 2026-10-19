@@ -2,12 +2,57 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
+import { ONLINE, pauseStaleInput } from "../shared/online.js";
 const empty = () => {
   const w = new World({ bots: 0 });
   w.obstacles = [];
   w.obstacleGrid.clear();
   return w;
 };
+function drawnBow() {
+  const w = empty();
+  while (w.orbs.active.length) w.orbs.release(0);
+  w.random = () => 1;
+  const p = w.addPlayer("lagged");
+  Object.assign(p, { x: 0, z: 0 });
+  w.setInput(p.id, { x: 1, charge: true, seq: 1 });
+  for (let n = 0; n < 8; n++) w.step();
+  return { w, p };
+}
+test("a brief input stall stops movement and freezes draw, then fresh release fires once", () => {
+  const { w, p } = drawnBow(),
+    x = p.x,
+    charge = p.charge;
+  pauseStaleInput(p, 465);
+  for (let n = 0; n < 12; n++) w.step();
+  assert.equal(p.x, x);
+  assert.equal(p.charge, charge, "stale input cannot earn additional charge");
+  assert.equal(w.arrows.active.length, 0, "a timeout cannot fire an arrow");
+  w.setInput(p.id, { seq: 2 });
+  w.step();
+  assert.equal(p.inputStale, false);
+  assert.equal(w.events.filter((e) => e.type === "shot").length, 1);
+  w.step();
+  assert.equal(w.events.filter((e) => e.type === "shot").length, 0);
+});
+test("a long input absence discards a draw and cannot release an old arrow on return", () => {
+  const { w, p } = drawnBow();
+  pauseStaleInput(p, ONLINE.drawTimeout + 1);
+  w.step();
+  assert.equal(p.charge, 0);
+  assert.equal(w.arrows.active.length, 0);
+  w.setInput(p.id, { seq: 2 });
+  w.step();
+  assert.equal(w.arrows.active.length, 0);
+});
+test("explicit touch cancellation discards a draw during the stall grace window", () => {
+  const { w, p } = drawnBow();
+  pauseStaleInput(p, 465);
+  w.setInput(p.id, { cancelShot: true, seq: 2 });
+  w.step();
+  assert.equal(p.charge, 0);
+  assert.equal(w.arrows.active.length, 0);
+});
 test("dash and heal presses survive newer movement packets before the server tick", () => {
   const w = empty(),
     p = w.addPlayer("a");

@@ -1,6 +1,6 @@
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
-import { ONLINE, roomCode } from "../shared/online.js";
+import { ONLINE, roomCode, pauseStaleInput } from "../shared/online.js";
 
 /** One authoritative world per room. No timers or bots run in an empty room. */
 export class ArenaRoom {
@@ -128,18 +128,7 @@ export class ArenaRoom {
       }
       if (!this.world) return;
       const p = this.world.players.get(session.id);
-      if (p && now - session.lastInput > ONLINE.inputTimeout) {
-        p.input = {
-          ...p.input,
-          x: 0,
-          z: 0,
-          charge: false,
-          dash: false,
-          heal: false,
-          quickShot: false,
-        };
-        p.charge = 0;
-      }
+      if (p) pauseStaleInput(p, now - session.lastInput);
     }
     if (!this.world) return;
     this.world.step();

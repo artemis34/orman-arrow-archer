@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { WebSocketTransport } from "../client/websocket.js";
 import { RULES, advanceMovement, cleanInput } from "../shared/config.js";
+import { ONLINE } from "../shared/online.js";
 import { annotateFailure } from "./report.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const room = `test-${Date.now().toString(36)}`;
@@ -130,7 +131,20 @@ try {
   a.t.step({ charge: true });
   await until(() => a.me().charge > 0.08, "draw starts");
   await wait(550);
-  assert.equal(a.me().charge, 0, "stale connections cannot retain a drawn bow");
+  const held = a.me().charge;
+  assert.ok(held > 0, "brief stalls preserve a previously validated draw");
+  await wait(180);
+  assert.equal(
+    a.me().charge,
+    held,
+    "stale input cannot keep increasing charge",
+  );
+  await wait(ONLINE.drawTimeout);
+  assert.equal(
+    a.me().charge,
+    0,
+    "long absences discard the draw without firing",
+  );
   a.t.close();
   b.t.step({ charge: true });
   await until(

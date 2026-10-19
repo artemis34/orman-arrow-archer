@@ -48,6 +48,7 @@ npm run test:cloudflare:browser
 - Her odada en çok 16 insan + 7 bot bulunur. Başka oda kodları ayrı dünyalara gider.
 - Hareket, hasar, oklar, hedef seçimi, XP, seçim koruması ve buff'lar sunucuda hesaplanır. İstemci tahmini ve uzak oyuncu interpolasyonu iki ağ adaptöründe ortaktır.
 - Fizik 30 Hz, ağ durum yayını 15 Hz'dir. Aradaki iki turdaki olaylar birleştirilir; atış/isabet sesleri ve efektler kaybolmaz.
+- Girdi 350 ms kesilirse hareket ve tek basımlık eylemler durur. Önceden gerilmiş yay 1,5 saniyeye kadar mevcut şarjında bekler; kesinti sırasında ek şarj kazanmaz ve kendiliğinden ateşlenmez. Yeni bırakma girdisi gelirse bir kez atar; uzun kopmada veya açık iptalde şarj silinir.
 - Son insan bağlantısı kapandığında dünya ve döngü temizlenir. Başka bir oyuncu gelene kadar bot simülasyonu çalışmaz. Açık fakat katılmayan bağlantı 10 saniyede, 90 saniye girdi göndermeyen katılmış bağlantı da temizlenir. Arka plandaki tarayıcı sekmesi girdi göndermeyi durdurur. Döndüğünde bağlantı kapanmışsa yeniden katılman gerekir.
 - Oyuncu durumu bellektedir. Son kişi ayrılınca veya yeni sürüm yayımlanınca oda ilerlemesi sıfırlanır; kalıcı hesap/sıralama sunulmaz. Dağıtım mevcut WebSocket bağlantılarını keser.
 - Varsayılan bağlantı yalnızca kendi site origin'inden kabul edilir. Ayrı Vercel/statik frontend kullanılacaksa Worker ortamında `ALLOWED_ORIGINS` virgülle ayrılmış tam HTTPS origin'lerini içermelidir; frontend Cloudflare build'iyle ve uygun `?server=https://...&network=websocket&room=...` parametreleriyle açılır.

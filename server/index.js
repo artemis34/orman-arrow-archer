@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { fileURLToPath } from "node:url";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
+import { pauseStaleInput } from "../shared/online.js";
 const app = express(),
   http = createServer(app),
   production = process.env.NODE_ENV === "production";
@@ -77,10 +78,7 @@ io.on("connection", (socket) => {
   });
   const watchdog = setInterval(() => {
     const p = world.players.get(socket.id);
-    if (p && Date.now() - lastInput > 350) {
-      p.input = { ...p.input, x: 0, z: 0, charge: false, dash: false };
-      p.charge = 0;
-    }
+    if (p) pauseStaleInput(p, Date.now() - lastInput);
   }, 100);
   socket.on("disconnect", () => {
     clearInterval(watchdog);

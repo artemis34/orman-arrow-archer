@@ -8,6 +8,27 @@ export const ONLINE = Object.freeze({
   humans: 16,
   snapshots: 15,
   inputTimeout: 350,
+  drawTimeout: 1500,
   idleTimeout: 90000,
   maxMessage: 4096,
 });
+
+/** Stop stale movement promptly, but freeze a valid draw through brief stalls.
+ * Only fresh input may release it; a long absence discards it without firing.
+ */
+export function pauseStaleInput(player, age) {
+  if (age <= ONLINE.inputTimeout) return;
+  player.inputStale = true;
+  player.input = {
+    ...player.input,
+    x: 0,
+    z: 0,
+    dash: false,
+    heal: false,
+    quickShot: false,
+  };
+  if (age > ONLINE.drawTimeout) {
+    player.input.charge = false;
+    player.charge = 0;
+  }
+}
