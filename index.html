@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-l5Xpk9Ls.js"></script>
+    <script type="module" crossorigin src="./assets/index-NBCiDFA5.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-C52_ig86.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DAdjKc7U.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -79,13 +79,40 @@
             ><button id="online-mode">◎ Çok oyunculu</button>
           </div>
           <div id="server-field" class="hidden">
-            <label for="server-url">SUNUCU ADRESİ</label
-            ><input
-              id="server-url"
-              type="url"
-              placeholder="https://sunucun.onrender.com"
-            />
-            <p class="field-note">Aynı adrese bağlanan arkadaşlarınla oyna.</p>
+            <div id="server-address">
+              <label for="server-url">SUNUCU ADRESİ</label
+              ><input
+                id="server-url"
+                type="url"
+                placeholder="https://sunucun.onrender.com"
+              />
+              <p class="field-note">
+                Aynı adrese bağlanan arkadaşlarınla oyna.
+              </p>
+            </div>
+            <div id="room-field" class="hidden">
+              <label for="room-code">ODA KODU</label>
+              <div class="room-entry">
+                <input
+                  id="room-code"
+                  maxlength="24"
+                  value="arena"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-describedby="room-note"
+                /><button
+                  id="copy-invite"
+                  type="button"
+                  aria-label="Oda davetini kopyala"
+                >
+                  Davet ↗
+                </button>
+              </div>
+              <p id="room-note" class="field-note">
+                Birlikte oynamak için aynı kodu kullanın.
+              </p>
+            </div>
           </div>
           <button id="play" class="primary">
             Arenaya katıl <span>↗</span>
