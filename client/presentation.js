@@ -40,8 +40,8 @@ export function updatePose(pose, target, dt) {
   );
   pose.facing += turn * (1 - Math.exp(-16 * dt));
   pose.turn += (Math.max(-1, Math.min(1, turn * 2)) - pose.turn) * blend;
-  if (travel > 0.0001) {
-    const heading = Math.atan2(dz, dx);
+  if (travel > dt * 0.4 || pose.weight < 0.05) {
+    const heading = travel > dt * 0.4 ? Math.atan2(dz, dx) : pose.facing;
     const delta = Math.atan2(
       Math.sin(heading - pose.moveAngle),
       Math.cos(heading - pose.moveAngle),

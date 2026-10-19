@@ -1,6 +1,11 @@
 import { io } from "socket.io-client";
 import { World } from "../shared/world.js";
-import { advanceMovement, cleanInput, RULES } from "../shared/config.js";
+import {
+  advanceMovement,
+  moveBody,
+  cleanInput,
+  RULES,
+} from "../shared/config.js";
 /** Transport adapters isolate rendering from the authority implementation. */
 export class LocalTransport {
   constructor() {
@@ -36,33 +41,93 @@ export class NetworkTransport {
     this.snapshots = [];
     this.ping = 0;
     this.predicted = null;
+    this.previousPrediction = null;
+    this.lastInput = null;
+    this.inputAt = 0;
+    this.correction = { x: 0, z: 0, at: 0 };
   }
   acceptState(state) {
     const now = performance.now();
+    const previous = this.localPose(now);
+    const wasGuarded =
+      this.snapshots.at(-1)?.state.players.find((p) => p.id === this.id)
+        ?.levelGuard > 0;
     this.snapshots.push({ state, at: now });
     while (this.snapshots.length > 8) this.snapshots.shift();
     const me = state.players.find((p) => p.id === this.id);
     if (me) {
+      if (!me.alive || (previous && !previous.alive)) {
+        this.lastInput = null;
+        this.pending = [];
+      }
       this.pending = this.pending.filter((i) => i.seq > me.seq);
       this.predicted = { ...me, upgrades: { ...me.upgrades } };
+      this.previousPrediction = null;
       if (this.predicted.alive)
-        for (const i of this.pending)
+        for (const i of this.pending) {
+          this.previousPrediction = { ...this.predicted };
           advanceMovement(this.predicted, i, 1 / RULES.tick, this.obstacles);
+        }
+      this.correction = { x: 0, z: 0, at: now };
+      const next = this.localPose(now);
+      if (
+        previous?.alive &&
+        me.alive &&
+        !me.levelGuard &&
+        !wasGuarded &&
+        Math.hypot(previous.x - next.x, previous.z - next.z) < 3
+      ) {
+        // Reconcile physics immediately, then decay only the visible offset.
+        // Packet arrival must never kick the camera/feet backward mid-stride.
+        this.correction.x = previous.x - next.x;
+        this.correction.z = previous.z - next.z;
+      }
     }
     this.onState(state);
   }
   step(input) {
     input = cleanInput({ ...input, seq: ++this.seq });
     this.send("input", input);
+    this.lastInput = input;
+    this.inputAt = performance.now();
     this.pending.push(input);
     if (this.pending.length > 120) this.pending.shift();
-    if (this.predicted?.alive)
+    if (this.predicted?.alive) {
+      this.previousPrediction = { ...this.predicted };
       advanceMovement(this.predicted, input, 1 / RULES.tick, this.obstacles);
+    }
+  }
+
+  localPose(now = performance.now()) {
+    if (!this.predicted) return null;
+    const p = { ...this.predicted };
+    if (!p.alive || p.levelGuard > 0) return p;
+    // Present the latest predicted step at display rate. Interpolating its two
+    // endpoints also keeps turns/stops continuous; extrapolating old velocity
+    // would jump backward when the next input points in another direction.
+    if (this.previousPrediction && this.lastInput) {
+      const fraction = Math.max(
+        0,
+        Math.min(1, ((now - this.inputAt) * RULES.tick) / 1000),
+      );
+      p.x =
+        this.previousPrediction.x +
+        (p.x - this.previousPrediction.x) * fraction;
+      p.z =
+        this.previousPrediction.z +
+        (p.z - this.previousPrediction.z) * fraction;
+    }
+    const decay = Math.exp(-Math.max(0, now - this.correction.at) / 85);
+    p.x += this.correction.x * decay;
+    p.z += this.correction.z * decay;
+    moveBody(p, { x: 0, z: 0 }, 0, this.obstacles);
+    return p;
   }
 
   view() {
     const last = this.snapshots.at(-1);
     if (!last) return null;
+    const local = this.localPose();
     const now = performance.now() - 90;
     let a = this.snapshots[0],
       b = last;
@@ -81,12 +146,12 @@ export class NetworkTransport {
       // Only transforms use the interpolation buffer. Life, protection, HP,
       // choices and visibility must reflect the newest authoritative snapshot.
       players: last.state.players.map((p) => {
-        if (p.id === this.id && this.predicted)
+        if (p.id === this.id && local)
           return {
             ...p,
-            x: this.predicted.x,
-            z: this.predicted.z,
-            angle: this.predicted.angle,
+            x: p.levelGuard > 0 ? p.x : local.x,
+            z: p.levelGuard > 0 ? p.z : local.z,
+            angle: local.angle,
           };
         const prev = old.get(p.id);
         const next = buffered.get(p.id);

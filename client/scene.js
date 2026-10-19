@@ -13,7 +13,10 @@ export class ArenaScene {
       antialias: devicePixelRatio < 2,
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+    const touchDevice = matchMedia("(pointer: coarse)").matches;
+    this.renderer.setPixelRatio(
+      Math.min(devicePixelRatio, touchDevice ? 1.5 : 1.8),
+    );
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x547d5a);
@@ -30,6 +33,7 @@ export class ArenaScene {
     this.groundPlane = new THREE.Plane(Y_AXIS, 0);
     this.pointer = new THREE.Vector2();
     this.intersection = new THREE.Vector3();
+    this.screenOrigin = new THREE.Vector3();
     this.worldGroup = new THREE.Group();
     this.staticGroup = new THREE.Group();
     this.scene.add(this.worldGroup, this.staticGroup);
@@ -40,7 +44,8 @@ export class ArenaScene {
     const sun = new THREE.DirectionalLight(0xffedc4, 3.2);
     sun.position.set(-22, 45, 18);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    const shadowSize = touchDevice ? 1024 : 2048;
+    sun.shadow.mapSize.set(shadowSize, shadowSize);
     sun.shadow.camera.left = -52;
     sun.shadow.camera.right = 52;
     sun.shadow.camera.top = 52;
@@ -89,14 +94,18 @@ export class ArenaScene {
           depthWrite: false,
         }),
     );
+    const patches = [[], []];
     for (let i = 0; i < 210; i++) {
-      const patch = new THREE.Mesh(
-        new THREE.CircleGeometry(1 + rand() * 3, 7),
-        patchMaterials[i % 2],
+      const geometry = new THREE.CircleGeometry(1 + rand() * 3, 7);
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate((rand() - 0.5) * 100, 0.015, (rand() - 0.5) * 100);
+      patches[i % 2].push(geometry);
+    }
+    for (let i = 0; i < patches.length; i++) {
+      this.staticGroup.add(
+        new THREE.Mesh(mergeGeometries(patches[i]), patchMaterials[i]),
       );
-      patch.rotation.x = -Math.PI / 2;
-      patch.position.set((rand() - 0.5) * 100, 0.015, (rand() - 0.5) * 100);
-      this.staticGroup.add(patch);
+      for (const geometry of patches[i]) geometry.dispose();
     }
     const borderMat = new THREE.MeshBasicMaterial({
       color: 0xf0aa77,
@@ -641,6 +650,16 @@ export class ArenaScene {
     this.ray.ray.intersectPlane(this.groundPlane, this.intersection);
     return Math.atan2(this.intersection.z - p.z, this.intersection.x - p.x);
   }
+  aimFromStick(x, z, p) {
+    // Project from the character, not the screen centre. The tilted perspective
+    // otherwise makes diagonal walking/aiming disagree with the thumb direction.
+    this.screenOrigin.set(p.x, 0, p.z).project(this.camera);
+    return this.aimAt(
+      ((this.screenOrigin.x + 1) * innerWidth) / 2 + x * 60,
+      ((1 - this.screenOrigin.y) * innerHeight) / 2 + z * 60,
+      p,
+    );
+  }
   render(state, myId, dt, playing, lockId = null) {
     this.time += dt;
     const me = state?.players.find((p) => p.id === myId);
@@ -698,7 +717,8 @@ export class ArenaScene {
         v.guardActive = guarded;
         if (!p.alive) continue;
         v.root.position.set(v.pose.x, 0, v.pose.z);
-        v.body.rotation.y = v.lowerBody.rotation.y = -v.pose.facing;
+        v.body.rotation.y = -v.pose.facing;
+        v.lowerBody.rotation.y = -v.pose.moveAngle;
         const stride = Math.sin(v.pose.phase) * v.pose.weight;
         v.body.position.y =
           (1 - Math.cos(v.pose.phase * 2)) * 0.018 * v.pose.weight;
@@ -708,8 +728,8 @@ export class ArenaScene {
         for (let i = 0; i < v.legs.length; i++) {
           const step = Math.sin(v.pose.phase + i * Math.PI) * v.pose.weight;
           const leg = v.legs[i];
-          leg.rotation.z = step * 0.55 * forward;
-          leg.rotation.x = -step * 0.45 * side;
+          leg.rotation.z = step * 0.55;
+          leg.rotation.x = 0;
           // Keep the stance foot on the ground; only the swinging foot lifts.
           leg.position.y =
             Math.cos(leg.rotation.x) * Math.cos(leg.rotation.z) * 0.48 +

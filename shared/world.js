@@ -186,6 +186,7 @@ export class World {
       next.dash ||= p.input.dash;
       next.heal ||= p.input.heal;
       next.quickShot ||= p.input.quickShot;
+      next.cancelShot ||= p.input.cancelShot;
       p.input = next;
     }
   }
@@ -540,6 +541,8 @@ export class World {
       p.input.heal = false;
       p.input.dash = false;
       if (!p.bot) this.autoTarget(p);
+      if (i.cancelShot) p.charge = 0;
+      p.input.cancelShot = false;
       const quick = i.quickShot && !i.charge && p.levelGuard <= 0;
       p.input.quickShot = false;
       if (quick) {

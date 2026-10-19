@@ -1,5 +1,13 @@
 import { selectTarget, aimedAngle, angleDelta } from "../shared/aim.js";
 import { RULES, clamp } from "../shared/config.js";
+/** A radial dead zone removes resting-thumb noise without snapping diagonals. */
+export function stickVector(dx, dz, radius) {
+  const length = Math.hypot(dx, dz);
+  const dead = radius * 0.18;
+  if (length <= dead) return { x: 0, z: 0 };
+  const strength = Math.min(1, (length - dead) / (radius - dead));
+  return { x: (dx / length) * strength, z: (dz / length) * strength };
+}
 export class Controls {
   constructor(canvas, scene, audio) {
     this.scene = scene;
@@ -12,10 +20,12 @@ export class Controls {
     this.dash = false;
     this.heal = false;
     this.quickShot = false;
+    this.cancelShot = false;
     this.active = false;
     this.mouse = { x: innerWidth / 2, y: innerHeight / 2 };
     this.touchAim = false;
     this.joy = { x: 0, z: 0 };
+    this.aimJoy = { x: 0, z: 0 };
     this.stickResets = [];
     this.isTouch = matchMedia("(pointer:coarse)").matches;
     let canvasTouch = null;
@@ -65,12 +75,14 @@ export class Controls {
     addEventListener("keyup", (e) => this.keys.delete(e.code));
     canvas.addEventListener("pointermove", (e) => {
       if (e.pointerType === "mouse") {
+        this.isTouch = false;
         this.mouse = { x: e.clientX, y: e.clientY };
         this.touchAim = false;
       }
     });
     canvas.addEventListener("pointerdown", (e) => {
       if (!this.active || e.pointerType !== "mouse") return;
+      this.isTouch = false;
       this.audio.unlock();
       if (e.button === 0) {
         this.charge = true;
@@ -104,6 +116,7 @@ export class Controls {
     this.stick("aim-stick", true);
   }
   reset() {
+    this.cancelShot ||= this.charge;
     for (const release of this.stickResets) release();
     this.touchAim = false;
     this.quickShot = false;
@@ -112,6 +125,7 @@ export class Controls {
     this.dash = false;
     this.heal = false;
     this.joy = { x: 0, z: 0 };
+    this.aimJoy = { x: 0, z: 0 };
     for (const k of document.querySelectorAll(".stick-knob"))
       k.style.transform = "";
   }
@@ -130,16 +144,17 @@ export class Controls {
         dz = e.clientY - r.top - r.height / 2,
         l = Math.hypot(dx, dz),
         scale = l > radius ? radius / l : 1;
+      const vector = stickVector(dx, dz, radius);
       knob.style.transform = `translate(${dx * scale}px,${dz * scale}px)`;
       if (aim) {
-        if (l > 8) {
+        if (vector.x || vector.z) {
           this.touchAim = true;
-          this.angle = Math.atan2(dz, dx);
+          this.aimJoy = vector;
           if (!this.charge) this.audio.play("charge");
           this.charge = true;
         }
       } else {
-        this.joy = { x: (dx * scale) / radius, z: (dz * scale) / radius };
+        this.joy = vector;
       }
     };
     el.addEventListener("pointerdown", (e) => {
@@ -168,12 +183,16 @@ export class Controls {
       if (captured !== null && el.hasPointerCapture(captured))
         el.releasePointerCapture(captured);
       knob.style.transform = "";
-      if (aim) this.charge = false;
-      else this.joy = { x: 0, z: 0 };
+      if (aim) {
+        this.charge = false;
+        this.aimJoy = { x: 0, z: 0 };
+      } else this.joy = { x: 0, z: 0 };
     };
     this.stickResets.push(release);
     const end = (e) => {
       if (pointer === e.pointerId) {
+        if (aim && e.type !== "pointerup" && this.charge)
+          this.cancelShot = true;
         if (
           aim &&
           e.type === "pointerup" &&
@@ -190,12 +209,21 @@ export class Controls {
     el.addEventListener("lostpointercapture", end);
   }
   sample(me, state, obstacles = []) {
+    let movement = this.joy;
+    if (me && this.isTouch && (movement.x || movement.z)) {
+      const direction = this.scene.aimFromStick(movement.x, movement.z, me);
+      const strength = Math.hypot(movement.x, movement.z);
+      movement = {
+        x: Math.cos(direction) * strength,
+        z: Math.sin(direction) * strength,
+      };
+    }
     let x =
-        this.joy.x +
+        movement.x +
         (this.keys.has("KeyD") || this.keys.has("ArrowRight") ? 1 : 0) -
         (this.keys.has("KeyA") || this.keys.has("ArrowLeft") ? 1 : 0),
       z =
-        this.joy.z +
+        movement.z +
         (this.keys.has("KeyS") || this.keys.has("ArrowDown") ? 1 : 0) -
         (this.keys.has("KeyW") || this.keys.has("ArrowUp") ? 1 : 0),
       len = Math.hypot(x, z);
@@ -203,8 +231,17 @@ export class Controls {
       x /= len;
       z /= len;
     }
-    if (me && !this.touchAim)
-      this.angle = this.scene.aimAt(this.mouse.x, this.mouse.y, me);
+    if (me) {
+      if (this.isTouch) {
+        if (this.charge && (this.aimJoy.x || this.aimJoy.z))
+          this.angle = this.scene.aimFromStick(
+            this.aimJoy.x,
+            this.aimJoy.z,
+            me,
+          );
+        else if (!this.touchAim && len > 0) this.angle = Math.atan2(z, x);
+      } else this.angle = this.scene.aimAt(this.mouse.x, this.mouse.y, me);
+    }
     let angle = this.angle;
     if (me?.alive && this.isTouch && state) {
       if (this.quickShot) {
@@ -243,10 +280,12 @@ export class Controls {
       dash: this.active && this.dash,
       heal: this.active && this.heal,
       quickShot: this.active && this.quickShot,
+      cancelShot: this.active && this.cancelShot,
     };
     this.dash = false;
     this.heal = false;
     this.quickShot = false;
+    this.cancelShot = false;
     return input;
   }
 }

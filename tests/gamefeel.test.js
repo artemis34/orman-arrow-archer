@@ -180,3 +180,13 @@ test("turning follows the short arc across pi while footsteps follow travel rath
   assert.ok(Math.abs(pose.moveAngle - Math.PI / 2) < 0.01);
   assert.ok(pose.weight > 0.8 && pose.phase > 0);
 });
+test("small idle network corrections do not spin the walking direction", () => {
+  const p = { x: 0, z: 0, angle: 0, alive: true, dashTime: 0 };
+  const pose = createPose(p);
+  for (let i = 0; i < 60; i++) {
+    p.x = i % 2 ? -0.002 : 0.002;
+    updatePose(pose, p, 1 / 60);
+  }
+  assert.equal(pose.moveAngle, 0);
+  assert.ok(pose.weight < 0.02);
+});

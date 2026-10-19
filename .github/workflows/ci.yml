@@ -45,6 +45,7 @@ jobs:
           npm run test:audio
           npm run test:powerups
           npm run test:interaction
+          npm run test:motion
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:interaction
       - name: Validate Cloudflare rooms and desktop/mobile multiplayer
         shell: bash
@@ -207,3 +208,51 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:cloudflare
           npm run test:cloudflare:browser
+  cloudflare-live:
+    if: github.event_name != 'pull_request' && github.repository == 'artemis34/orman-arrow-archer'
+    needs: [validate, cloudflare]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_TEST_URL: ${{ vars.CLOUDFLARE_SITE_URL || 'https://orman-arrow-archer.cangunes1995.workers.dev' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:cloudflare
+      - name: Wait for Cloudflare GitHub deployment to serve this client build
+        shell: bash
+        run: |
+          set -euo pipefail
+          read_asset='const fs = require("node:fs"); const html = fs.readFileSync(process.argv[1], "utf8"); const src = html.match(/<script[^>]*src="([^"]+\.js)"/); if (!src) process.exit(1); console.log(src[1].split("/").at(-1));'
+          expected_asset=$(node -e "$read_asset" dist-cloudflare/index.html)
+          matched=false
+          for attempt in {1..24}; do
+            if curl --fail --silent "$CLOUDFLARE_TEST_URL/" -o /tmp/live-cloudflare-index.html; then
+              actual_asset=$(node -e "$read_asset" /tmp/live-cloudflare-index.html || true)
+              if test "$actual_asset" = "$expected_asset"; then matched=true; break; fi
+            fi
+            sleep 5
+          done
+          if test "$matched" != true; then
+            echo '::error::Cloudflare has not served this client build yet. Check the connected main-branch build in the Cloudflare dashboard.'
+            exit 1
+          fi
+          curl --fail --silent --show-error "$CLOUDFLARE_TEST_URL/health"
+          echo "### Verified Cloudflare release" >> "$GITHUB_STEP_SUMMARY"
+          echo "$CLOUDFLARE_TEST_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Client asset: $expected_asset" >> "$GITHUB_STEP_SUMMARY"
+      - name: Play public Cloudflare multiplayer on desktop and phone
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:cloudflare
+          npm run test:cloudflare:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloudflare-live-screenshots
+          path: /tmp/archer-validation
+          if-no-files-found: ignore

@@ -637,7 +637,7 @@ function frame(now) {
 // busy mobile GPU can trigger the authority's stale-input watchdog mid-draw.
 setInterval(() => {
   if (!playing || !transport?.online || document.hidden) return;
-  const me = state?.players.find((p) => p.id === myId);
+  const me = transport.localPose() || state?.players.find((p) => p.id === myId);
   transport.step(controls.sample(me, state, scene.obstacles));
 }, 1000 / RULES.tick);
 controls.onNoTarget = () => toast("Hedef yok");

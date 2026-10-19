@@ -20,6 +20,21 @@ test("dash and heal presses survive newer movement packets before the server tic
   assert.ok(p.hp > 74);
   assert.equal(p.seq, 2);
 });
+test("cancelled touch aiming survives packet batching and does not fire the drawn bow", () => {
+  const w = empty(),
+    p = w.addPlayer("a");
+  w.setInput(p.id, { charge: true, seq: 1 });
+  for (let n = 0; n < 20; n++) w.step();
+  assert.ok(p.charge > 0.5);
+  w.setInput(p.id, { cancelShot: true, x: 1, seq: 2 });
+  w.setInput(p.id, { x: 1, seq: 3 });
+  const before = p.x;
+  w.step();
+  assert.equal(p.charge, 0);
+  assert.equal(w.arrows.active.length, 0);
+  assert.ok(!w.events.some((e) => e.type === "shot"));
+  assert.ok(p.x > before, "cancelling the right stick must not cancel walking");
+});
 test("a player killed by poison cannot collect crystals or level up in that tick", () => {
   const w = empty(),
     p = w.addPlayer("a");

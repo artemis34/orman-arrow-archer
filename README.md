@@ -92,7 +92,9 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 `npm run dev:cloudflare` gerçek yerel Cloudflare çalışma ortamını başlatır; `npm run test:cloudflare` iki oyuncu, oda yalıtımı, kapasite, payload/origin sınırları ve boş oda kapanışını doğrular. `npm run test:cloudflare:browser` masaüstü/dokunmatik iki oyuncuyu aynı odada oynatır ve yavaş mobil çizim sırasında da girdi/şarjın devam ettiğini denetler.
 
-`npm test`: 76 senaryo; kesintisiz yürüyüş, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: 86 senaryo; gecikme ve paket aralıkları değişirken yürüyüş, kamera açısına uygun joystick yönü, iptal edilen dokunuşlar, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+
+`npm run test:motion`: gerçek mobil Chromium'da iki parmağı aynı anda kullanır. 130–210 ms gidiş-dönüş gecikmesi ve değişken paket aralıkları altında joystick merkezini, hareket/nişanın bağımsızlığını, parmakları farklı sırayla kaldırmayı, iptal edilen dokunuşta yanlışlıkla ok atılmamasını ve dikey/yatay kullanımı doğrular. Yerel çizim, 30 Hz girdi turları arasında da ilerler; sunucu konum düzeltmeleri yalnızca görsel olarak yumuşatılır. Fizik, hasar ve çarpışmalar sunucuda kalır.
 
 `npm run test:interaction`: gerçek Socket.io otoritesiyle otomatik atış, erken yetenek seçimi, 568×320 yatay telefonda okunabilir kartlar, ölüm/yeniden doğuş, ses ve çıkış. Chromium'da joystick basılı kalırken ikinci parmakla yeniden doğuş/ses/çıkış doğrulanır. `PLAYWRIGHT_ENGINE=webkit npm run test:interaction` WebKit motorunda dokunmatik sayfa uyumluluğunu kontrol eder; CI her iki motoru kurup çalıştırır. Bu, fiziksel iPhone testi değildir.
 
