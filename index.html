@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-Cg2eklO_.js"></script>
+    <script type="module" crossorigin src="./assets/index-Q9up2aIg.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-AmR-uCW0.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-B0xxwP1z.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -41,42 +41,80 @@
       <main class="lobby-main">
         <div class="lobby-copy">
           <div class="eyebrow">
-            <span class="live-dot"></span> ORMANIN YENİ BİR EFSANEYE İHTİYACI
-            VAR
+            <span class="live-dot"></span> CANLI OKÇULUK ARENASI
           </div>
           <h1>
-            Nişan al.<br />
+            Ormana gir.<br />
             İzini <em>bırak.</em>
           </h1>
           <p class="intro">
-            Bir yay. Sonsuz ihtimal.<br />Topla, güçlen ve orman arenasına
-            hükmet.
+            Kristalleri topla, yayını geliştir.<br />Arkadaşlarınla aynı arenada
+            buluş.
           </p>
           <div class="feature-chips">
-            <span>Şarjlı atış</span><span>✧ Evrilen yetenekler</span
-            ><span>◎ Canlı arena</span>
+            <span>Hızlı maç</span><span>✧ Her tur farklı yetenekler</span>
+          </div>
+          <div class="hero-note">
+            <span class="hero-emblem" aria-hidden="true">◎</span>
+            <div>
+              <b>Tek bir okla başlar.</b>
+              <p>Sonraki hamlen, senin hikâyen.</p>
+            </div>
           </div>
         </div>
         <section class="play-card" aria-label="Oyuna katıl">
           <div class="card-topline">
-            <span class="eyebrow">ARENA SENİ BEKLİYOR</span
-            ><span class="version">SEZON 01</span>
+            <span class="eyebrow">OKÇUNU HAZIRLA</span
+            ><span class="version">ÜCRETSİZ OYNA</span>
           </div>
-          <h2>Ormana adım at.</h2>
-          <p class="card-sub">İsmini seç. Hikâyeni sen yaz.</p>
-          <label for="player-name">OKÇU ADIN</label
-          ><input
-            id="player-name"
-            maxlength="16"
-            placeholder="Gezgin"
-            autocomplete="nickname"
-            value="Gezgin"
-          />
-          <label>RENGİNİ SEÇ</label>
-          <div id="skins" class="skins"></div>
+          <h2>Arena seni bekliyor.</h2>
+          <div class="identity-row">
+            <div>
+              <label for="player-name">OKÇU ADIN</label
+              ><input
+                id="player-name"
+                maxlength="16"
+                placeholder="Gezgin"
+                autocomplete="nickname"
+                value="Gezgin"
+              />
+            </div>
+            <div>
+              <label>RENGİN</label>
+              <div
+                id="skins"
+                class="skins"
+                role="group"
+                aria-label="Okçu rengi"
+              ></div>
+            </div>
+          </div>
           <div class="mode-switch" role="group" aria-label="Oyun modu">
-            <button id="practice-mode" class="selected">✧ Antrenman</button
-            ><button id="online-mode">◎ Çok oyunculu</button>
+            <button id="online-mode">◎ Çok oyunculu</button
+            ><button id="practice-mode" class="selected">✧ Antrenman</button>
+          </div>
+          <div class="control-switch" role="group" aria-label="Kontrol düzeni">
+            <button id="classic-controls" class="selected" aria-pressed="true">
+              <span>↔</span><b>Klasik</b><small>Hareket + nişan</small>
+            </button>
+            <button id="onehand-controls" aria-pressed="false">
+              <span>◎</span><b>Tek el</b><small>Otomatik atış</small>
+            </button>
+          </div>
+          <p id="controls-hint" class="controls-hint">
+            İki joystick veya klavye ve fare ile kontrol sende.
+          </p>
+          <div
+            id="room-access"
+            class="room-access hidden"
+            role="group"
+            aria-label="Arena seçimi"
+          >
+            <button id="quick-match" class="selected" aria-pressed="true">
+              Hızlı katıl</button
+            ><button id="friend-room" aria-pressed="false">
+              Arkadaşlarla oyna
+            </button>
           </div>
           <div id="server-field" class="hidden">
             <div id="server-address">
@@ -114,9 +152,7 @@
               </p>
             </div>
           </div>
-          <button id="play" class="primary">
-            Arenaya katıl <span>↗</span>
-          </button>
+          <button id="play" class="primary"><b>OYNA</b> <span>↗</span></button>
           <p id="join-status" class="join-status" aria-live="polite">
             Botlarla anında oyna · Hesap gerekmez
           </p>
@@ -127,9 +163,9 @@
         </section>
       </main>
       <footer class="lobby-footer">
-        <span>HER ATIŞ BİR HİKÂYE.</span
+        <span>HESAP AÇMADAN OYNA</span
         ><button id="help-open">Nasıl oynanır <span>↗</span></button
-        ><span class="desktop-note">MASAÜSTÜ & MOBİL İÇİN TASARLANDI</span>
+        ><span class="desktop-note">MASAÜSTÜ · TELEFON · TABLET</span>
       </footer>
     </div>
     <div id="hud" class="arena-hud hidden">
