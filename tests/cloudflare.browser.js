@@ -64,7 +64,9 @@ async function open(mobile, name) {
   await expect(page.locator("#server-address")).toBeHidden();
   await page.locator("#player-name").fill(name);
   await page.locator("#play").click();
-  await expect(page.locator("#hud")).toBeVisible();
+  // The native transport allows 12 seconds for the handshake; a 5 second
+  // assertion can fail prematurely on a cold or slow browser runner.
+  await expect(page.locator("#hud")).toBeVisible({ timeout: 15000 });
   await expect(page.locator("#connection")).toHaveText("ONLINE");
   await expect.poll(() => probe.id).toBeTruthy();
   return {
@@ -205,16 +207,28 @@ try {
     `CLOUDFLARE_BROWSER_OK ${engine}: two real desktop/mobile browser players, shared authoritative shots/actors, joystick movement, map, landscape, invitation URL and empty-room shutdown.`,
   );
 } catch (error) {
+  const diagnostics = [];
   for (const [i, page] of browser
     .contexts()
     .flatMap((context) => context.pages())
-    .entries())
+    .entries()) {
+    diagnostics.push({
+      page: i,
+      url: page.url(),
+      join: await page
+        .locator("#join-status")
+        .textContent()
+        .catch(() => null),
+      errors,
+    });
     await page
       .screenshot({
         path: `/tmp/archer-validation/cloudflare-${engine}-failure-${i}.png`,
       })
       .catch(() => {});
-  annotateFailure(error, "Cloudflare desktop/mobile multiplayer");
+  }
+  error.stack += `\nEngine: ${engine}\nJoin diagnostics: ${JSON.stringify(diagnostics)}`;
+  annotateFailure(error, `Cloudflare ${engine} desktop/mobile multiplayer`);
   throw error;
 } finally {
   await browser.close();
