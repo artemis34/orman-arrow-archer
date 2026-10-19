@@ -13,10 +13,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-DchnHj0c.js"></script>
+    <script type="module" crossorigin src="./assets/index-Cg2eklO_.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DAdjKc7U.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-AmR-uCW0.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -220,6 +220,14 @@
           >
             <span>+</span><small>+25 CAN</small><b id="heal-time"></b>
           </button>
+          <button
+            id="auto-fire"
+            class="arena-ability"
+            aria-label="Tek elle oynamak için otomatik atış"
+            aria-pressed="false"
+          >
+            <span>◎</span><small id="auto-fire-label">OTO KAPALI</small>
+          </button>
         </div>
       </div>
       <button
@@ -291,7 +299,11 @@
               Mobilde ekrana veya sağ joystick’e kısa dokun: menzildeki açık
               hedeflerden canı en az olana otomatik atış. Sağ joystick’i çekip
               bırakarak elle nişan al; hafif nişan yardımı uygulanır. Temel ok
-              15 hasar verir; yayı germek okun hızını ve menzilini artırır.
+              15 hasar verir; yayı germek okun hızını ve menzilini artırır. ◎
+              OTO düğmesini açarsan yalnızca hareket ederek tek elle
+              oynayabilirsin: menzilde ve açıkta olan en düşük canlı hedefe
+              normal atış aralıklarıyla ateş eder. Elle nişan her zaman
+              önceliklidir.
             </p>
           </div>
           <div>
