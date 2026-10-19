@@ -13,6 +13,9 @@ const world = new World({ bots: 0 });
 world.obstacles = [];
 world.obstacleGrid.clear();
 world.random = () => 1;
+// Progression/protection is covered by the HUD suite. This arena isolates touch
+// targeting, even when a slow screenshot lets automatic shots run for longer.
+world.gain = () => {};
 while (world.orbs.active.length) world.orbs.release(0);
 for (const [id, x, hp] of [
   ["chosen", 0, 1500],
@@ -113,7 +116,17 @@ try {
   );
   await expect.poll(() => actor?.autoTargetId).toBe("weak");
   // Project a real opponent with the same camera the scene uses; no app debug API.
-  await page.waitForTimeout(600);
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        let frames = 12;
+        const next = () => {
+          if (--frames === 0) resolve();
+          else requestAnimationFrame(next);
+        };
+        requestAnimationFrame(next);
+      }),
+  );
   const camera = new THREE.PerspectiveCamera(42, 390 / 844, 0.1, 180);
   camera.position.set(0, 32, 32 * 0.73);
   camera.lookAt(0, 0, 0);
@@ -213,6 +226,7 @@ try {
     `LOBBY_ONEHAND_OK ${engine}: short/landscape menus, saved controls, centered joystick, automatic fire, real enemy tap lock/unlock, independent movement and classic fallback.`,
   );
 } catch (error) {
+  error.message += `\nEngine: ${engine}; actor: ${JSON.stringify(actor && { x: actor.x, z: actor.z, alive: actor.alive, level: actor.level, guard: actor.levelGuard, pending: actor.pending, target: actor.autoTargetId, locked: actor.lockedTargetId })}`;
   annotateFailure(error, "Lobby and one-handed controls");
   throw error;
 } finally {
