@@ -77,6 +77,10 @@ try {
   await page.locator("#play").click();
   await expect(page.locator("#hud")).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator("#auto-fire")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
   assert.equal(
     await page.locator("#arena").evaluate((canvas) => {
       const gl = canvas.getContext("webgl2");
@@ -123,6 +127,19 @@ try {
   await page.locator("#upgrade-options button").first().tap();
   await expect(page.locator("#upgrades")).toBeHidden();
   await page.setViewportSize({ width: 390, height: 844 });
+
+  // Automatic mode works in Chromium and WebKit through the real authority.
+  const autoShots = shots;
+  await page.locator("#auto-fire").tap();
+  await expect(page.locator("#auto-fire")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect
+    .poll(() => shots - autoShots, { timeout: 6500 })
+    .toBeGreaterThanOrEqual(2);
+  await page.locator("#auto-fire").tap();
+  await expect.poll(() => actor.input.autoFire).toBe(false);
 
   let cdp, move;
   const release = () =>

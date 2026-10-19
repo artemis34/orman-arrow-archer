@@ -181,6 +181,14 @@ try {
     .toBe(true);
   await expect.poll(() => a.probe.seen.has(b.probe.id)).toBe(true);
   await expect.poll(() => b.probe.seen.has(a.probe.id)).toBe(true);
+  await b.page.locator("#auto-fire").tap();
+  await expect(b.page.locator("#auto-fire")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect.poll(() => b.probe.inputs.at(-1)?.data.autoFire).toBe(true);
+  await b.page.locator("#auto-fire").tap();
+  await expect.poll(() => b.probe.inputs.at(-1)?.data.autoFire).toBe(false);
   const start = { x: b.me().x, z: b.me().z };
   const move = await b.page.locator("#move-stick").boundingBox();
   if (engine === "chromium") {
@@ -251,7 +259,7 @@ try {
     .toBe(false);
   assert.deepEqual(errors, []);
   console.log(
-    `CLOUDFLARE_BROWSER_OK ${engine}: two real desktop/mobile browser players, shared authoritative shots/actors, joystick movement, map, landscape, invitation URL and empty-room shutdown.`,
+    `CLOUDFLARE_BROWSER_OK ${engine}: two real desktop/mobile browser players, shared authoritative shots/actors, automatic-fire toggle over the real WebSocket, joystick movement, map, landscape, invitation URL and empty-room shutdown.`,
   );
 } catch (error) {
   const diagnostics = [];

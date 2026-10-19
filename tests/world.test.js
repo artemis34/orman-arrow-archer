@@ -36,6 +36,7 @@ test("untrusted inputs are finite, normalized, and cannot choose damage or posit
       heal: false,
       quickShot: false,
       cancelShot: false,
+      autoFire: false,
       seq: 0,
     },
   );

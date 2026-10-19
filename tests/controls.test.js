@@ -22,7 +22,8 @@ function touchControls() {
     aimJoy: { x: 0, z: 0 },
     angle: 0.7,
     charge: false,
-    touchAim: false,
+    releasedAim: null,
+    autoFire: false,
     mouse: { x: 0, y: 0 },
     scene: {
       aimAt() {
@@ -42,7 +43,7 @@ test("touch walking faces movement instead of the old mouse position", () => {
 });
 test("walking and aiming remain independent when either stick is released", () => {
   const c = touchControls();
-  c.charge = c.touchAim = true;
+  c.charge = true;
   c.aimJoy = { x: 0, z: -1 };
   let input = c.sample({ alive: true }, null);
   assert.equal(input.x, 1);
@@ -57,6 +58,65 @@ test("walking and aiming remain independent when either stick is released", () =
   input = c.sample({ alive: true }, null);
   assert.equal(input.x, 1);
   assert.equal(input.charge, false);
+  assert.equal(input.angle, 0, "the torso follows walking after aiming ends");
+});
+
+test("the release keeps the aimed shot, then walking and quick taps cannot lock the torso", () => {
+  const c = touchControls();
+  c.releasedAim = { x: 0, z: -1 };
+  assert.equal(c.sample({ alive: true }, null).angle, -Math.PI / 2);
+  assert.equal(c.sample({ alive: true }, null).angle, 0);
+  const me = { id: "me", x: 0, z: 0, alive: true };
+  const target = { id: "enemy", x: 0, z: -10, alive: true, hp: 10 };
+  c.quickShot = true;
+  assert.equal(c.sample(me, { players: [me, target] }).angle, -Math.PI / 2);
+  c.joy = { x: 0, z: 1 };
+  assert.equal(c.sample(me, { players: [me, target] }).angle, Math.PI / 2);
+});
+
+test("one-handed fire aims at valid enemies without changing movement or manual aim", () => {
+  const c = touchControls();
+  const me = { id: "me", x: 0, z: 0, alive: true };
+  const target = { id: "enemy", x: 0, z: -10, alive: true, hp: 10 };
+  const state = { players: [me, target] };
+  c.setAutoFire(true);
+  let input = c.sample(me, state);
+  assert.equal(input.autoFire, true);
+  assert.equal(input.angle, -Math.PI / 2);
+  assert.equal(input.x, 1);
+  c.charge = true;
+  c.aimJoy = { x: -1, z: 0 };
+  input = c.sample(me, state);
+  assert.equal(
+    input.angle,
+    Math.PI,
+    "manual aim wins over the automatic target",
+  );
+  assert.equal(input.charge, true);
+  c.charge = false;
+  c.setAutoFire(false);
+  input = c.sample(me, state);
+  assert.equal(input.autoFire, false);
+  assert.equal(input.angle, 0);
+});
+
+test("automatic fire is suspended during help, focus loss and death", () => {
+  const c = touchControls();
+  c.setAutoFire(true);
+  c.focused = false;
+  c.cancelShot = true;
+  let input = c.sample({ alive: true }, null);
+  assert.equal(input.autoFire, false);
+  assert.equal(input.cancelShot, true);
+  c.focused = true;
+  c.active = false;
+  c.cancelShot = true;
+  input = c.sample({ alive: true }, null);
+  assert.equal(input.autoFire, false);
+  assert.equal(input.cancelShot, true);
+  c.active = true;
+  assert.equal(c.sample({ alive: false }, null).autoFire, false);
+  assert.equal(c.sample({ alive: true }, null).autoFire, true);
 });
 
 test("diagonal joystick directions match the tilted camera on portrait and landscape screens", () => {

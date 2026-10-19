@@ -180,6 +180,11 @@ try {
   await expect.poll(() => shots).toBe(beforeShot + 1);
   assert.ok(actor.input.x > 0.7);
   assert.equal(actor.input.charge, false);
+  await expect
+    .poll(() =>
+      Math.abs(actor.input.angle - Math.atan2(actor.input.z, actor.input.x)),
+    )
+    .toBeLessThan(0.01);
 
   // A native touch cancellation cancels the draw rather than firing it.
   await touch("touchStart", [move, aim]);
@@ -190,6 +195,17 @@ try {
   assert.equal(shots, beforeCancel);
   assert.equal(actor.input.x, 0);
   assert.ok(received.some((input) => input.cancelShot));
+
+  // An inactive page must still send its cancellation edge, never release a
+  // charged manual arrow while stopping automatic fire and movement.
+  await touch("touchStart", [aim]);
+  await expect.poll(() => actor.charge).toBeGreaterThan(0.3);
+  const beforeBlur = shots;
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect.poll(() => actor.charge).toBe(0);
+  assert.equal(shots, beforeBlur);
+  await touch("touchCancel", []);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
 
   // A new pair of fingers works after cancellation and after rotation.
   await page.setViewportSize({ width: 844, height: 390 });
@@ -206,9 +222,73 @@ try {
   assert.ok(actor.input.x < -0.7);
   await touch("touchEnd", []);
   await expect.poll(() => actor.input.x).toBe(0);
+
+  // A single right-stick tap used to permanently lock the torso's direction.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const walkDown = await finger("#move-stick", 5, 0, 32);
+  const tapAim = await finger("#aim-stick", 6, 0, 0);
+  await touch("touchStart", [walkDown]);
+  await touch("touchStart", [walkDown, tapAim]);
+  await touch("touchEnd", [tapAim]);
+  await expect.poll(() => actor.input.z).toBeGreaterThan(0.7);
+  await expect
+    .poll(() =>
+      Math.abs(actor.input.angle - Math.atan2(actor.input.z, actor.input.x)),
+    )
+    .toBeLessThan(0.01);
+  await touch("touchEnd", []);
+
+  // One finger alone walks while automatic mode repeats normal, server-owned
+  // shots. A stationary target supplies deterministic aim and line of sight.
+  Object.assign(actor, { x: -8, z: -6, shotCd: 0 });
+  const target = world.addPlayer("onehand-target", "Hedef", 1);
+  Object.assign(target, { x: -8, z: 6, spawnShield: 0, hp: 900, maxHp: 900 });
+  await page.locator("#auto-fire").tap();
+  await expect(page.locator("#auto-fire")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect.poll(() => actor.input.autoFire).toBe(true);
+  const autoShots = shots;
+  const walk = await finger("#move-stick", 7, 28, 0);
+  const startX = actor.x;
+  await touch("touchStart", [walk]);
+  await expect.poll(() => actor.x - startX).toBeGreaterThan(0.5);
+  await expect
+    .poll(() => shots - autoShots, { timeout: 6500 })
+    .toBeGreaterThanOrEqual(2);
+  assert.ok(actor.input.x > 0.5);
+  assert.ok(target.hp < 900, "one-handed shots must actually reach the enemy");
+  await page.screenshot({
+    path: "/tmp/archer-validation/onehand-auto-fire.png",
+  });
+  const toggle = await finger("#auto-fire", 8, 0, 0);
+  await touch("touchStart", [walk, toggle]);
+  await touch("touchEnd", [toggle]);
+  await expect(page.locator("#auto-fire")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect.poll(() => actor.input.autoFire).toBe(false);
+  const stoppedShots = shots;
+  const stoppedX = actor.x;
+  await expect.poll(() => actor.x - stoppedX).toBeGreaterThan(0.8);
+  assert.equal(shots, stoppedShots, "turning off fire preserves held movement");
+  await touch("touchEnd", []);
+  await expect.poll(() => actor.input.x).toBe(0);
+
+  // Focus loss immediately disables automatic fire; returning permits it again.
+  await page.locator("#auto-fire").tap();
+  await expect.poll(() => actor.input.autoFire).toBe(true);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect.poll(() => actor.input.autoFire).toBe(false);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect.poll(() => actor.input.autoFire).toBe(true);
+  await page.locator("#auto-fire").tap();
+  await expect.poll(() => actor.input.autoFire).toBe(false);
   assert.deepEqual(errors, []);
   console.log(
-    "MOTION_BROWSER_OK: real two-finger controls with 130–210ms RTT/jitter, a 600ms renderer stall, neutral thumb, independent aim/movement, either release order, cancelled-shot safety, portrait/landscape and recovery.",
+    "MOTION_BROWSER_OK: real two-finger controls with 130–210ms RTT/jitter, a 600ms renderer stall, neutral thumb, independent aim/movement, release and quick-tap torso recovery, cancelled-shot safety, portrait/landscape, one-handed automatic shots, held-stick toggle and focus suspension.",
   );
 } catch (error) {
   for (const page of browser

@@ -26,6 +26,7 @@ export function pauseStaleInput(player, age) {
     dash: false,
     heal: false,
     quickShot: false,
+    autoFire: false,
   };
   if (age > ONLINE.drawTimeout) {
     player.input.charge = false;

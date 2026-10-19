@@ -23,7 +23,9 @@ export class Controls {
     this.cancelShot = false;
     this.active = false;
     this.mouse = { x: innerWidth / 2, y: innerHeight / 2 };
-    this.touchAim = false;
+    this.releasedAim = null;
+    this.autoFire = false;
+    this.focused = !document.hidden;
     this.joy = { x: 0, z: 0 };
     this.aimJoy = { x: 0, z: 0 };
     this.stickResets = [];
@@ -77,7 +79,6 @@ export class Controls {
       if (e.pointerType === "mouse") {
         this.isTouch = false;
         this.mouse = { x: e.clientX, y: e.clientY };
-        this.touchAim = false;
       }
     });
     canvas.addEventListener("pointerdown", (e) => {
@@ -94,8 +95,13 @@ export class Controls {
       if (e.pointerType === "mouse" && e.button === 0) this.charge = false;
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    addEventListener("blur", () => this.reset());
+    addEventListener("blur", () => {
+      this.focused = false;
+      this.reset();
+    });
+    addEventListener("focus", () => (this.focused = !document.hidden));
     document.addEventListener("visibilitychange", () => {
+      this.focused = !document.hidden && document.hasFocus();
       if (document.hidden) this.reset();
     });
     document.getElementById("dash").addEventListener("pointerdown", (e) => {
@@ -118,7 +124,7 @@ export class Controls {
   reset() {
     this.cancelShot ||= this.charge;
     for (const release of this.stickResets) release();
-    this.touchAim = false;
+    this.releasedAim = null;
     this.quickShot = false;
     this.keys.clear();
     this.charge = false;
@@ -128,6 +134,9 @@ export class Controls {
     this.aimJoy = { x: 0, z: 0 };
     for (const k of document.querySelectorAll(".stick-knob"))
       k.style.transform = "";
+  }
+  setAutoFire(enabled) {
+    this.autoFire = enabled === true;
   }
   stick(id, aim) {
     const el = document.getElementById(id),
@@ -148,8 +157,8 @@ export class Controls {
       knob.style.transform = `translate(${dx * scale}px,${dz * scale}px)`;
       if (aim) {
         if (vector.x || vector.z) {
-          this.touchAim = true;
           this.aimJoy = vector;
+          this.releasedAim = null;
           if (!this.charge) this.audio.play("charge");
           this.charge = true;
         }
@@ -191,6 +200,11 @@ export class Controls {
     this.stickResets.push(release);
     const end = (e) => {
       if (pointer === e.pointerId) {
+        // Keep the release direction for the shot, then return the torso to
+        // walking. A sticky aiming flag used to lock it after the first touch.
+        if (aim)
+          this.releasedAim =
+            e.type === "pointerup" && this.charge ? { ...this.aimJoy } : null;
         if (aim && e.type !== "pointerup" && this.charge)
           this.cancelShot = true;
         if (
@@ -209,6 +223,8 @@ export class Controls {
     el.addEventListener("lostpointercapture", end);
   }
   sample(me, state, obstacles = []) {
+    const active = this.active && this.focused !== false;
+    const manualAim = this.charge ? this.aimJoy : this.releasedAim;
     let movement = this.joy;
     if (me && this.isTouch && (movement.x || movement.z)) {
       const direction = this.scene.aimFromStick(movement.x, movement.z, me);
@@ -233,17 +249,14 @@ export class Controls {
     }
     if (me) {
       if (this.isTouch) {
-        if (this.charge && (this.aimJoy.x || this.aimJoy.z))
-          this.angle = this.scene.aimFromStick(
-            this.aimJoy.x,
-            this.aimJoy.z,
-            me,
-          );
-        else if (!this.touchAim && len > 0) this.angle = Math.atan2(z, x);
+        if (manualAim && (manualAim.x || manualAim.z))
+          this.angle = this.scene.aimFromStick(manualAim.x, manualAim.z, me);
+        else if (len > 0) this.angle = Math.atan2(z, x);
       } else this.angle = this.scene.aimAt(this.mouse.x, this.mouse.y, me);
     }
     let angle = this.angle;
-    if (me?.alive && this.isTouch && state) {
+    if (me?.alive && state) {
+      const automatic = this.autoFire && !this.charge && !manualAim;
       if (this.quickShot) {
         const target = selectTarget(me, state.players, obstacles);
         if (target) {
@@ -253,9 +266,17 @@ export class Controls {
             19 + RULES.quickShotCharge * 23,
             obstacles,
           );
-          this.touchAim = true;
         } else this.onNoTarget?.();
-      } else if (this.charge && this.touchAim) {
+      } else if (automatic) {
+        const target = selectTarget(me, state.players, obstacles);
+        if (target)
+          angle = this.angle = aimedAngle(
+            me,
+            target,
+            19 + RULES.quickShotCharge * 23,
+            obstacles,
+          );
+      } else if (this.isTouch && this.charge) {
         const target = selectTarget(me, state.players, obstacles, {
           angle,
           cone: 0.16,
@@ -273,19 +294,22 @@ export class Controls {
       }
     }
     const input = {
-      x: this.active ? x : 0,
-      z: this.active ? z : 0,
+      x: active ? x : 0,
+      z: active ? z : 0,
       angle,
-      charge: this.active && this.charge,
-      dash: this.active && this.dash,
-      heal: this.active && this.heal,
-      quickShot: this.active && this.quickShot,
-      cancelShot: this.active && this.cancelShot,
+      charge: active && this.charge,
+      dash: active && this.dash,
+      heal: active && this.heal,
+      quickShot: active && this.quickShot,
+      // A blur/help reset must still cancel an existing draw while inactive.
+      cancelShot: !!this.cancelShot,
+      autoFire: active && this.autoFire && !!me?.alive,
     };
     this.dash = false;
     this.heal = false;
     this.quickShot = false;
     this.cancelShot = false;
+    this.releasedAim = null;
     return input;
   }
 }

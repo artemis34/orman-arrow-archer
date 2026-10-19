@@ -137,6 +137,7 @@ export function cleanInput(data = {}) {
     heal: data.heal === true,
     quickShot: data.quickShot === true,
     cancelShot: data.cancelShot === true,
+    autoFire: data.autoFire === true,
     seq: clamp(Math.floor(num(data.seq)), 0, 2147483647),
   };
 }

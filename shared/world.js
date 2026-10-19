@@ -153,6 +153,7 @@ export class World {
       pending: 0,
       input: cleanInput(),
       inputStale: false,
+      releaseAngle: null,
       seq: 0,
       poison: 0,
       poisonDps: 0,
@@ -188,6 +189,8 @@ export class World {
       next.heal ||= p.input.heal;
       next.quickShot ||= p.input.quickShot;
       next.cancelShot ||= p.input.cancelShot;
+      if (p.input.charge && !next.charge) p.releaseAngle = next.angle;
+      if (next.cancelShot) p.releaseAngle = null;
       p.input = next;
       p.inputStale = false;
     }
@@ -329,6 +332,7 @@ export class World {
       vz: 0,
       input: cleanInput(),
       inputStale: false,
+      releaseAngle: null,
     });
     return true;
   }
@@ -544,7 +548,8 @@ export class World {
       p.input.heal = false;
       p.input.dash = false;
       if (!p.bot) this.autoTarget(p);
-      if (i.cancelShot) p.charge = 0;
+      const cancelled = i.cancelShot;
+      if (cancelled) p.charge = 0;
       p.input.cancelShot = false;
       const quick = i.quickShot && !i.charge && p.levelGuard <= 0;
       p.input.quickShot = false;
@@ -554,6 +559,7 @@ export class World {
         // auto-shot gesture, so a missing target must not release that partial draw.
         p.charge = 0;
       }
+      const releasing = p.charge > 0 && !i.charge;
       if (p.levelGuard > 0) p.charge = 0;
       else if (i.charge) {
         if (!p.inputStale)
@@ -568,9 +574,25 @@ export class World {
           );
         p.hidden = false;
       } else if (p.charge && !p.inputStale) {
+        const facing = p.angle;
+        if (p.releaseAngle !== null) p.angle = p.releaseAngle;
         this.fire(p);
+        p.angle = facing;
         p.charge = 0;
       }
+      p.releaseAngle = null;
+      // Automatic mode uses the same server-selected quick shot and cooldown.
+      // Manual draw/release, cancellation and selection protection take priority.
+      if (
+        i.autoFire &&
+        !p.inputStale &&
+        !i.charge &&
+        !quick &&
+        !releasing &&
+        !cancelled &&
+        p.shotCd <= 0
+      )
+        this.quickShot(p);
       p.hidden =
         !i.charge &&
         this.time >= (p.revealUntil || 0) &&

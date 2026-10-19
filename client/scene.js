@@ -721,7 +721,7 @@ export class ArenaScene {
         v.lowerBody.rotation.y = -v.pose.moveAngle;
         const stride = Math.sin(v.pose.phase) * v.pose.weight;
         v.body.position.y =
-          (1 - Math.cos(v.pose.phase * 2)) * 0.018 * v.pose.weight;
+          (1 - Math.cos(v.pose.phase * 2)) * 0.03 * v.pose.weight;
         const relative = v.pose.moveAngle - v.pose.facing;
         const forward = Math.cos(relative),
           side = Math.sin(relative);

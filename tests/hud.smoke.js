@@ -105,6 +105,7 @@ try {
     await expect(page.locator("#vitals-details")).toBeHidden();
     await expect(page.locator("#dash small")).toHaveText("ATIL");
     await expect(page.locator("#heal small")).toHaveText("+25 CAN");
+    await expect(page.locator("#auto-fire small")).toHaveText("OTO KAPALI");
     await expect(page.locator("#xp-remaining")).toHaveText(
       `${world.players.get(id).level * 55 - world.players.get(id).xp} XP kaldı`,
     );
@@ -124,6 +125,22 @@ try {
       area / width / height < 0.1,
       `${label}: readable persistent HUD must occupy less than 10% of the screen`,
     );
+    if (touch) {
+      const action = await page.locator(".arena-actions").boundingBox();
+      for (const stick of ["#move-stick", "#aim-stick"]) {
+        const box = await page.locator(stick).boundingBox();
+        const overlapX =
+          Math.min(action.x + action.width, box.x + box.width) -
+          Math.max(action.x, box.x);
+        const overlapY =
+          Math.min(action.y + action.height, box.y + box.height) -
+          Math.max(action.y, box.y);
+        assert.ok(
+          overlapX <= 0 || overlapY <= 0,
+          `${label}: actions leave both joysticks clear`,
+        );
+      }
+    }
     await activate("#leaders-toggle");
     await expect(page.locator("#leader-panel")).toBeVisible();
     await activate("#map-toggle");

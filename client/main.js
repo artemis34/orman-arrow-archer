@@ -142,6 +142,21 @@ for (const b of document.querySelectorAll(".sound-button"))
     syncSound();
   });
 syncSound();
+function syncAutoFire() {
+  $("auto-fire").setAttribute("aria-pressed", String(controls.autoFire));
+  text("auto-fire-label", controls.autoFire ? "OTO AÇIK" : "OTO KAPALI");
+  $("auto-fire").title = controls.autoFire
+    ? "Otomatik atışı kapat"
+    : "Otomatik atışı aç · tek elle oyna";
+}
+controls.setAutoFire(preferences.get("wildbow-auto-fire") === "true");
+syncAutoFire();
+bindAction($("auto-fire"), () => {
+  audio.unlock();
+  controls.setAutoFire(!controls.autoFire);
+  preferences.set("wildbow-auto-fire", String(controls.autoFire));
+  syncAutoFire();
+});
 let focusBeforeHelp = null;
 function help(open) {
   if (open) focusBeforeHelp = document.activeElement;
@@ -394,14 +409,15 @@ function updateHud(current) {
     .classList.toggle("hidden", charge <= 0);
   text("charge-percent", charge + "%");
   $("charge-fill").style.width = charge + "%";
-  const autoTarget = controls.isTouch
-    ? selectTarget(me, current.players, scene.obstacles)
-    : null;
+  const autoTarget =
+    controls.isTouch || controls.autoFire
+      ? selectTarget(me, current.players, scene.obstacles)
+      : null;
   text(
     "charge-hint",
     charge >= 98
       ? "TAM GERİLİM · BIRAK VE AT"
-      : controls.isTouch
+      : controls.isTouch || controls.autoFire
         ? charge > 0
           ? "BIRAK: HIZLI OK"
           : me.shotCd > 0.04
@@ -619,7 +635,7 @@ function frame(now) {
   const view = playing && transport?.online ? transport.view() : state;
   const me = view?.players.find((p) => p.id === myId);
   const target =
-    playing && controls.isTouch && me?.alive
+    playing && (controls.isTouch || controls.autoFire) && me?.alive
       ? selectTarget(
           me,
           view.players,

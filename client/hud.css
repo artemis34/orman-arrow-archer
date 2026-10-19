@@ -345,13 +345,13 @@
 }
 .action-buttons {
   display: flex;
-  gap: 7px;
+  gap: 6px;
 }
 .arena-ability {
   position: relative;
   display: grid;
   place-items: center;
-  width: 46px;
+  width: 44px;
   height: 50px;
   padding: 0;
   border: 1px solid #d4f3942c;
@@ -389,6 +389,14 @@
 }
 .arena-ability:disabled {
   opacity: 0.35;
+}
+#auto-fire[aria-pressed="true"] {
+  background: #355d36e8;
+  border-color: #c6ef8eaa;
+  color: #e2ffb6;
+}
+#auto-fire[aria-pressed="true"] small {
+  color: #e2ffb6;
 }
 .arena-charge {
   width: 84px;
@@ -620,6 +628,10 @@ body.playing #arena {
   }
 }
 @media (max-width: 420px) and (max-height: 740px) {
+  .arena-ability {
+    height: 44px;
+    grid-template-rows: 25px 13px;
+  }
   .arena-map {
     width: 84px;
   }
@@ -667,7 +679,7 @@ body.playing #arena {
     grid-template-rows: 25px 13px;
   }
   .upgrade-dock {
-    width: min(430px, calc(100vw - 436px));
+    width: min(400px, calc(100vw - 536px));
     bottom: max(12px, env(safe-area-inset-bottom));
   }
   .upgrade-reminder {
