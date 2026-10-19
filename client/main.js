@@ -15,6 +15,7 @@ import "@fontsource/dm-sans/latin-ext-500.css";
 import "@fontsource/dm-sans/latin-ext-700.css";
 import "./style.css";
 import "./hud.css";
+import "./lobby.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -48,7 +49,10 @@ let playing = false,
   transport = null,
   state = atHome.snapshot(),
   mode = "practice",
-  skin = 0,
+  skin = Math.max(
+    0,
+    Math.min(SKINS.length - 1, Number(preferences.get("wildbow-skin")) || 0),
+  ),
   myId = null,
   lastTime = performance.now(),
   accumulator = 0,
@@ -81,6 +85,7 @@ for (const [i, s] of SKINS.entries()) {
   b.setAttribute("aria-pressed", String(i === skin));
   b.addEventListener("click", () => {
     skin = i;
+    preferences.set("wildbow-skin", String(skin));
     for (const [j, e] of [...$("skins").children].entries()) {
       e.classList.toggle("selected", j === i);
       e.setAttribute("aria-pressed", String(j === i));
@@ -93,24 +98,49 @@ function setMode(next) {
   $("practice-mode").classList.toggle("selected", mode === "practice");
   $("online-mode").classList.toggle("selected", mode === "online");
   show("server-field", mode === "online");
+  show("room-access", cloudflare && mode === "online");
+  for (const id of ["practice-mode", "online-mode"])
+    $(id).setAttribute(
+      "aria-pressed",
+      String($(id).classList.contains("selected")),
+    );
   text(
     "join-status",
     mode === "practice"
       ? "Botlarla anında oyna · Hesap gerekmez"
       : cloudflare
-        ? "Aynı oda koduyla arkadaşlarınla oyna"
+        ? privateRoom
+          ? "Davet bağlantısını paylaş, aynı arenada buluş."
+          : "Uygun bir arenaya otomatik katıl."
         : "Gerçek oyuncular · Sunucu bağlantısı gerekir",
   );
   text(
     "server-label",
     mode === "practice"
       ? "Yerel arena • 7 bot rakip"
-      : "Paylaşılan çevrimiçi arena",
+      : "Online · En fazla 16 oyuncu",
   );
 }
+let privateRoom = !!query.get("room") && query.get("match") !== "quick";
+function setRoomAccess(privateMatch) {
+  privateRoom = privateMatch;
+  show("room-field", cloudflare && privateRoom);
+  $("quick-match").setAttribute("aria-pressed", String(!privateRoom));
+  $("friend-room").setAttribute("aria-pressed", String(privateRoom));
+  $("quick-match").classList.toggle("selected", !privateRoom);
+  $("friend-room").classList.toggle("selected", privateRoom);
+  setMode(mode);
+}
+bindAction($("quick-match"), () => setRoomAccess(false));
+bindAction($("friend-room"), () => {
+  if (!query.get("room") && $("room-code").value === "arena")
+    $("room-code").value = `friends-${crypto.randomUUID().slice(0, 6)}`;
+  setRoomAccess(true);
+});
 $("practice-mode").onclick = () => setMode("practice");
 $("online-mode").onclick = () => setMode("online");
 setMode(cloudflare ? "online" : "practice");
+setRoomAccess(privateRoom);
 bindAction($("copy-invite"), async () => {
   const room = roomCode($("room-code").value);
   if (!room) {
@@ -119,6 +149,7 @@ bindAction($("copy-invite"), async () => {
   }
   const invite = new URL(location.href);
   invite.searchParams.set("room", room);
+  invite.searchParams.delete("match");
   // A shared external/static frontend must retain its explicit server adapter.
   if (query.get("network")) invite.searchParams.set("network", "websocket");
   try {
@@ -150,6 +181,30 @@ function syncAutoFire() {
     : "Otomatik atışı aç · tek elle oyna";
 }
 controls.setAutoFire(preferences.get("wildbow-auto-fire") === "true");
+function setControls(oneHanded) {
+  controls.setOneHanded(oneHanded);
+  if (!oneHanded)
+    controls.setAutoFire(preferences.get("wildbow-auto-fire") === "true");
+  preferences.set("wildbow-controls", oneHanded ? "onehand" : "classic");
+  document.body.classList.toggle("onehand", oneHanded);
+  for (const [id, selected] of [
+    ["classic-controls", !oneHanded],
+    ["onehand-controls", oneHanded],
+  ]) {
+    $(id).classList.toggle("selected", selected);
+    $(id).setAttribute("aria-pressed", String(selected));
+  }
+  text(
+    "controls-hint",
+    oneHanded
+      ? "Yönlendir, otomatik ateş et. Rakibe dokunarak kilitlen."
+      : "İki joystick veya klavye ve fare ile kontrol sende.",
+  );
+  syncAutoFire();
+}
+bindAction($("classic-controls"), () => setControls(false));
+bindAction($("onehand-controls"), () => setControls(true));
+setControls(preferences.get("wildbow-controls") === "onehand");
 syncAutoFire();
 bindAction($("auto-fire"), () => {
   audio.unlock();
@@ -301,6 +356,8 @@ async function join() {
           throw new Error("Oda kodu 3–24 harf, rakam veya tire içermeli.");
         candidate = new WebSocketTransport(url, consume, onDisconnect, {
           room,
+          matchmake: !privateRoom,
+          viewRadius: scene.networkRadius(),
         });
       } else candidate = new SocketTransport(url, consume, onDisconnect);
     } else candidate = new LocalTransport();
@@ -308,6 +365,9 @@ async function join() {
     if (cloudflare && candidate.online) {
       const invite = new URL(location.href);
       invite.searchParams.set("room", welcome.room);
+      if (!privateRoom) invite.searchParams.set("match", "quick");
+      else invite.searchParams.delete("match");
+      $("room-code").value = welcome.room;
       history.replaceState(null, "", invite);
     }
     transport = candidate;
@@ -315,6 +375,8 @@ async function join() {
     playing = true;
     controls.active = true;
     controls.reset();
+    if (controls.oneHanded) controls.setAutoFire(true);
+    syncAutoFire();
     lastLevel = 1;
     choicesKey = "";
     upgradesCollapsed = false;
@@ -442,11 +504,11 @@ function updateHud(current) {
   $("connection").title = transport.online
     ? `Gecikme: ${transport.ping} ms`
     : "Botlarla antrenman";
-  const ranking = [...current.players].sort((a, b) => b.score - a.score);
+  const ranking = [...(current.roster || current.players)].sort(
+    (a, b) => b.score - a.score,
+  );
   text("my-rank", Math.max(1, ranking.findIndex((p) => p.id === myId) + 1));
-  const sorted = [...current.players]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+  const sorted = ranking.slice(0, 3);
   $("leaders").replaceChildren(
     ...sorted.map((p, i) => {
       const row = document.createElement("div");
@@ -466,7 +528,9 @@ function updateHud(current) {
       return row;
     }),
   );
-  text("population", `${current.players.length} OKÇU`);
+  const humans = ranking.filter((p) => !p.bot).length,
+    bots = ranking.length - humans;
+  text("population", `${humans} OYUNCU${bots ? ` · ${bots} BOT` : ""}`);
   const keys = Object.keys(me.upgrades)
     .sort()
     .map((k) => `${k}:${me.upgrades[k]}`)
@@ -615,6 +679,7 @@ function updateHud(current) {
 }
 function frame(now) {
   requestAnimationFrame(frame);
+  if (document.hidden || (!playing && now - lastTime < 1000 / 30)) return;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
   // Background mobile tabs stop sending input, allowing abandoned Cloudflare
@@ -636,7 +701,9 @@ function frame(now) {
   const me = view?.players.find((p) => p.id === myId);
   const target =
     playing && (controls.isTouch || controls.autoFire) && me?.alive
-      ? selectTarget(
+      ? (me.lockedTargetId &&
+          view.players.find((p) => p.id === me.lockedTargetId)) ||
+        selectTarget(
           me,
           view.players,
           scene.obstacles,
@@ -657,6 +724,9 @@ setInterval(() => {
   transport.step(controls.sample(me, state, scene.obstacles));
 }, 1000 / RULES.tick);
 controls.onNoTarget = () => toast("Hedef yok");
+addEventListener("resize", () =>
+  transport?.updateView?.(scene.networkRadius()),
+);
 show("loading", false);
 show("lobby", true);
 requestAnimationFrame(frame);

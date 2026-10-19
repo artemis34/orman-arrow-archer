@@ -24,6 +24,7 @@ export class ArenaScene {
     this.scene.fog = new THREE.FogExp2(0x607f60, 0.008);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
     this.camera.position.set(0, 34, 28);
+    this.camera.lookAt(0, 0, 0);
     this.target = new THREE.Vector3();
     this.players = new Map();
     this.arrowMeshes = [];
@@ -659,6 +660,42 @@ export class ArenaScene {
       ((1 - this.screenOrigin.y) * innerHeight) / 2 + z * 60,
       p,
     );
+  }
+  pickPlayer(x, y, players, myId) {
+    let nearest = null,
+      distance = 34;
+    for (const p of players) {
+      if (p.id === myId || !p.alive || p.spawnShield > 0 || p.levelGuard > 0)
+        continue;
+      const point = new THREE.Vector3(p.x, 1, p.z).project(this.camera);
+      if (point.z < -1 || point.z > 1) continue;
+      const d = Math.hypot(
+        ((point.x + 1) * innerWidth) / 2 - x,
+        ((1 - point.y) * innerHeight) / 2 - y,
+      );
+      if (d < distance) {
+        distance = d;
+        nearest = p;
+      }
+    }
+    return nearest;
+  }
+  networkRadius() {
+    let radius = 34;
+    this.camera.updateMatrixWorld();
+    for (const x of [-1, 1])
+      for (const y of [-1, 1]) {
+        this.ray.setFromCamera(new THREE.Vector2(x, y), this.camera);
+        if (this.ray.ray.intersectPlane(this.groundPlane, this.intersection))
+          radius = Math.max(
+            radius,
+            Math.hypot(
+              this.intersection.x - this.target.x,
+              this.intersection.z - this.target.z,
+            ) + 4,
+          );
+      }
+    return Math.min(80, Math.ceil(radius));
   }
   render(state, myId, dt, playing, lockId = null) {
     this.time += dt;

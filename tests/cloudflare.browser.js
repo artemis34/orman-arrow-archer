@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
 import { annotateFailure } from "./report.js";
+import { SnapshotDecoder, decodeInputs } from "../shared/protocol.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const engine = process.env.PLAYWRIGHT_ENGINE || "chromium";
 const room = `ui-${Date.now().toString(36)}`;
@@ -59,9 +60,13 @@ async function open(mobile, name) {
   page.on("pageerror", (e) => errors.push(e.message));
   // Observe actual browser WebSocket traffic; the app exposes no debug world.
   page.on("websocket", (socket) => {
+    const decoder = new SnapshotDecoder();
     socket.on("framesent", ({ payload }) => {
       try {
-        const packet = JSON.parse(String(payload));
+        const packet =
+          typeof payload === "string"
+            ? JSON.parse(payload)
+            : { type: "input", data: decodeInputs(payload).at(-1) };
         if (packet.type !== "input") return;
         const at = Date.now();
         const previous = probe.inputs.at(-1);
@@ -75,7 +80,10 @@ async function open(mobile, name) {
     socket.on("framereceived", ({ payload }) => {
       let packet;
       try {
-        packet = JSON.parse(String(payload));
+        packet =
+          typeof payload === "string"
+            ? JSON.parse(payload)
+            : { type: "state", data: decoder.decode(payload) };
       } catch {
         return;
       }
@@ -83,7 +91,8 @@ async function open(mobile, name) {
       if (packet.type === "state") {
         probe.state = packet.data;
         probe.events.push(...packet.data.events);
-        for (const player of packet.data.players) probe.seen.add(player.id);
+        for (const player of packet.data.roster || packet.data.players)
+          probe.seen.add(player.id);
       }
     });
   });
@@ -126,7 +135,7 @@ async function exit(page, touch) {
     try {
       if (!(await page.locator("#leader-panel").isVisible()))
         await activate("#leaders-toggle");
-      await activate("#exit", 1500);
+      await activate("#exit", 5000);
     } catch (error) {
       // The arena keeps running while menus are open. A bot may kill this
       // player between the initial visibility check and the actual exit tap.

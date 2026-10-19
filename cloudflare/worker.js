@@ -1,12 +1,15 @@
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
 import { ONLINE, roomCode, pauseStaleInput } from "../shared/online.js";
+import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 
 /** One authoritative world per room. No timers or bots run in an empty room. */
 export class ArenaRoom {
-  constructor(ctx) {
+  constructor(ctx, env) {
     this.ctx = ctx;
+    this.env = env;
     this.sessions = new Map();
+    this.reservations = new Map();
     this.world = null;
     this.events = [];
     this.ticks = 0;
@@ -15,6 +18,21 @@ export class ArenaRoom {
   }
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/reserve" && request.method === "POST") {
+      if (this.sessions.size + this.reservations.size >= ONLINE.humans)
+        return new Response("Full", { status: 409 });
+      const ticket = crypto.randomUUID(),
+        room = url.searchParams.get("room");
+      const timer = setTimeout(() => {
+        this.reservations.delete(ticket);
+        this.available(room);
+      }, ONLINE.reservationTime);
+      this.reservations.set(ticket, timer);
+      return Response.json(
+        { room, ticket },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (url.pathname.endsWith("/status"))
       return Response.json({
         ok: true,
@@ -26,7 +44,16 @@ export class ArenaRoom {
       return new Response("WebSocket connection required", { status: 426 });
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    if (this.sessions.size >= ONLINE.humans) {
+    const ticket = url.searchParams.get("ticket"),
+      reservation = this.reservations.get(ticket);
+    if (reservation) {
+      clearTimeout(reservation);
+      this.reservations.delete(ticket);
+    }
+    if (
+      this.sessions.size + this.reservations.size >= ONLINE.humans ||
+      (ticket && !reservation)
+    ) {
       server.send(JSON.stringify({ type: "full" }));
       server.close(1008, "arena full");
     } else {
@@ -37,6 +64,7 @@ export class ArenaRoom {
         refill: Date.now(),
         lastInput: Date.now(),
         room: url.pathname.split("/").at(-1),
+        inputs: [],
       };
       session.joinTimer = setTimeout(() => {
         if (!session.joined) {
@@ -50,7 +78,12 @@ export class ArenaRoom {
   }
   send(ws, type, data) {
     try {
-      ws.send(JSON.stringify({ type, data }));
+      const session = this.sessions.get(ws);
+      ws.send(
+        type === "state" && session?.encoder
+          ? session.encoder.encode(data)
+          : JSON.stringify({ type, data }),
+      );
     } catch {
       this.remove(ws);
     }
@@ -58,7 +91,10 @@ export class ArenaRoom {
   webSocketMessage(ws, message) {
     const session = this.sessions.get(ws);
     if (!session) return;
-    if (typeof message !== "string" || message.length > ONLINE.maxMessage) {
+    if (
+      (typeof message === "string" ? message.length : message.byteLength) >
+      ONLINE.maxMessage
+    ) {
       ws.close(1009, "message too large");
       this.remove(ws);
       return;
@@ -71,6 +107,29 @@ export class ArenaRoom {
     session.refill = now;
     if (session.budget < 1) return;
     session.budget--;
+    if (typeof message !== "string") {
+      if (!session.joined || !session.encoder) return;
+      try {
+        const inputs = decodeInputs(message);
+        session.inputs ||= [];
+        for (const input of inputs) {
+          if (input.seq <= (session.lastSequence || 0)) continue;
+          session.lastSequence = input.seq;
+          session.inputs.push(input);
+        }
+        // Bounded backlog preserves ordinary batches without accepting speed hacks.
+        while (session.inputs.length > 6) {
+          const skipped = session.inputs.shift(),
+            next = session.inputs[0];
+          for (const key of ["dash", "heal", "quickShot", "cancelShot"])
+            next[key] ||= skipped[key];
+          if (next.lockTarget === undefined)
+            next.lockTarget = skipped.lockTarget;
+        }
+        session.lastInput = now;
+      } catch {}
+      return;
+    }
     let packet;
     try {
       packet = JSON.parse(message);
@@ -85,7 +144,11 @@ export class ArenaRoom {
       data &&
       typeof data === "object"
     ) {
-      this.world ||= new World();
+      this.world ||= new World({ bots: 0 });
+      const humans = [...this.world.players.values()].filter(
+        (p) => !p.bot,
+      ).length;
+      this.world.setBotCount(Math.max(0, ONLINE.roomPopulation - humans - 1));
       const player = this.world.addPlayer(session.id, data.name, data.skin);
       if (!player) {
         this.send(ws, "full");
@@ -94,15 +157,18 @@ export class ArenaRoom {
         return;
       }
       session.joined = true;
+      session.viewRadius = viewRadius(data.viewRadius);
+      if (data.protocol === PROTOCOL) session.encoder = new SnapshotEncoder();
       clearTimeout(session.joinTimer);
       this.send(ws, "welcome", {
         id: player.id,
         obstacles: this.world.obstacles,
         rules: RULES,
         room: session.room,
+        protocol: session.encoder ? PROTOCOL : 0,
       });
       if (!this.world || !this.sessions.has(ws)) return;
-      this.send(ws, "state", this.world.snapshot(player.id));
+      this.send(ws, "state", this.snapshot(session));
       if (this.world && !this.timer)
         this.timer = setInterval(() => this.step(), 1000 / RULES.tick);
     } else if (session.joined && this.world) {
@@ -113,7 +179,30 @@ export class ArenaRoom {
         this.world.choose(session.id, data);
       else if (type === "respawn") this.world.respawn(session.id);
       else if (type === "ping") this.send(ws, "pong");
+      else if (type === "view") session.viewRadius = viewRadius(data);
     }
+  }
+  snapshot(session) {
+    return this.world.snapshot(
+      session.id,
+      this.events,
+      session.encoder
+        ? { radius: session.viewRadius || ONLINE.interestRadius }
+        : {},
+    );
+  }
+  available(room) {
+    if (!this.env?.MATCHMAKER || !/^wildbow-\d+$/.test(room || "")) return;
+    this.ctx.waitUntil(
+      this.env.MATCHMAKER.get(this.env.MATCHMAKER.idFromName("public"))
+        .fetch(
+          new Request("https://internal/available", {
+            method: "POST",
+            body: JSON.stringify({ room }),
+          }),
+        )
+        .catch(() => {}),
+    );
   }
   step() {
     if (!this.world) return;
@@ -128,6 +217,8 @@ export class ArenaRoom {
       }
       if (!this.world) return;
       const p = this.world.players.get(session.id);
+      if (p && session.inputs?.length)
+        this.world.setInput(session.id, session.inputs.shift());
       if (p) pauseStaleInput(p, now - session.lastInput);
     }
     if (!this.world) return;
@@ -136,7 +227,7 @@ export class ArenaRoom {
     if (++this.ticks % (RULES.tick / ONLINE.snapshots) !== 0) return;
     for (const [ws, session] of this.sessions) {
       if (session.joined && this.world)
-        this.send(ws, "state", this.world.snapshot(session.id, this.events));
+        this.send(ws, "state", this.snapshot(session));
     }
     this.events.length = 0;
   }
@@ -146,13 +237,21 @@ export class ArenaRoom {
     clearTimeout(session.joinTimer);
     this.world?.removePlayer(session.id);
     this.sessions.delete(ws);
+    this.available(session.room);
     if (![...this.sessions.values()].some((s) => s.joined)) {
       clearInterval(this.timer);
       this.timer = null;
       this.world = null;
       this.events.length = 0;
       this.ticks = 0;
-    }
+    } else if (this.world)
+      this.world.setBotCount(
+        Math.max(
+          0,
+          ONLINE.roomPopulation -
+            [...this.world.players.values()].filter((p) => !p.bot).length,
+        ),
+      );
   }
   webSocketClose(ws) {
     this.remove(ws);
@@ -164,10 +263,84 @@ export class ArenaRoom {
     this.remove(ws);
   }
 }
+function viewRadius(value) {
+  return Number.isFinite(value)
+    ? Math.min(80, Math.max(ONLINE.interestRadius, value))
+    : ONLINE.interestRadius;
+}
+
+/** Only matchmaking uses storage; active matches remain in their own room. */
+export class ArenaMatchmaker {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    this.cursor = 0;
+    ctx.blockConcurrencyWhile(async () => {
+      this.cursor = (await ctx.storage.get("cursor")) || 0;
+    });
+  }
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    if (path === "/available") {
+      const { room } = await request.json();
+      const match = /^wildbow-(\d+)$/.exec(room || "");
+      if (match && Number(match[1]) - 1 < this.cursor) {
+        this.cursor = Math.max(0, Number(match[1]) - 1);
+        await this.ctx.storage.put("cursor", this.cursor);
+      }
+      return new Response(null, { status: 204 });
+    }
+    const initial = this.cursor;
+    for (let attempt = 0; attempt < ONLINE.publicRooms; attempt++) {
+      const index = this.cursor,
+        room = `wildbow-${index + 1}`;
+      const response = await this.env.ARENAS.get(
+        this.env.ARENAS.idFromName(room),
+      ).fetch(
+        new Request(`https://internal/reserve?room=${room}`, {
+          method: "POST",
+        }),
+      );
+      if (response.ok) {
+        if (this.cursor !== initial)
+          await this.ctx.storage.put("cursor", this.cursor);
+        return response;
+      }
+      this.cursor = (index + 1) % ONLINE.publicRooms;
+    }
+    return new Response("Arenalar şu anda dolu. Biraz sonra tekrar dene.", {
+      status: 503,
+    });
+  }
+}
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const origin = request.headers.get("Origin"),
+      allowed = env.ALLOWED_ORIGINS?.split(",").map((v) => v.trim()) || [];
+    const apiResponse = (response) => {
+      if (response.status === 101) return response;
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store");
+      if (origin) {
+        headers.set("Access-Control-Allow-Origin", origin);
+        headers.append("Vary", "Origin");
+      }
+      return new Response(response.body, { status: response.status, headers });
+    };
+    if (url.pathname.startsWith("/api/")) {
+      if (origin && origin !== url.origin && !allowed.includes(origin))
+        return new Response("Origin denied", { status: 403 });
+      if (request.method !== "GET")
+        return new Response("Method not allowed", { status: 405 });
+    }
+    if (url.pathname === "/api/matchmake")
+      return apiResponse(
+        await env.MATCHMAKER.get(env.MATCHMAKER.idFromName("public")).fetch(
+          new Request("https://internal/find"),
+        ),
+      );
     if (url.pathname === "/health")
       return Response.json({
         ok: true,
@@ -180,14 +353,9 @@ export default {
       const code = roomCode(match[1]);
       if (!code || code !== match[1])
         return new Response("Invalid room", { status: 400 });
-      const origin = request.headers.get("Origin");
-      const allowed =
-        env.ALLOWED_ORIGINS?.split(",").map((v) => v.trim()) || [];
-      if (origin && origin !== url.origin && !allowed.includes(origin))
-        return new Response("Origin denied", { status: 403 });
-      if (request.method !== "GET")
-        return new Response("Method not allowed", { status: 405 });
-      return env.ARENAS.get(env.ARENAS.idFromName(code)).fetch(request);
+      return apiResponse(
+        await env.ARENAS.get(env.ARENAS.idFromName(code)).fetch(request),
+      );
     }
     if (url.pathname.startsWith("/api/"))
       return new Response("Not found", { status: 404 });

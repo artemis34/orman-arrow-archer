@@ -1,7 +1,7 @@
 name: Validate and publish
 on:
   push:
-    branches: [main]
+    branches: [main, feature/cloudflare-arena-refresh]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -46,6 +46,8 @@ jobs:
           npm run test:powerups
           npm run test:interaction
           npm run test:motion
+          npm run test:lobby
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:interaction
       - name: Validate Cloudflare rooms and desktop/mobile multiplayer
         shell: bash
@@ -100,7 +102,7 @@ jobs:
         with:
           path: dist
   static:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -151,7 +153,7 @@ jobs:
           path: /tmp/archer-live
           if-no-files-found: ignore
   pages:
-    if: github.event_name != 'pull_request' && needs.validate.outputs.pages_enabled == 'true'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.pages_enabled == 'true'
     needs: validate
     runs-on: ubuntu-latest
     permissions:
@@ -164,7 +166,7 @@ jobs:
       - uses: actions/deploy-pages@v4
         id: deployment
   cloudflare:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -209,7 +211,7 @@ jobs:
           npm run test:cloudflare
           npm run test:cloudflare:browser
   cloudflare-live:
-    if: github.event_name != 'pull_request' && github.repository == 'artemis34/orman-arrow-archer'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'artemis34/orman-arrow-archer'
     needs: [validate, cloudflare]
     runs-on: ubuntu-latest
     timeout-minutes: 10

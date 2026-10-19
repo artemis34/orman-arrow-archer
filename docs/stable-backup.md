@@ -42,6 +42,8 @@ npm run build
 
 Cloudflare için `npm run build:cloudflare` ve yerel ağ/tarayıcı kontrolleri kullanılabilir. Üretime geri dönüş gerektiğinde doğrulanan sürüm mevcut Cloudflare projesinde yayımlanır; main geçmişini zorla değiştirmek gerekmez.
 
+Cloudflare ağ/oda güncellemesi ek bir `v2` eşleştirme sınıfı migrasyonu getirir. Bu kaynak etiketi bulut hesabındaki migration geçmişini geri almaz. Bu güncellemeden sonra üretimde eski oynanışa dönülürken mevcut Durable Object sınıf dışa aktarımları, binding'ler ve migration geçmişi korunarak uyumlu bir geri dönüş derlemesi hazırlanmalıdır. Eski etiketteki Wrangler dosyasını doğrudan yeniden yayınlamak güvenilir bir migration geri alma yöntemi değildir. Sabit botlu arşiv bu altyapıdan bağımsızdır.
+
 ## Taşınabilir yerel kopya
 
 Ek kopya: `/workspace/backups/wildbow-before-roadmap-2026-10-19.bundle`. Üç yedek referansını ve tam Git geçmişini içerir. Yanındaki `.sha256` dosyası bütünlük kontrolü sağlar.

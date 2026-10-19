@@ -138,6 +138,12 @@ export function cleanInput(data = {}) {
     quickShot: data.quickShot === true,
     cancelShot: data.cancelShot === true,
     autoFire: data.autoFire === true,
+    lockTarget:
+      data.lockTarget === null
+        ? null
+        : typeof data.lockTarget === "string" && data.lockTarget.length <= 64
+          ? data.lockTarget
+          : undefined,
     seq: clamp(Math.floor(num(data.seq)), 0, 2147483647),
   };
 }

@@ -2,20 +2,22 @@
 
 Tarih: 19 Ekim 2026. Durum: tasarım ve önceliklendirme taslağı.
 
-Bu belge, mevcut oyunun incelenmesinden çıkan önerileri ve kullanıcının merkez joystick'li tek el modu isteğini bir araya getirir. Deneysel kontrol modu kullanıcı isteğidir; diğer başlıklar birlikte değerlendirilecek önerilerdir. Özellikler henüz uygulanmadı; yeni yeteneklerin sayıları deneme değerleridir.
+Bu belge, mevcut oyunun incelenmesinden çıkan önerileri ve kullanıcının merkez joystick'li tek el modu isteğini bir araya getirir. Tek el kontrolü, oyuncu sayısına göre botlar, Cloudflare ağ/oda iyileştirmesi ve mobil menü bu geliştirmede uygulanır. Diğer oyun modları/yetenek fikirleri öneridir; yeni yeteneklerin sayıları deneme değerleridir. [Altı paket, düello, ek fikirler ve gelir planı](product-and-revenue.md) · [Ağ tasarımı ve ölçümler](network-design.md).
 
 Başlangıç sürümü: `78235b204b4cb2d0bf393fdbe488a957302868d7`. Kullanıcı bu sürümde yürüyüş ve mevcut OTO düğmesinin düzgün çalıştığını doğruladı. [Kaynak ve oynanabilir yedek](stable-backup.md).
 
 ## Mevcut temel
 
 - Klasik klavye/fare veya çift joystick; hareket sol altta, nişan sağda.
-- Mevcut düzen içinde isteğe bağlı OTO düğmesi. Merkez joystick'li yeni deneysel mod henüz yok.
+- Klasik düzende isteğe bağlı OTO düğmesi; menüden seçilen Tek el düzeninde merkez joystick, açık başlayan otomatik atış ve dokunarak hedef kilidi.
 - 150 başlangıç canı, 15 temel hasar, doğuş kalkanı, atılma ve +25 can iyileştirme.
 - 12 kalıcı yetenek; 15 saniyelik %30 atış hızı veya %20 ok hasarı veren iki güç noktası.
 - Küçük XP, haritada işaretli 60 XP'lik nadir kristaller, siperler ve gizlenme çalıları.
 - Botlu antrenman, oda kodu/davet ile gerçek çok oyunculu arena, sunucu otoritesi ve mobil/ağ testleri.
 
 ## 1. Deneysel tek el modu — kullanıcı isteği
+
+Durum: bu geliştirmede uygulanır. Klasik ve Tek el aynı oda/kurallarda oynar; tercih cihazda saklanır. Boş arena alanına dokunma kilidi kaldırır. Ana varsayılan olup olmayacağı kullanıcı denemesinden sonra seçilir.
 
 ### Deneyim
 
@@ -105,6 +107,8 @@ Yay bırakmada kısa kol/gövde tepkisi, okunabilir isabet, yakından geçen ok 
 Hasar sayıları isteğe bağlı olabilir; başlangıçta yalnızca oyuncunun verdiği hasar gösterilebilir. Ölüm ekranına son vuruşu yapan, kullanılan etki ve alınan hasar gibi kısa açıklamalar eklenebilir. Mevcut ses temizleme, zehir tiklerinin sessizliği, yürüyüş yumuşatması ve kompakt HUD regresyonla korunur.
 
 ## 7. İnsan sayısına göre botlar ve doğal davranış — öneri
+
+Durum: online odanın sekize tamamlanması uygulanır; aşağıdaki yeni bot davranışları sonraki önerilerdir. Antrenmanın yedi botu korunur.
 
 Mevcut yedi sabit bot yerine toplam katılımcıyı yaklaşık sekize tamamlayan düzen: bir insan için yedi, altı insan için iki, sekiz veya daha fazla insan için sıfır bot. Boş odada simülasyonun durması ve toplam kapasite sınırı korunur. İnsan giriş/çıkışında bot değişimi devam eden çatışmayı bozmamalıdır.
 

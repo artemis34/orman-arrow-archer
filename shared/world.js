@@ -74,6 +74,30 @@ export class World {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
+  /** Online rooms fill empty seats; practice retains its fixed bot population. */
+  setBotCount(count) {
+    const bots = [...this.players.values()].filter((p) => p.bot);
+    const humans = [...this.players.values()].filter((p) => !p.bot && p.alive);
+    const distance = (p) =>
+      Math.min(
+        Infinity,
+        ...humans.map((h) => Math.hypot(p.x - h.x, p.z - h.z)),
+      );
+    bots.sort(
+      (a, b) => Number(a.alive) - Number(b.alive) || distance(b) - distance(a),
+    );
+    for (const p of bots.slice(0, Math.max(0, bots.length - count)))
+      this.removePlayer(p.id);
+    for (
+      let n = 0;
+      [...this.players.values()].filter((p) => p.bot).length < count &&
+      n < RULES.maxPlayers;
+      n++
+    ) {
+      if (!this.players.has(`bot-${n}`))
+        this.addPlayer(`bot-${n}`, names[n % names.length], n % 4, true);
+    }
+  }
   spawnPoint(clearance = 5) {
     let best = { x: 0, z: 0 },
       bestDistance = -1;
@@ -161,6 +185,7 @@ export class World {
       buffType: null,
       buffTime: 0,
       autoTargetId: null,
+      lockedTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
       blastCd: 0,
@@ -184,6 +209,7 @@ export class World {
     const p = this.players.get(id);
     if (p && !p.bot) {
       const next = cleanInput(data);
+      if (next.lockTarget !== undefined) p.lockedTargetId = next.lockTarget;
       // Edge-triggered actions must survive batched packets until the next tick.
       next.dash ||= p.input.dash;
       next.heal ||= p.input.heal;
@@ -322,6 +348,7 @@ export class World {
       buffType: null,
       buffTime: 0,
       autoTargetId: null,
+      lockedTargetId: null,
       slowTime: 0,
       slowImmunity: 0,
       blastCd: 0,
@@ -399,14 +426,23 @@ export class World {
     return true;
   }
   autoTarget(p) {
-    const target =
-      p.alive && p.levelGuard <= 0
+    const candidates = [...this.players.values()].filter((q) =>
+      this.mode.canDamage(p, q),
+    );
+    const locked =
+      p.lockedTargetId && p.alive && p.levelGuard <= 0
         ? selectTarget(
             p,
-            [...this.players.values()].filter((q) => this.mode.canDamage(p, q)),
+            candidates.filter((q) => q.id === p.lockedTargetId),
             this.obstacles,
           )
         : null;
+    if (!locked) p.lockedTargetId = null;
+    const target =
+      locked ||
+      (p.alive && p.levelGuard <= 0
+        ? selectTarget(p, candidates, this.obstacles)
+        : null);
     p.autoTargetId = target?.id || null;
     return target;
   }
@@ -751,7 +787,7 @@ export class World {
     if (this.orbs.active.length < RULES.maxOrbs && this.random() < dt * 12)
       this.spawnOrb();
   }
-  snapshot(viewerId, events = this.events) {
+  snapshot(viewerId, events = this.events, { radius = Infinity } = {}) {
     const viewer = this.players.get(viewerId);
     const visible = (p) =>
       !p.hidden ||
@@ -759,59 +795,88 @@ export class World {
       (viewer && Math.hypot(p.x - viewer.x, p.z - viewer.z) < 5);
     return {
       time: this.time,
-      players: [...this.players.values()].filter(visible).map((p) => ({
+      roster: [...this.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
         skin: p.skin,
-        x: p.x,
-        z: p.z,
-        vx: p.vx,
-        vz: p.vz,
-        angle: p.angle,
-        hp: p.hp,
-        maxHp: p.maxHp,
-        level: p.level,
-        xp: p.xp,
-        kills: p.kills,
         score: p.score,
         alive: p.alive,
-        charge: p.charge,
-        levelGuard: p.levelGuard,
-        buffType: p.buffType,
-        buffTime: p.buffTime,
-        autoTargetId: p.id === viewerId ? p.autoTargetId : null,
-        slowTime: p.slowTime,
-        slowImmunity: p.slowImmunity,
-        shotCd: p.shotCd,
-        dashCd: p.dashCd,
-        healCd: p.healCd,
-        dashTime: p.dashTime,
-        dashX: p.dashX,
-        dashZ: p.dashZ,
-        upgrades: p.upgrades,
-        choices: p.id === viewerId ? p.choices : [],
-        pending: p.id === viewerId ? p.pending : 0,
-        hidden: p.hidden,
-        spawnShield: p.spawnShield,
-        seq: p.seq,
-        respawnIn: Math.max(0, p.respawnAt - this.time),
         bot: p.bot,
       })),
-      arrows: this.arrows.active.map((a) => ({
-        id: a.id,
-        x: a.x,
-        z: a.z,
-        angle: Math.atan2(a.vz, a.vx),
-        poison: a.poison,
-        effect: a.effect,
-      })),
-      orbs: this.orbs.active.map((o) => ({
-        id: o.id,
-        x: o.x,
-        z: o.z,
-        value: o.value,
-        rare: o.rare,
-      })),
+      players: [...this.players.values()]
+        .filter(
+          (p) =>
+            visible(p) &&
+            (!viewer ||
+              p.id === viewerId ||
+              Math.hypot(p.x - viewer.x, p.z - viewer.z) <= radius),
+        )
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          skin: p.skin,
+          x: p.x,
+          z: p.z,
+          vx: p.vx,
+          vz: p.vz,
+          angle: p.angle,
+          hp: p.hp,
+          maxHp: p.maxHp,
+          level: p.level,
+          xp: p.xp,
+          kills: p.kills,
+          score: p.score,
+          alive: p.alive,
+          charge: p.charge,
+          levelGuard: p.levelGuard,
+          buffType: p.buffType,
+          buffTime: p.buffTime,
+          autoTargetId: p.id === viewerId ? p.autoTargetId : null,
+          lockedTargetId: p.id === viewerId ? p.lockedTargetId : null,
+          slowTime: p.slowTime,
+          slowImmunity: p.slowImmunity,
+          shotCd: p.shotCd,
+          dashCd: p.dashCd,
+          healCd: p.healCd,
+          dashTime: p.dashTime,
+          dashX: p.dashX,
+          dashZ: p.dashZ,
+          upgrades: p.upgrades,
+          choices: p.id === viewerId ? p.choices : [],
+          pending: p.id === viewerId ? p.pending : 0,
+          hidden: p.hidden,
+          spawnShield: p.spawnShield,
+          seq: p.seq,
+          respawnIn: Math.max(0, p.respawnAt - this.time),
+          bot: p.bot,
+        })),
+      arrows: this.arrows.active
+        .filter(
+          (a) =>
+            !viewer || Math.hypot(a.x - viewer.x, a.z - viewer.z) <= radius + 8,
+        )
+        .map((a) => ({
+          id: a.id,
+          x: a.x,
+          z: a.z,
+          angle: Math.atan2(a.vz, a.vx),
+          poison: a.poison,
+          effect: a.effect,
+        })),
+      orbs: this.orbs.active
+        .filter(
+          (o) =>
+            o.rare ||
+            !viewer ||
+            Math.hypot(o.x - viewer.x, o.z - viewer.z) <= radius + 2,
+        )
+        .map((o) => ({
+          id: o.id,
+          x: o.x,
+          z: o.z,
+          value: o.value,
+          rare: o.rare,
+        })),
       powerups: this.powerups.snapshot(),
       events: events.filter((e) => {
         if (e.type === "kill") return true; // Kill feed has names, no coordinates.

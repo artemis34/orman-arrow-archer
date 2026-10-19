@@ -2,11 +2,13 @@
 
 Planlama: [geliştirme taslağı ve deneysel tek el modu](docs/development-roadmap.md) · [geliştirme öncesi kararlı sürüm yedeği](docs/stable-backup.md).
 
+Bu geliştirme: [Cloudflare ağ/oda tasarımı ve ölçümleri](docs/network-design.md) · [altı geliştirme paketi, düello ve kozmetik/gelir önerileri](docs/product-and-revenue.md). Ek oyun modları ve mağaza öneridir; bu sürüme ödeme veya reklam sistemi eklenmez.
+
 [Online arenayı oyna](https://orman-arrow-archer.cangunes1995.workers.dev) · [Botlu antrenman](https://rawcdn.githack.com/artemis34/orman-arrow-archer/df3c81bc134b13837842ead2279aae4dd033318b/index.html) · [Kendi Cloudflare hesabında kur](https://deploy.workers.cloudflare.com/?url=https://github.com/artemis34/orman-arrow-archer)
 
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
 
-Cloudflare sürümü yerel WebSocket + Durable Objects kullanır ve varsayılan olarak online açılır. Aynı oda koduna katılan en çok 16 insan ve 7 bot ortak, otoriter bir dünyada oynar. Davet bağlantısı oda kodunu taşır. [Kurulum ve ücretsiz kota ayrıntıları](docs/cloudflare.md).
+Cloudflare sürümü yerel WebSocket + Durable Objects kullanır ve varsayılan olarak online açılır. Hızlı katıl uygun odada yer ayırır; arkadaş odası/davet aynı dünyaya gider. Her online oda en çok 16 insan alır; toplam katılımcı sekize botlarla tamamlanır, sekiz veya daha fazla insanda bot kalmaz. İkili delta paketleri, kamera görüşüne göre yakın alan ve birleştirilmiş kontrol girdileri kullanılır. [Kurulum ve ücretsiz kota ayrıntıları](docs/cloudflare.md).
 
 ## Çalıştırma
 
@@ -40,6 +42,7 @@ npm start
 - Space / sağ tık / ϟ butonu: atılma, 3 saniye bekleme ve kısa ok dokunulmazlığı. E / + butonu: Orman nefesi, 25 can yenileme, 14 saniye bekleme.
 - Mobil: sol joystick hareket. Arenaya veya sağ joystick’e kısa dokunuş: canı en az olan açık rakibe otomatik atış. Sağ joystick sürükleme: hafif nişan destekli yay germe, bırakınca daha hızlı ve uzağa giden ok. Nişan bittikten sonra gövde yürüyüş yönüne döner; ayaklar ve gövde salınımı hareketi izler. Altın halka otomatik hedefi gösterir. ϟ atılma.
 - Tek elle oynama: alttaki ◎ OTO düğmesini aç; yalnızca sol joystick ile yürürken menzildeki açık hedeflere otomatik ateş eder. Normal hızlı atış hasarı, bekleme süresi ve hedef önceliği geçerlidir. Elle yayı germek/bırakmak her zaman önceliklidir; seçim korumasında ve pencere odağı kaybolunca atış durur. Tercih cihazda saklanır; aynı düğmeyle kapatılır.
+- Menüdeki **Tek el** düzeni hareket joystick'ini alt ortaya alır ve otomatik atışı açık başlatır. Görünür rakibe kısa dokunuş sunucuda doğrulanan hedef kilidi koyar; geçerli kilit zayıf başka rakibe geçmez. Boş arena alanına dokunuş kilidi kaldırır. Geçersiz hedefte normal otomatik seçime dönülür. Klasik düzen aynı odada/kurallarda oynar; kontrol ve renk tercihi cihazda saklanır.
 - Normal kristal 12 XP, nadir büyük altın kristal 60 XP verir; haritada en çok beş altın kristal bulunur. Altın kristaller haritada büyük, darbeli elmaslarla işaretlenir. Toplama modundaki botlar bu ortak hedeflere öncelik verir. İsabetler XP verir. Seviye başına üç rastgele yetenekten biri: çoklu atış, delme, sekme, zehir, hareket, yay hızı, azami can.
 - Ağaç, kaya, kütük ve taş kalıntıları okları keser. Çalı, 5 birimden uzaktaki rakiplerden gizler; yay germe kamuflajı bozar.
 - Oyuncu 150 can ve 4 saniye doğuş kalkanıyla başlar; ilk başarılı atış kalkanı kaldırır. Doğuş noktası rakiplerden en az 10 birim uzak seçilir; uygun yer yoksa örneklenen en güvenli nokta kullanılır. Botlar 100 cana sahiptir ve %25 daha az ok hasarı verir. Ölüm sonrası 3 saniye bekleme; yeniden doğuşta yetenekler sıfırlanır, toplam skor ve elemeler korunur.
@@ -60,6 +63,7 @@ client/
   controls.js     Klavye/fare ve bağımsız pointer yakalamalı çift joystick
   transport.js    Yerel/Socket.io adaptörleri ve ortak prediction/interpolation
   websocket.js    Cloudflare yerel WebSocket adaptörü
+  lobby.css       Akış tabanlı mobil menü, kısa/yatay ekran ve tek el yerleşimi
   presentation.js Kare hızından bağımsız poz yumuşatma ve mesafeye bağlı yürüyüş
   audio.js        Web Audio sentezi
   forest.js       Birleştirilen çevre geometrileri, patikalar ve bitkiler
@@ -71,6 +75,7 @@ shared/
   config.js       Kurallar, doğrulama, ortak hareket ve kozmetik tanımları
   spatial.js      Uniform grid, swept segment-circle testleri, sınırlı nesne havuzu
   aim.js          Görüş hattı, kararlı en düşük can hedefi ve hareketli hedef öngörüsü
+  protocol.js     Sürümlü ikili kontrol paketleri, oyuncu/XP delta kodlama
   world.js        Otoriter simülasyon, FSM botlar, yetenekler, görünürlük
   skills.js       Sekme, buz, alan etkisi ve mesafe bonusunun sunucu hesapları
 cloudflare/worker.js Durable Objects odaları, 30 Hz otorite / 15 Hz yayın
@@ -83,9 +88,9 @@ render.yaml       Tek servis ücretsiz sunucu dağıtım tanımı
 
 ### Ağ ve güvenlik sınırları
 
-Çevrimiçi istemci yalnızca normalize edilen hareket/nişan/tuş girdisi ve yetenek isteği yollar. Konum, hasar, şarj, öldürme, XP ve beklemeler sunucuda hesaplanır. İstemci hareket tahmini son onaylanan sequence'e geri uzlaştırılır; uzak aktörler 90 ms tamponla lineer interpolasyon kullanır. Gizlenen oyuncular uzak istemcilerin snapshot'larından çıkarılır. Kontroller ve sunucu payload/mesaj oranı sınırlıdır; en çok 16 insan + 7 bot, tek arena. Dünya içinde ok/EXP sayısı ve havuzları sınırlıdır. Arrow swept testleri hızlı okların hedeflerin içinden atlamasını engeller. Hareket her eksende sınırlandırılır, diagonal hız normalize edilir.
+Çevrimiçi istemci yalnızca normalize edilen hareket/nişan/tuş girdisi ve yetenek isteği yollar. Konum, hasar, şarj, öldürme, XP ve beklemeler sunucuda hesaplanır. İstemci hareket tahmini son onaylanan sequence'e geri uzlaştırılır; uzak aktörler 90 ms tamponla lineer interpolasyon kullanır. Gizlenen oyuncular uzak istemcilerin snapshot'larından çıkarılır. Kontroller ve sunucu payload/mesaj oranı sınırlıdır; Cloudflare'da oda başına en çok 16 insan ve sekiz toplam katılımcıya tamamlayan botlar; Node alternatifinde 16 insan + 7 bot, tek arena. Dünya içinde ok/EXP sayısı ve havuzları sınırlıdır. Arrow swept testleri hızlı okların hedeflerin içinden atlamasını engeller. Hareket her eksende sınırlandırılır, diagonal hız normalize edilir.
 
-Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-cheat garantisi taşımaz. Bu sürümde sunucu geçmişine geri sarılan hitbox lag compensation, yatay sunucu ölçekleme, kalıcı hesaplar veya sıralama veritabanı yoktur. İnternet ölçeğinde üretim için kimlik, gözlemleme, DDoS koruması ve oda yönlendirme gerekir.
+Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-cheat garantisi taşımaz. Bu sürümde Cloudflare oda eşleştirmesi vardır; sunucu geçmişine geri sarılan hitbox lag compensation, çok makineli Node dağıtımı, kalıcı hesaplar veya sıralama veritabanı yoktur. İnternet ölçeğinde üretim için kimlik, gözlemleme, DDoS koruması ve oda yönlendirme gerekir.
 
 ### Genişletme noktaları
 
@@ -95,13 +100,15 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 `npm run dev:cloudflare` gerçek yerel Cloudflare çalışma ortamını başlatır; `npm run test:cloudflare` iki oyuncu, oda yalıtımı, kapasite, payload/origin sınırları ve boş oda kapanışını doğrular. `npm run test:cloudflare:browser` masaüstü/dokunmatik iki oyuncuyu aynı odada oynatır ve yavaş mobil çizim sırasında da girdi/şarjın devam ettiğini denetler.
 
-`npm test`: 97 senaryo; gecikme ve paket aralıkları değişirken yürüyüş, nişan sonrası gövdenin dönüşü, tek elle otomatik atışın hasar/hız dengesi ve elle atış önceliği, kamera açısına uygun joystick yönü, iptal edilen dokunuşlar, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
+`npm test`: simülasyon ve protokol senaryoları; gecikme ve paket aralıkları değişirken yürüyüş, nişan sonrası gövdenin dönüşü, tek elle otomatik atışın hasar/hız dengesi ve elle atış önceliği, kamera açısına uygun joystick yönü, iptal edilen dokunuşlar, otomatik hedefleme, doğuş koruması, otorite, şarj, siper, atılma, yetenekler, gizlenme, yeniden doğuş, spatial grid ve havuz sınırları.
 
 `npm run test:motion`: gerçek mobil Chromium'da iki parmağı aynı anda kullanır. 130–210 ms gidiş-dönüş gecikmesi, değişken paket aralıkları ve 600 ms boyunca çizim iş parçacığının durması altında joystick merkezini, hareket/nişanın bağımsızlığını, nişan ve kısa dokunuş sonrası gövdenin yürüyüşe dönmesini, parmakları farklı sırayla kaldırmayı, iptal edilen dokunuşta yanlışlıkla ok atılmamasını ve dikey/yatay kullanımı doğrular. Tek parmakla yürürken otomatik atışın hedefe isabet etmesi, joystick basılıyken modun kapanması ve odak kaybında durması da sınanır. Yerel çizim, 30 Hz girdi turları arasında da ilerler; sunucu konum düzeltmeleri yalnızca görsel olarak yumuşatılır. Fizik, hasar ve çarpışmalar sunucuda kalır.
 
 `npm run test:interaction`: gerçek Socket.io otoritesiyle otomatik atış, erken yetenek seçimi, 568×320 yatay telefonda okunabilir kartlar, ölüm/yeniden doğuş, ses ve çıkış. Chromium'da joystick basılı kalırken ikinci parmakla yeniden doğuş/ses/çıkış doğrulanır. `PLAYWRIGHT_ENGINE=webkit npm run test:interaction` WebKit motorunda dokunmatik sayfa uyumluluğunu kontrol eder; CI her iki motoru kurup çalıştırır. Bu, fiziksel iPhone testi değildir.
 
 `npm run test:powerups`: gerçek dokunmatik hareketle iki buff türünü toplar; oyunu durdurmadığını, sürenin bitmesini, noktaların beklemesini, can metninin okunmasını, yatay görünümü ve ölümde temizliği doğrular.
+
+`npm run test:lobby`: kısa/yatay mobil menü, merkez joystick, otomatik atış, dokunarak gerçek rakibe kilit/açma ve klasik kontrole dönüş. WebKit varyantı CI'de çalışır.
 
 `npm run test:network`: çalışan yerel sunucuya iki Socket.io istemcisi bağlar; ortak dünya, sahte konum reddi, disconnect kontrolü.
 
@@ -111,7 +118,7 @@ Antrenmanda aynı World kodu tarayıcıda çalışır; bu mod çevrimiçi anti-c
 
 `npm run test:hud`: gerçek Socket.io otoritesiyle masaüstü, tablet, 390×844 ve 375×667 telefon, 844×390 yatay görünüm. Kalıcı HUD alanının ekranın %10’undan az olduğunu, panellerin açılıp kapanmasını, koruma sırasında sabitlik/hasarsızlığı, erken seçimi ve süre sonunda kontrolün dönmesini doğrular; koruma bitince ikinci parmakla seçim de çalışır. Geliştirme sunucusunda çalıştırmak için `PORT=3002 npm run dev`, ardından `TEST_SERVER_URL=http://127.0.0.1:3002 npm run test:hud`.
 
-Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Gelecek adımlar: sunucu tarafından oda seed'i, mesafe/ilgi alanına göre snapshot delta sıkıştırma, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
+Harita seed'i sabittir. Sabit orman geometrileri malzeme bazında birleştirilir; kristaller InstancedMesh ile tek çizim çağrısında sunulur. Cloudflare yakın alan/delta paketleri bu sürümde uygulanır. Gelecek adımlar: oda seed'i, daha gelişmiş bot yol bulma, takım/BR modları ve erişilebilir oyun seçenekleri.
 
 ## Sağlamlık ve yayın kontrolleri
 

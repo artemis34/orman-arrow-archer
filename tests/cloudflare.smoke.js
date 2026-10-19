@@ -15,7 +15,7 @@ async function until(check, description, timeout = 6000) {
   }
   throw new Error(`Timed out: ${description}`);
 }
-async function join(name, code = room) {
+async function join(name, code = room, options = {}) {
   const received = [];
   const t = new WebSocketTransport(
     base,
@@ -24,7 +24,7 @@ async function join(name, code = room) {
       received.push(...state.events);
     },
     () => {},
-    { room: code },
+    { room: code, ...options },
   );
   clients.push(t);
   await t.connect(name, 0);
@@ -55,8 +55,8 @@ try {
   c.t.step({ charge: true });
   await until(
     () =>
-      a.t.latest.players.some((p) => p.id === b.t.id) &&
-      b.t.latest.players.some((p) => p.id === a.t.id),
+      a.t.latest.roster.some((p) => p.id === b.t.id) &&
+      b.t.latest.roster.some((p) => p.id === a.t.id),
     "two humans share authority",
   );
   assert.ok(!a.t.latest.players.some((p) => p.id === c.t.id));
@@ -178,6 +178,15 @@ try {
   for (let i = 0; i < 16; i++) await join(`P${i}`, capacity);
   await assert.rejects(join("Overflow", capacity), /Arena dolu/);
   assert.equal((await status(capacity)).humans, 16);
+  const quick = await join("Quick smoke", room, { matchmake: true });
+  assert.match(quick.t.room, /^wildbow-\d+$/);
+  assert.equal(
+    quick.t.binary,
+    true,
+    "deployed matchmaking and binary negotiation must both work",
+  );
+  assert.ok(quick.t.latest.roster.some((p) => p.id === quick.t.id));
+  quick.t.close();
   console.log(
     "CLOUDFLARE_OK: real workerd/Durable Objects, two-player shared arena, room isolation, 30Hz authority/15Hz snapshots, shot events, forged input rejection, stale-input reset, 16-human capacity, payload/origin limits and empty-room shutdown.",
   );

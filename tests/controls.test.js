@@ -139,7 +139,19 @@ test("diagonal joystick directions match the tilted camera on portrait and lands
         ray: new THREE.Raycaster(),
         intersection: new THREE.Vector3(),
         groundPlane: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+        target: new THREE.Vector3(5, 0, 4),
       });
+      const radius = scene.networkRadius();
+      for (const x of [-1, 1])
+        for (const y of [-1, 1]) {
+          scene.ray.setFromCamera(new THREE.Vector2(x, y), camera);
+          scene.ray.ray.intersectPlane(scene.groundPlane, scene.intersection);
+          assert.ok(
+            Math.hypot(scene.intersection.x - 5, scene.intersection.z - 4) <=
+              radius,
+            "interest area must cover visible landscape corners",
+          );
+        }
       const p = { x: 4, z: 3 };
       for (const [x, z] of [
         [1, -1],

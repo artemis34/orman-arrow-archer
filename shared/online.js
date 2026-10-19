@@ -7,6 +7,10 @@ export function roomCode(value = "arena") {
 export const ONLINE = Object.freeze({
   humans: 16,
   snapshots: 15,
+  interestRadius: 34,
+  publicRooms: 128,
+  roomPopulation: 8,
+  reservationTime: 15000,
   inputTimeout: 350,
   drawTimeout: 1500,
   idleTimeout: 90000,

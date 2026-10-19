@@ -6,6 +6,12 @@ import { Server } from "socket.io";
 import { NetworkTransport, SocketTransport } from "../client/transport.js";
 import { World } from "../shared/world.js";
 import { advanceMovement, cleanInput, RULES } from "../shared/config.js";
+import { WebSocketTransport } from "../client/websocket.js";
+import {
+  decodeInputs,
+  SnapshotEncoder,
+  SnapshotDecoder,
+} from "../shared/protocol.js";
 
 function harness() {
   const socket = new EventEmitter();
@@ -130,79 +136,105 @@ test("turning or releasing a stick cannot jump across the last input tick", (con
     "releasing a stick must not snap backward",
   );
 });
-test("130–240 ms round-trip jitter cannot make steady local walking reverse or jump", (context) => {
-  let now = 0,
-    inputAt = 0,
-    snapshotAt = 0;
-  context.mock.method(performance, "now", () => now);
-  const world = new World({ bots: 0 });
-  world.obstacles = [];
-  world.obstacleGrid.clear();
-  while (world.orbs.active.length) world.orbs.release(0);
-  Object.assign(world.addPlayer("me"), { x: -18, z: 0 });
-  const queue = [];
-  const t = new NetworkTransport(
-    () => {},
-    () => {},
-  );
-  t.id = "me";
-  t.obstacles = [];
-  t.send = (_type, input) => {
-    inputAt = Math.max(
-      inputAt + 1,
-      now + 65 + [0, 0, 45, 0, 20, 0][input.seq % 6],
-    );
-    queue.push({ at: inputAt, type: "input", data: input });
-  };
-  t.acceptState(structuredClone(world.snapshot("me")));
-  for (let n = 0; n < 78; n++) {
-    queue.push({ at: (n * 1000) / 30 + 8, type: "tick" });
-    queue.push({ at: (n * 1000) / 30, type: "client" });
-  }
-  for (let n = 0; n < 156; n++)
-    queue.push({ at: (n * 1000) / 60 + 2, type: "view" });
-  let previous = -18;
-  const steps = [];
-  while (queue.length) {
-    queue.sort((a, b) => a.at - b.at);
-    const event = queue.shift();
-    now = event.at;
-    if (event.type === "client") t.step({ x: now < 2000 ? 1 : 0 });
-    if (event.type === "input") world.setInput("me", event.data);
-    if (event.type === "tick") {
-      world.step();
-      if (Math.round(world.time * 30) % 2 === 0) {
-        snapshotAt = Math.max(
-          snapshotAt + 1,
-          now + 65 + [0, 55, 0, 20][Math.round(world.time * 15) % 4],
+for (const binary of [false, true])
+  test(`130–240 ms round-trip jitter keeps ${binary ? "batched binary" : "Socket.IO"} walking continuous`, (context) => {
+    let now = 0,
+      inputAt = 0,
+      snapshotAt = 0;
+    context.mock.method(performance, "now", () => now);
+    const world = new World({ bots: 0 });
+    world.obstacles = [];
+    world.obstacleGrid.clear();
+    while (world.orbs.active.length) world.orbs.release(0);
+    Object.assign(world.addPlayer("me"), { x: -18, z: 0 });
+    const queue = [];
+    const t = binary
+      ? new WebSocketTransport(
+          "http://example.test",
+          () => {},
+          () => {},
+        )
+      : new NetworkTransport(
+          () => {},
+          () => {},
         );
-        queue.push({
-          at: snapshotAt,
-          type: "state",
-          data: structuredClone(world.snapshot("me")),
-        });
+    t.id = "me";
+    t.obstacles = [];
+    const serverInputs = [],
+      encoder = new SnapshotEncoder(),
+      decoder = new SnapshotDecoder();
+    const sendInput = (input) => {
+      const sequence = Array.isArray(input) ? input.at(-1).seq : input.seq;
+      inputAt = Math.max(
+        inputAt + 1,
+        now + 65 + [0, 0, 45, 0, 20, 0][sequence % 6],
+      );
+      queue.push({ at: inputAt, type: "input", data: input });
+    };
+    if (binary) {
+      t.binary = true;
+      t.ws = {
+        readyState: 1,
+        bufferedAmount: 0,
+        send: (raw) => sendInput(decodeInputs(raw)),
+      };
+    } else t.send = (_type, input) => sendInput(input);
+    t.acceptState(structuredClone(world.snapshot("me")));
+    for (let n = 0; n < 78; n++) {
+      queue.push({ at: (n * 1000) / 30 + 8, type: "tick" });
+      queue.push({ at: (n * 1000) / 30, type: "client" });
+    }
+    for (let n = 0; n < 156; n++)
+      queue.push({ at: (n * 1000) / 60 + 2, type: "view" });
+    let previous = -18;
+    const steps = [];
+    while (queue.length) {
+      queue.sort((a, b) => a.at - b.at);
+      const event = queue.shift();
+      now = event.at;
+      if (event.type === "client") t.step({ x: now < 2000 ? 1 : 0 });
+      if (event.type === "input") {
+        if (binary) serverInputs.push(...event.data);
+        else world.setInput("me", event.data);
+      }
+      if (event.type === "tick") {
+        if (binary && serverInputs.length)
+          world.setInput("me", serverInputs.shift());
+        world.step();
+        if (Math.round(world.time * 30) % 2 === 0) {
+          snapshotAt = Math.max(
+            snapshotAt + 1,
+            now + 65 + [0, 55, 0, 20][Math.round(world.time * 15) % 4],
+          );
+          queue.push({
+            at: snapshotAt,
+            type: "state",
+            data: binary
+              ? decoder.decode(encoder.encode(world.snapshot("me")))
+              : structuredClone(world.snapshot("me")),
+          });
+        }
+      }
+      if (event.type === "state") t.acceptState(event.data);
+      if (event.type === "view") {
+        const current = t.view().players[0].x;
+        if (now > 300 && now < 1900) steps.push(current - previous);
+        previous = current;
       }
     }
-    if (event.type === "state") t.acceptState(event.data);
-    if (event.type === "view") {
-      const current = t.view().players[0].x;
-      if (now > 300 && now < 1900) steps.push(current - previous);
-      previous = current;
-    }
-  }
-  assert.ok(
-    Math.min(...steps) >= 0,
-    "a steady thumb must never cause a backward step",
-  );
-  assert.ok(
-    Math.max(...steps) < 0.22,
-    "a delayed snapshot must not cause a double-size step",
-  );
-  assert.ok(
-    Math.abs(t.view().players[0].x - world.players.get("me").x) < 0.05,
-    "stopping converges to the server position",
-  );
-});
+    assert.ok(
+      Math.min(...steps) >= 0,
+      "a steady thumb must never cause a backward step",
+    );
+    assert.ok(
+      Math.max(...steps) < 0.22,
+      "a delayed snapshot must not cause a double-size step",
+    );
+    assert.ok(
+      Math.abs(t.view().players[0].x - world.players.get("me").x) < 0.05,
+      "stopping converges to the server position",
+    );
+  });
 test("input replay applies unacknowledged dash and cooldown expiration exactly like authority", () => {
   const { t, socket } = harness();
   try {

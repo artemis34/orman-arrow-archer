@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { WebSocketTransport } from "../client/websocket.js";
+import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 class Socket extends EventTarget {
   readyState = 0;
   bufferedAmount = 0;
@@ -15,7 +16,11 @@ class Socket extends EventTarget {
     );
   }
   send(data) {
-    this.sent.push(JSON.parse(data));
+    this.sent.push(
+      typeof data === "string"
+        ? JSON.parse(data)
+        : { type: "input-batch", data: decodeInputs(data) },
+    );
   }
   close() {
     this.readyState = 3;
@@ -61,7 +66,7 @@ test("Cloudflare adapter joins a secure room and shares sequence-based movement 
     assert.equal(address(), "wss://game.example/api/rooms/friends");
     assert.deepEqual(ws.sent[0], {
       type: "join",
-      data: { name: "Archer", skin: 2 },
+      data: { name: "Archer", skin: 2, protocol: PROTOCOL, viewRadius: 34 },
     });
     ws.message({
       type: "state",
@@ -93,6 +98,73 @@ test("Cloudflare adapter joins a secure room and shares sequence-based movement 
     assert.equal(ws.sent.at(-1).type, "respawn");
   } finally {
     transport.close();
+  }
+});
+test("binary clients batch 30 prediction steps into 15 packets and send releases immediately", async () => {
+  const { ws, transport } = fixture();
+  try {
+    const connecting = transport.connect("Batch", 0);
+    ws.open();
+    ws.message({
+      type: "welcome",
+      data: { id: "me", room: "arena", obstacles: [], protocol: PROTOCOL },
+    });
+    await connecting;
+    for (let n = 0; n < 61; n++) transport.step({ x: 1 });
+    const batches = ws.sent.filter((p) => p.type === "input-batch");
+    assert.equal(batches.length, 31);
+    assert.equal(batches.flatMap((p) => p.data).length, 61);
+    assert.ok(batches.every((p) => p.data.length <= 2));
+    transport.step({ x: 1, charge: true });
+    assert.equal(ws.sent.at(-1).data.at(-1).charge, true);
+    transport.step({ x: 1, charge: false });
+    assert.equal(ws.sent.at(-1).data.at(-1).charge, false);
+    transport.step({ x: 0 });
+    assert.equal(ws.sent.at(-1).data.at(-1).x, 0);
+  } finally {
+    transport.close();
+  }
+});
+test("quick matchmaking connects with a reserved seat and decodes binary snapshots", async () => {
+  let requested;
+  const f = fixture({
+    matchmake: true,
+    fetcher: async (url) => {
+      requested = url.href;
+      return Response.json({ room: "wildbow-2", ticket: "seat-token" });
+    },
+  });
+  try {
+    const connecting = f.transport.connect("Quick", 0);
+    await new Promise((r) => setTimeout(r, 0));
+    f.ws.open();
+    f.ws.message({
+      type: "welcome",
+      data: { id: "me", room: "wildbow-2", obstacles: [], protocol: PROTOCOL },
+    });
+    await connecting;
+    assert.equal(requested, "https://game.example/api/matchmake");
+    assert.equal(
+      f.address(),
+      "wss://game.example/api/rooms/wildbow-2?ticket=seat-token",
+    );
+    const encoder = new SnapshotEncoder();
+    f.ws.dispatchEvent(
+      new MessageEvent("message", {
+        data: encoder.encode({
+          time: 1,
+          players: [],
+          arrows: [],
+          orbs: [],
+          powerups: [],
+          events: [],
+          roster: [],
+        }),
+      }),
+    );
+    assert.equal(f.transport.snapshots.at(-1).state.time, 1);
+  } finally {
+    f.transport.close();
   }
 });
 test("full rooms and early disconnects reject without leaving the join timer alive", async () => {
