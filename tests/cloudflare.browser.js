@@ -23,6 +23,7 @@ const browser = await (engine === "webkit" ? webkit : chromium).launch({
     : {}),
 });
 const errors = [];
+const probes = new Map();
 async function open(mobile, name) {
   const context = await browser.newContext({
     viewport: mobile
@@ -32,16 +33,45 @@ async function open(mobile, name) {
     hasTouch: mobile,
   });
   const page = await context.newPage();
-  if (mobile)
-    await page.addInitScript(() => {
-      const nativeFrame = window.requestAnimationFrame.bind(window);
-      window.requestAnimationFrame = (callback) =>
-        nativeFrame(() => setTimeout(() => callback(performance.now()), 400));
-    });
-  const probe = { id: null, state: null, events: [], seen: new Set() };
+  await page.addInitScript((slow) => {
+    const nativeFrame = window.requestAnimationFrame.bind(window);
+    window.__completedFrames = 0;
+    window.requestAnimationFrame = (callback) =>
+      nativeFrame((at) => {
+        const run = () => {
+          callback(slow ? performance.now() : at);
+          window.__completedFrames++;
+        };
+        if (slow) setTimeout(run, 400);
+        else run();
+      });
+  }, mobile);
+  const probe = {
+    id: null,
+    state: null,
+    events: [],
+    seen: new Set(),
+    inputs: [],
+    maxDrawGap: 0,
+    lastInputAt: 0,
+  };
+  probes.set(page, probe);
   page.on("pageerror", (e) => errors.push(e.message));
   // Observe actual browser WebSocket traffic; the app exposes no debug world.
-  page.on("websocket", (socket) =>
+  page.on("websocket", (socket) => {
+    socket.on("framesent", ({ payload }) => {
+      try {
+        const packet = JSON.parse(String(payload));
+        if (packet.type !== "input") return;
+        const at = Date.now();
+        const previous = probe.inputs.at(-1);
+        if (previous?.data.charge)
+          probe.maxDrawGap = Math.max(probe.maxDrawGap, at - probe.lastInputAt);
+        probe.lastInputAt = at;
+        probe.inputs.push({ at, data: packet.data });
+        if (probe.inputs.length > 240) probe.inputs.shift();
+      } catch {}
+    });
     socket.on("framereceived", ({ payload }) => {
       let packet;
       try {
@@ -55,8 +85,9 @@ async function open(mobile, name) {
         probe.events.push(...packet.data.events);
         for (const player of packet.data.players) probe.seen.add(player.id);
       }
-    }),
-  );
+    });
+  });
+  await page.bringToFront();
   await page.goto(`${base}/?room=${room}`);
   await expect(page.locator("#lobby")).toBeVisible({ timeout: 20000 });
   await expect(page.locator("#online-mode")).toHaveClass(/selected/);
@@ -69,6 +100,17 @@ async function open(mobile, name) {
   await expect(page.locator("#hud")).toBeVisible({ timeout: 15000 });
   await expect(page.locator("#connection")).toHaveText("ONLINE");
   await expect.poll(() => probe.id).toBeTruthy();
+  // HUD visibility does not mean the first WebGL frame/shader compilation has
+  // finished. Warm the two scenes before testing a held draw against the
+  // 350 ms input watchdog, while retaining the mobile's slow frame cadence.
+  await page.evaluate(() => {
+    window.__completedFrames = 0;
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.__completedFrames), {
+      timeout: 15000,
+    })
+    .toBeGreaterThan(1);
   return {
     context,
     page,
@@ -98,6 +140,11 @@ try {
     .poll(() => a.me()?.charge, { timeout: 6500 })
     .toBeGreaterThan(0.3);
   await a.page.mouse.up();
+  await expect
+    .poll(() =>
+      a.probe.events.some((e) => e.type === "shot" && e.owner === a.probe.id),
+    )
+    .toBe(true);
   await expect
     .poll(() =>
       b.probe.events.some((e) => e.type === "shot" && e.owner === a.probe.id),
@@ -220,6 +267,24 @@ try {
         .textContent()
         .catch(() => null),
       errors,
+      me: probes
+        .get(page)
+        ?.state?.players.find((p) => p.id === probes.get(page)?.id),
+      ownShots: probes
+        .get(page)
+        ?.events.filter(
+          (e) => e.type === "shot" && e.owner === probes.get(page)?.id,
+        ).length,
+      maxDrawInputGap: probes.get(page)?.maxDrawGap,
+      releaseInputs: probes
+        .get(page)
+        ?.inputs.filter(
+          (p, n, all) =>
+            p.data.cancelShot ||
+            (n && all[n - 1].data.charge && !p.data.charge),
+        )
+        .map((p) => ({ at: p.at, data: p.data }))
+        .slice(-4),
     });
     await page
       .screenshot({
