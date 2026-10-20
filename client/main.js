@@ -24,7 +24,7 @@ import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
 import { LocalTransport, SocketTransport } from "./transport.js";
 import { WebSocketTransport } from "./websocket.js";
-import { roomCode } from "../shared/online.js";
+import { roomCode, practiceBots } from "../shared/online.js";
 import { World } from "../shared/world.js";
 import { SKINS, UPGRADES, RULES } from "../shared/config.js";
 const $ = (id) => document.getElementById(id),
@@ -164,7 +164,7 @@ function setMode(next) {
   text(
     "server-label",
     mode === "practice"
-      ? `Yerel arena · ${Math.min(7, FORMATS[format].capacity - 1)} bot rakip`
+      ? `Yerel arena · ${practiceBots(format)} bot`
       : `Online · En fazla ${FORMATS[format].capacity} oyuncu`,
   );
 }

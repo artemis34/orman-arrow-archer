@@ -17,7 +17,7 @@ Bu sürümde uygulanmış davranışlar:
 
 Her mod kendi eşleştirme havuzunu kullanır. Davetler oda kodunu ve formatı taşır; aynı özel odada farklı formatlar karışmaz. Takımlar dengelenir; özel odadaki arkadaşlar takım kapasitesi elverdiğince birlikte kalır. Takım doluluğu botları da hesaba katar. Dost ateşi, zehir ve alan hasarı dahil kapalıdır. Otomatik nişan ve elle kilit takım arkadaşına yönelmez. Takım halkası, can barı, isim simgesi ve harita rengi kıyafetten bağımsızdır.
 
-Online düelloda bot yoktur; ikinci oyuncu beklenir. Eşit can/temel hasar, simetrik siperler ve sabit karşılıklı doğuş kullanılır. Düelloda rastgele XP, kart ve güç noktası yoktur. Antrenmandaki düelloda tek bot bulunur. Diğer modlar kapasite elverdiğince sekiz toplam katılımcıya botla tamamlanır.
+Online düelloda bot yoktur; ikinci oyuncu beklenir. Eşit can/temel hasar, simetrik siperler ve sabit karşılıklı doğuş kullanılır. Düelloda rastgele XP, kart ve güç noktası yoktur. Antrenmandaki düelloda tek bot bulunur. Takım modlarında seçilen formatın bütün boş yerleri botlarla tamamlanır; örneğin 8 arkadaşın aynı tarafta olduğu 8v8 odasında karşılarında 8 bot bulunur. Serbest ve süreli herkes-tek arenaları sekiz katılımcıya tamamlanır.
 
 Eleme 3, son 8 saniyede katkıda bulunan diğer oyuncuya asist 1 puan verir. Takım skoruna katkılar eklenir. Süre sonunda hasar, oklar ve hareket durur; eleme/asist/puan tablosu açılır. Beraberlik gösterilir. 12 saniyede yeni tur başlar; bütün gerçek oyuncular hazır derse hemen rövanşa geçilir. Her yeni tur eşit başlangıçtır. Maç ortası katılım mümkündür.
 

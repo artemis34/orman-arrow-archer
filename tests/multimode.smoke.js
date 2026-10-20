@@ -28,8 +28,22 @@ try {
     if (format === "arena") continue;
     const room = `mode-${format}-${Date.now().toString(36)}`;
     const group = [];
-    for (let i = 0; i < rules.capacity; i++)
+    for (let i = 0; i < rules.capacity; i++) {
       group.push(await connect(format, room, `P${i}`));
+      if (rules.teams && (i === 0 || i === 7)) {
+        const roster = group[0].latest.roster;
+        assert.equal(
+          roster.length,
+          rules.capacity,
+          "empty team seats are filled, even with a partial friend party",
+        );
+        for (let team = 0; team < rules.teams; team++)
+          assert.equal(
+            roster.filter((p) => p.team === team).length,
+            rules.capacity / rules.teams,
+          );
+      }
+    }
     const first = group[0];
     await until(
       () => first.latest.roster.filter((p) => !p.bot).length === rules.capacity,

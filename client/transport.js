@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
 import { World } from "../shared/world.js";
-import { createMode, FORMATS, formatKey } from "../shared/modes.js";
+import { createMode, formatKey } from "../shared/modes.js";
+import { practiceBots } from "../shared/online.js";
 import {
   advanceMovement,
   moveBody,
@@ -13,7 +14,7 @@ export class LocalTransport {
     const key = formatKey(format);
     this.world = new World({
       mode: createMode(key),
-      bots: Math.min(7, FORMATS[key].capacity - 1),
+      bots: practiceBots(key),
     });
     this.id = "local";
     this.online = false;

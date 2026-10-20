@@ -8,7 +8,7 @@ Bu geliştirme: [Takımlar, süreli maçlar, yeni kartlar ve kozmetik koleksiyon
 
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.
 
-Cloudflare sürümü yerel WebSocket + Durable Objects kullanır ve varsayılan olarak online açılır. Hızlı katıl uygun odada yer ayırır; arkadaş odası/davet aynı dünyaya gider. Her online oda en çok 16 insan alır; toplam katılımcı sekize botlarla tamamlanır, sekiz veya daha fazla insanda bot kalmaz. İkili delta paketleri, kamera görüşüne göre yakın alan ve birleştirilmiş kontrol girdileri kullanılır. [Kurulum ve ücretsiz kota ayrıntıları](docs/cloudflare.md).
+Cloudflare sürümü yerel WebSocket + Durable Objects kullanır ve varsayılan olarak online açılır. Hızlı katıl uygun odada yer ayırır; arkadaş odası/davet aynı dünyaya gider. Her online oda en çok 16 insan alır; herkes-tek arenalarında toplam katılımcı sekize botlarla tamamlanır. Takım modları seçilen formatın tamamına (4/8/16) doldurulur; botlar gerçek oyuncular geldikçe yerlerini bırakır. Online düelloda bot yoktur. İkili delta paketleri, kamera görüşüne göre yakın alan ve birleştirilmiş kontrol girdileri kullanılır. [Kurulum ve ücretsiz kota ayrıntıları](docs/cloudflare.md).
 
 ## Çalıştırma
 

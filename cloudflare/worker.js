@@ -1,6 +1,11 @@
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
-import { ONLINE, roomCode, pauseStaleInput } from "../shared/online.js";
+import {
+  ONLINE,
+  roomCode,
+  pauseStaleInput,
+  populationFor,
+} from "../shared/online.js";
 import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 import { FORMATS, formatKey, createMode } from "../shared/modes.js";
 import { profileId, sanitizeCosmetics } from "../shared/profile.js";
@@ -188,12 +193,7 @@ export class ArenaRoom {
       const humans = [...this.world.players.values()].filter(
         (p) => !p.bot,
       ).length;
-      const population = this.world.mode.rules?.duel
-        ? 0
-        : Math.min(
-            ONLINE.roomPopulation,
-            this.world.mode.rules?.capacity || ONLINE.humans,
-          );
+      const population = populationFor(this.world.mode.id);
       this.world.setBotCount(Math.max(0, population - humans - 1));
       const player = this.world.addPlayer(
         session.id,
@@ -373,12 +373,7 @@ export class ArenaRoom {
       this.world.setBotCount(
         Math.max(
           0,
-          (this.world.mode.rules?.duel
-            ? 0
-            : Math.min(
-                ONLINE.roomPopulation,
-                this.world.mode.rules?.capacity || ONLINE.humans,
-              )) -
+          populationFor(this.world.mode.id) -
             [...this.world.players.values()].filter((p) => !p.bot).length,
         ),
       );

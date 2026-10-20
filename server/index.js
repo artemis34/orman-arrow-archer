@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import { fileURLToPath } from "node:url";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
-import { pauseStaleInput } from "../shared/online.js";
+import { pauseStaleInput, populationFor } from "../shared/online.js";
 import { createMode, FORMATS, formatKey } from "../shared/modes.js";
 import { sanitizeCosmetics } from "../shared/profile.js";
 const app = express(),
@@ -64,14 +64,7 @@ io.on("connection", (socket) => {
       socket.emit("full");
       return;
     }
-    activeWorld.setBotCount(
-      Math.max(
-        0,
-        (format === "duel" ? 0 : Math.min(8, FORMATS[format].capacity)) -
-          humans -
-          1,
-      ),
-    );
+    activeWorld.setBotCount(Math.max(0, populationFor(format) - humans - 1));
     const p = activeWorld.addPlayer(socket.id, data.name, data.skin, false, {
       cosmetics: sanitizeCosmetics(null),
       party: room === "public" ? "" : "friends",
@@ -124,12 +117,7 @@ io.on("connection", (socket) => {
     if (!humans && roomKey !== "arena:public") worlds.delete(roomKey);
     else
       activeWorld.setBotCount(
-        Math.max(
-          0,
-          (activeWorld.mode.rules?.duel
-            ? 0
-            : Math.min(8, activeWorld.mode.rules?.capacity || 16)) - humans,
-        ),
+        Math.max(0, populationFor(activeWorld.mode.id) - humans),
       );
   });
 });

@@ -5,6 +5,32 @@ import { RoundMode, createMode } from "../shared/modes.js";
 import { NetworkTransport } from "../client/transport.js";
 import { ArenaRoom } from "../cloudflare/worker.js";
 import { newProfile } from "../shared/profile.js";
+import { FORMATS } from "../shared/modes.js";
+import { populationFor } from "../shared/online.js";
+test("partial friend parties retain full opposing sides in every team format", () => {
+  for (const key of ["t2", "t4", "t8", "squads", "duos"]) {
+    const w = new World({ bots: 0, mode: createMode(key) }),
+      rules = FORMATS[key];
+    for (let i = 0; i < Math.min(8, rules.capacity); i++) {
+      w.setBotCount(Math.max(0, populationFor(key) - i - 1));
+      assert.ok(
+        w.addPlayer(`human-${i}`, "Friend", 0, false, { party: "friends" }),
+      );
+      assert.equal(w.players.size, rules.capacity);
+      for (let team = 0; team < rules.teams; team++)
+        assert.equal(
+          [...w.players.values()].filter((p) => p.team === team).length,
+          rules.capacity / rules.teams,
+        );
+    }
+    w.step();
+    const human = w.players.get("human-0");
+    assert.ok(
+      [...w.players.values()].some((other) => w.mode.canDamage(human, other)),
+      `${key} always has opponents`,
+    );
+  }
+});
 test("duel eliminations and respawns never introduce XP drops or random upgrades", () => {
   const w = new World({ bots: 0, mode: createMode("duel") });
   const a = w.addPlayer("a"),
