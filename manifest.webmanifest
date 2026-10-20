@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Wildbow · Okçuluk Arenası",
+  "short_name": "Wildbow",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#10251d",
+  "theme_color": "#10251d",
+  "icons": [
+    {
+      "src": "./wildbow-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./wildbow-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    { "src": "./wildbow-icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

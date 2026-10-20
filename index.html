@@ -1,22 +1,25 @@
 <!doctype html>
 <html lang="tr">
   <head>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#10251d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="apple-touch-icon" href="./wildbow-192.png" />
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"
     />
-    <meta name="theme-color" content="#10251f" />
     <meta
       name="description"
       content="Wildbow — Archer.io. Ormanın kalbinde okunu ger, rakiplerinden sıyrıl ve arenanın efsanesi ol. Ücretsiz 3D okçuluk arenası."
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-Q9up2aIg.js"></script>
+    <script type="module" crossorigin src="./assets/index-Be57hzwO.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-BM0NpK1x.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-B0xxwP1z.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-qTcxA9rR.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -93,6 +96,22 @@
             <button id="online-mode">◎ Çok oyunculu</button
             ><button id="practice-mode" class="selected">✧ Antrenman</button>
           </div>
+          <div class="format-entry">
+            <label for="match-format">KARŞILAŞMA</label>
+            <select id="match-format" aria-describedby="format-note">
+              <option value="arena">Serbest arena · Süresiz</option>
+              <option value="round">Süreli arena · 4 dakika</option>
+              <option value="duel">Düello · 1v1 · 2 dakika</option>
+              <option value="t2">Takım · 2v2</option>
+              <option value="t4">Takım · 4v4</option>
+              <option value="t8">Takım · 8v8</option>
+              <option value="squads">4 takım × 4 kişi · 16 oyuncu</option>
+              <option value="duos">8 takım × 2 kişi · 16 oyuncu</option>
+            </select>
+            <p id="format-note" class="field-note">
+              Kristalleri topla, yeteneklerini geliştir.
+            </p>
+          </div>
           <div class="control-switch" role="group" aria-label="Kontrol düzeni">
             <button id="classic-controls" class="selected" aria-pressed="true">
               <span>↔</span><b>Klasik</b><small>Hareket + nişan</small>
@@ -153,6 +172,10 @@
             </div>
           </div>
           <button id="play" class="primary"><b>OYNA</b> <span>↗</span></button>
+          <button id="collection-open" class="collection-entry" type="button">
+            Okçum · Koleksiyon ve ayarlar
+            <span id="collection-balance">◇ 0</span>
+          </button>
           <p id="join-status" class="join-status" aria-live="polite">
             Botlarla anında oyna · Hesap gerekmez
           </p>
@@ -282,6 +305,14 @@
           <span>✧ YETENEK SEÇ <small id="upgrade-count"></small></span
           ><b id="guard-time"></b
           ><button
+            id="reroll"
+            class="reroll-button"
+            type="button"
+            aria-label="Kartları yenile · Maçta bir kez"
+            title="Kartları yenile · Maçta bir kez"
+          >
+            ↻</button
+          ><button
             id="upgrades-collapse"
             aria-label="Yetenek kartlarını küçült"
           >
@@ -291,6 +322,11 @@
         <div id="upgrade-options"></div>
       </section>
       <div id="toast" class="hidden" aria-live="polite"></div>
+      <div
+        id="match-status"
+        class="match-status hidden"
+        aria-live="polite"
+      ></div>
       <div id="touch-controls">
         <div id="move-stick" class="joystick" aria-label="Hareket joystick">
           <div class="stick-knob"></div>
@@ -303,6 +339,59 @@
           <div class="stick-knob"></div>
         </div>
       </div>
+    </div>
+    <div
+      id="collection"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="collection-title"
+    >
+      <section class="collection-card">
+        <button
+          id="collection-close"
+          class="close-modal"
+          aria-label="Koleksiyonu kapat"
+        >
+          ✕
+        </button>
+        <div class="eyebrow">TARZIN SENİN İZİN</div>
+        <h2 id="collection-title">Okçum</h2>
+        <div
+          class="collection-tabs"
+          role="tablist"
+          aria-label="Okçum bölümleri"
+        >
+          <button data-tab="looks" role="tab">Görünüşler</button>
+          <button data-tab="profile" role="tab">Profil</button>
+          <button data-tab="skills" role="tab">Yetenekler</button>
+          <button data-tab="settings" role="tab">Ayarlar</button>
+        </div>
+        <p class="collection-status" aria-live="polite">
+          Online maçlardan yaprak kazan. Görünüşler savaş gücünü değiştirmez.
+        </p>
+        <div class="collection-content"></div>
+      </section>
+    </div>
+    <div
+      id="round-results"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="round-title"
+    >
+      <section class="results-card">
+        <div class="eyebrow">BİR SONRAKİ OKUN SENİ BEKLİYOR</div>
+        <h2 id="round-title">Maç tamamlandı</h2>
+        <p id="round-winner"></p>
+        <div id="round-ranking"></div>
+        <p id="round-reward">
+          Tamamlanan online maçlar profil ilerlemesi kazandırır.
+        </p>
+        <button id="rematch" class="primary">Rövanşa hazırım</button>
+        <p id="round-countdown"></p>
+        <button id="results-exit" class="text-button">Ana menüye dön</button>
+      </section>
     </div>
     <div id="death" class="modal hidden">
       <section class="death-card">
