@@ -2,6 +2,9 @@ import { applyArrowImpact, redirectRicochet } from "./skills.js";
 import { PowerupSystem, attackRate, arrowPower } from "./powerups.js";
 import { selectTarget, aimedAngle } from "./aim.js";
 import { FreeForAll } from "./modes.js";
+import { clearShot } from "./aim.js";
+import { ForestShrine } from "./objective.js";
+import { REGIONS } from "./regions.js";
 import {
   RULES,
   UPGRADES,
@@ -26,6 +29,7 @@ export class World {
     this.mode = mode;
     this.seed = seed;
     this.time = 0;
+    this.objective = new ForestShrine();
     this.players = new Map();
     this.events = [];
     this.nextId = 0;
@@ -61,10 +65,25 @@ export class World {
       )
         continue;
       this.obstacles.push(o);
+      const region = REGIONS.find(
+        (a) => Math.hypot(o.x - a.x, o.z - a.z) < a.radius,
+      );
+      if (region) o.type = region.types[i % region.types.length];
       this.obstacleGrid.insert(o, o.r);
     }
     this.powerups = new PowerupSystem(this.obstacles);
-    for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
+    if (mode.rules?.duel) {
+      this.obstacles = [];
+      this.obstacleGrid.clear();
+      for (const x of [-12, 12])
+        for (const z of [-10, 10]) {
+          const o = { id: this.obstacles.length, x, z, r: 1.5, type: "rock" };
+          this.obstacles.push(o);
+          this.obstacleGrid.insert(o, o.r);
+        }
+    }
+    if (!mode.rules?.duel)
+      for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
     for (let i = 0; i < bots; i++)
       this.addPlayer(`bot-${i}`, names[i % names.length], i % 4, true);
   }
@@ -98,14 +117,19 @@ export class World {
         this.addPlayer(`bot-${n}`, names[n % names.length], n % 4, true);
     }
   }
-  spawnPoint(clearance = 5) {
+  spawnPoint(clearance = 5, team = null) {
     let best = { x: 0, z: 0 },
       bestDistance = -1;
     for (let i = 0; i < 100; i++) {
-      const p = {
-        x: (this.random() - 0.5) * 72,
-        z: (this.random() - 0.5) * 72,
-      };
+      const teams = this.mode.rules?.teams || 0;
+      const angle = teams ? (team * Math.PI * 2) / teams - Math.PI / 2 : 0;
+      const p =
+        teams && team != null
+          ? {
+              x: Math.cos(angle) * 29 + (this.random() - 0.5) * 12,
+              z: Math.sin(angle) * 29 + (this.random() - 0.5) * 12,
+            }
+          : { x: (this.random() - 0.5) * 72, z: (this.random() - 0.5) * 72 };
       if (
         this.obstacles.some(
           (o) =>
@@ -123,7 +147,19 @@ export class World {
         best = p;
         bestDistance = distance;
       }
-      if (distance >= clearance) return p;
+      const engaging = clearance >= 10 && team == null && this.players.size > 0;
+      if (
+        distance >= clearance &&
+        (!engaging ||
+          (distance <= 18 &&
+            [...this.players.values()].some(
+              (q) =>
+                q.alive &&
+                Math.hypot(q.x - p.x, q.z - p.z) <= 18 &&
+                clearShot(p, q, this.obstacles),
+            )))
+      )
+        return p;
     }
     return best;
   }
@@ -146,8 +182,12 @@ export class World {
     });
     return o;
   }
-  addPlayer(id, name = "Gezgin", skin = 0, bot = false) {
-    if (this.players.size >= RULES.maxPlayers) return null;
+  addPlayer(id, name = "Gezgin", skin = 0, bot = false, options = {}) {
+    if (
+      this.players.has(id) ||
+      this.players.size >= (this.mode.rules?.capacity || RULES.maxPlayers)
+    )
+      return null;
     const p = {
       id,
       name:
@@ -159,12 +199,29 @@ export class World {
       bot,
       ...this.spawnPoint(bot ? 5 : 10),
       angle: 0,
-      hp: bot ? RULES.botHealth : RULES.playerHealth,
-      maxHp: bot ? RULES.botHealth : RULES.playerHealth,
+      hp: bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
+      maxHp:
+        bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
       level: 1,
       xp: 0,
       kills: 0,
       score: 0,
+      team: null,
+      duelSeat:
+        [0, 1].find(
+          (seat) =>
+            ![...this.players.values()].some((p) => p.duelSeat === seat),
+        ) ?? 0,
+      assists: 0,
+      matchPoints: 0,
+      objectives: 0,
+      hits: 0,
+      rerolled: false,
+      contributors: new Map(),
+      cosmetics: options.cosmetics || {},
+      evadeCd: 0,
+      rhythmTime: 0,
+      shellCd: 0,
       alive: true,
       charge: 0,
       dashCd: 0,
@@ -200,10 +257,27 @@ export class World {
       thinkAt: 0,
     };
     this.players.set(id, p);
+    this.mode.assign?.(
+      this,
+      p,
+      typeof options.party === "string" ? options.party.slice(0, 24) : "",
+    );
+    if (p.team != null) Object.assign(p, this.spawnPoint(bot ? 5 : 10, p.team));
+    if (this.mode.rules?.duel)
+      Object.assign(p, { x: p.duelSeat ? 18 : -18, z: 0 });
     return p;
   }
   removePlayer(id) {
     this.players.delete(id);
+    // Departed owners cannot leave unowned projectiles that bypass team rules.
+    for (const a of this.arrows.active) if (a.owner === id) a.cancelled = true;
+    for (const p of this.players.values()) {
+      p.contributors.delete(id);
+      if (p.poisonOwner === id) {
+        p.poison = p.poisonDps = 0;
+        p.poisonOwner = null;
+      }
+    }
   }
   setInput(id, data) {
     const p = this.players.get(id);
@@ -234,6 +308,37 @@ export class World {
     if (!p.pending) p.levelGuard = 0;
     return true;
   }
+  reroll(id) {
+    const p = this.players.get(id);
+    if (!p?.alive || !p.choices.length || p.rerolled || this.mode.rules?.duel)
+      return false;
+    const previous = p.choices;
+    this.offer(p);
+    if (p.choices.every((k) => previous.includes(k))) {
+      const extra = Object.keys(UPGRADES).find(
+        (k) => !previous.includes(k) && (p.upgrades[k] || 0) < UPGRADES[k].max,
+      );
+      if (extra) p.choices[0] = extra;
+    }
+    p.rerolled = true;
+    return true;
+  }
+  resetRound() {
+    while (this.arrows.active.length) this.arrows.release(0);
+    while (this.orbs.active.length) this.orbs.release(0);
+    this.objective.reset(this.time);
+    for (const site of this.powerups.sites) site.cooldown = 0;
+    // Remove all bodies from spawn selection before placing a new round.
+    for (const p of this.players.values()) p.alive = false;
+    for (const p of this.players.values()) {
+      p.respawnAt = 0;
+      this.respawn(p.id);
+      p.kills = p.assists = p.matchPoints = p.objectives = p.hits = p.score = 0;
+      p.rerolled = false;
+    }
+    if (!this.mode.rules?.duel)
+      for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
+  }
   offer(p) {
     p.choices =
       p.pending > 0
@@ -247,6 +352,7 @@ export class World {
     if (!p.choices.length) p.pending = 0;
   }
   gain(p, amount) {
+    if (this.mode.rules?.duel || !this.mode.combat) return;
     const wasPending = p.pending > 0;
     p.xp += amount;
     p.score += amount;
@@ -274,10 +380,23 @@ export class World {
     }
   }
   damage(p, amount, owner, kind = "impact") {
-    if (!p.alive || p.spawnShield > 0 || p.levelGuard > 0) return 0;
+    if (
+      !this.mode.combat ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !p.alive ||
+      p.spawnShield > 0 ||
+      p.levelGuard > 0
+    )
+      return 0;
     const source = this.players.get(owner);
     if (source && (!this.mode.canDamage(source, p) || source.levelGuard > 0))
       return 0;
+    if (kind === "impact" && p.upgrades.shell && p.shellCd <= 0) {
+      amount *= 0.6;
+      p.shellCd = 6;
+      this.events.push({ type: "guardHit", x: p.x, z: p.z, target: p.id });
+    }
     const dealt = Math.min(p.hp, amount);
     p.hp -= amount;
     this.events.push({
@@ -290,6 +409,10 @@ export class World {
       amount: Math.round(amount),
     });
     const attacker = this.players.get(owner);
+    if (attacker && attacker !== p) {
+      p.contributors.set(owner, this.time);
+      if (kind === "impact") attacker.hits++;
+    }
     if (attacker && attacker !== p && attacker.alive) {
       attacker.damageXpCarry = (attacker.damageXpCarry || 0) + dealt / 3;
       const earned = Math.floor(attacker.damageXpCarry + 1e-8);
@@ -316,6 +439,11 @@ export class World {
         killer: attacker?.name || "Orman",
         target: p.id,
       });
+      p.lastDeath = {
+        killer: attacker?.name || "Orman",
+        kind,
+        amount: Math.round(amount),
+      };
       for (let i = 0; i < 5; i++)
         this.spawnOrb(
           p.x + (this.random() - 0.5) * 3,
@@ -327,10 +455,19 @@ export class World {
   }
   respawn(id) {
     const p = this.players.get(id);
-    if (!p || p.alive || this.time < p.respawnAt) return false;
-    Object.assign(p, this.spawnPoint(p.bot ? 5 : 10), {
-      hp: p.bot ? RULES.botHealth : RULES.playerHealth,
-      maxHp: p.bot ? RULES.botHealth : RULES.playerHealth,
+    if (
+      !p ||
+      p.alive ||
+      this.time < p.respawnAt ||
+      this.mode.phase === "results"
+    )
+      return false;
+    p.contributors.clear();
+    Object.assign(p, this.spawnPoint(p.bot ? 5 : 10, p.team), {
+      hp:
+        p.bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
+      maxHp:
+        p.bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
       level: 1,
       xp: 0,
       damageXpCarry: 0,
@@ -353,18 +490,29 @@ export class World {
       slowImmunity: 0,
       blastCd: 0,
       shotCd: 0,
+      evadeCd: 0,
+      rhythmTime: 0,
+      shellCd: 0,
       spawnShield: p.bot ? 2 : RULES.playerShield,
       revealUntil: 0,
       vx: 0,
       vz: 0,
-      input: cleanInput(),
+      input: cleanInput({ seq: p.seq }),
       inputStale: false,
       releaseAngle: null,
     });
+    if (this.mode.rules?.duel)
+      Object.assign(p, { x: p.duelSeat ? 18 : -18, z: 0 });
     return true;
   }
   fire(p, quick = false) {
-    if (p.charge < 0.08 || p.shotCd > 0 || !p.alive || p.levelGuard > 0)
+    if (
+      !this.mode.combat ||
+      p.charge < 0.08 ||
+      p.shotCd > 0 ||
+      !p.alive ||
+      p.levelGuard > 0
+    )
       return false;
     let fired = false;
     const q = clamp(p.charge, 0, 1),
@@ -381,6 +529,8 @@ export class World {
       a.hits.clear();
       Object.assign(a, {
         cancelled: false,
+        canReturn: primary && !!p.upgrades.returning,
+        returning: false,
         distance: 0,
         ricochet: primary ? p.upgrades.ricochet || 0 : 0,
         frost: primary && !!p.upgrades.frost,
@@ -396,6 +546,7 @@ export class World {
                 : "normal",
         id: ++this.nextId,
         owner: p.id,
+        trail: p.cosmetics?.trail || "trail-leaf",
         x: p.x + Math.cos(angle) * 0.9,
         z: p.z + Math.sin(angle) * 0.9,
         vx: Math.cos(angle) * speed,
@@ -405,7 +556,7 @@ export class World {
           RULES.arrowDamage *
           (rear ? RULES.rearArrowScale : offset ? RULES.sideArrowScale : 1) *
           arrowPower(p) *
-          (p.bot ? RULES.botDamageScale : 1),
+          (p.bot && !this.mode.rules?.duel ? RULES.botDamageScale : 1),
         poisonDps:
           (p.upgrades.poison || 0) *
           RULES.poisonDps *
@@ -417,6 +568,7 @@ export class World {
       });
     }
     if (!fired) return false;
+    p.rhythmTime = p.upgrades.rhythm && q >= 0.98 ? 2 : 0;
     p.spawnShield = 0;
     p.revealUntil = this.time + 0.6;
     p.shotCd =
@@ -478,8 +630,8 @@ export class World {
         .filter(
           (o) =>
             o !== p &&
+            this.mode.canDamage(p, o) &&
             o.alive &&
-            o.spawnShield <= 0 &&
             o.levelGuard <= 0 &&
             (!o.hidden || Math.hypot(o.x - p.x, o.z - p.z) < 5),
         )
@@ -493,7 +645,11 @@ export class World {
         target && Math.hypot(target.x - p.x, target.z - p.z) < 19
           ? "fight"
           : "gather";
-      if (p.brain === "fight") {
+      if (target && p.hp < p.maxHp * 0.32) p.brain = "retreat";
+      if (p.brain === "retreat") {
+        goal = { x: p.x + (p.x - target.x) * 2, z: p.z + (p.z - target.z) * 2 };
+        p.angle = Math.atan2(target.z - p.z, target.x - p.x);
+      } else if (p.brain === "fight") {
         const dist = Math.hypot(target.x - p.x, target.z - p.z);
         goal =
           dist < 8
@@ -502,7 +658,10 @@ export class World {
         p.angle =
           Math.atan2(target.z - p.z, target.x - p.x) +
           (this.random() - 0.5) * 0.12;
-        charge = p.charge < 0.85;
+        charge =
+          target.spawnShield <= 0 &&
+          clearShot(p, target, this.obstacles) &&
+          p.charge < 0.85;
       } else {
         goal = this.orbs.active.reduce(
           (best, o) =>
@@ -521,6 +680,8 @@ export class World {
               Math.hypot(goal.x - p.x, goal.z - p.z) / (goal.rare ? 3 : 1))
         )
           goal = buff;
+        if (this.objective.active && p.hp > p.maxHp * 0.55)
+          goal = { x: 0, z: 0 };
       }
       if (!goal) goal = { x: 0, z: 0 };
       let dx = goal.x - p.x,
@@ -547,6 +708,39 @@ export class World {
         heal: p.hp < 60,
         dash: p.hp < 40 && this.random() < 0.15,
       });
+      // Bots only dodge a nearby visible arrow already heading toward them.
+      const threat = this.arrows.active.find((a) => {
+        const source = this.players.get(a.owner);
+        if (
+          !source ||
+          !this.mode.canDamage(source, p) ||
+          Math.hypot(a.x - p.x, a.z - p.z) > 5
+        )
+          return false;
+        return (
+          segmentFraction(
+            a.x,
+            a.z,
+            a.x + a.vx * 0.2,
+            a.z + a.vz * 0.2,
+            p.x,
+            p.z,
+            0.9,
+          ) !== null
+        );
+      });
+      if (
+        threat &&
+        p.dashCd <= 0 &&
+        this.random() < 0.3 &&
+        clearShot(p, threat, this.obstacles)
+      ) {
+        const speed = Math.hypot(threat.vx, threat.vz) || 1;
+        p.input.x = -threat.vz / speed;
+        p.input.z = threat.vx / speed;
+        p.input.dash = true;
+        p.brain = "evade";
+      }
     }
   }
   step(dt = 1 / RULES.tick) {
@@ -555,6 +749,8 @@ export class World {
     this.events = [];
     this.powerups.tick(dt, this.players.values());
     this.mode.step(this, dt);
+    if (!this.mode.combat) return;
+    this.objective.step(this, dt);
     this.grid.clear();
     this.orbGrid.clear();
     const starts = new Map();
@@ -571,6 +767,9 @@ export class World {
       p.shotCd = Math.max(0, p.shotCd - dt);
       p.spawnShield = Math.max(0, p.spawnShield - dt);
       p.healCd = Math.max(0, p.healCd - dt);
+      p.evadeCd = Math.max(0, p.evadeCd - dt);
+      p.rhythmTime = Math.max(0, p.rhythmTime - dt);
+      p.shellCd = Math.max(0, p.shellCd - dt);
       const i = p.input;
       p.seq = i.seq;
       if (advanceMovement(p, i, dt, [...this.obstacleGrid.query(p.x, p.z, 4)]))
@@ -668,11 +867,12 @@ export class World {
       p.vx = dt ? (p.x - oldX) / dt : 0;
       p.vz = dt ? (p.z - oldZ) / dt : 0;
       this.grid.insert(p, RULES.radius);
-      for (const o of this.orbGrid.query(p.x, p.z, 1.5)) {
+      const pickup = p.upgrades.magnet ? 1.82 : 1.3;
+      for (const o of this.orbGrid.query(p.x, p.z, pickup)) {
         if (
           p.levelGuard > 0 ||
           o.collected ||
-          Math.hypot(o.x - p.x, o.z - p.z) > 1.3
+          Math.hypot(o.x - p.x, o.z - p.z) > (o.rare ? 1.3 : pickup)
         )
           continue;
         o.collected = true;
@@ -686,7 +886,7 @@ export class World {
           value: o.value,
         });
       }
-      this.powerups.collect(p, this.events);
+      if (!this.mode.rules?.duel) this.powerups.collect(p, this.events);
     }
     // A later player can push an earlier one after its velocity/grid insertion.
     // Publish and collide against the final positions of the entire tick.
@@ -712,11 +912,25 @@ export class World {
         continue;
       }
       const priorDistance = a.distance;
+      if (a.returning) {
+        const owner = this.players.get(a.owner);
+        const dx = owner ? owner.x - a.x : 0,
+          dz = owner ? owner.z - a.z : 0;
+        const length = Math.hypot(dx, dz);
+        if (!owner?.alive || length < 1) {
+          this.arrows.release(n);
+          continue;
+        }
+        const speed = Math.hypot(a.vx, a.vz);
+        a.vx = (dx / length) * speed;
+        a.vz = (dz / length) * speed;
+      }
       a.x += a.vx * dt;
       a.z += a.vz * dt;
       a.life -= dt;
       a.distance += Math.hypot(a.x - ox, a.z - oz);
       let dead = a.life <= 0;
+      let returnAllowed = dead;
       if (Math.abs(a.x) > RULES.size / 2 || Math.abs(a.z) > RULES.size / 2) {
         if (a.bounce > 0) {
           if (Math.abs(a.x) > RULES.size / 2) a.vx *= -1;
@@ -724,7 +938,10 @@ export class World {
           a.x = clamp(a.x, -RULES.size / 2, RULES.size / 2);
           a.z = clamp(a.z, -RULES.size / 2, RULES.size / 2);
           a.bounce--;
-        } else dead = true;
+        } else {
+          dead = true;
+          returnAllowed = false;
+        }
       }
       // Resolve swept contacts in travel order, so cover behind a target cannot absorb its hit.
       const contacts = [],
@@ -744,7 +961,6 @@ export class World {
             (this.players.has(a.owner) &&
               !this.mode.canDamage(this.players.get(a.owner), p)) ||
             a.hits.has(p.id) ||
-            p.dashTime > 0 ||
             p.levelGuard > 0
           )
             continue;
@@ -763,9 +979,24 @@ export class World {
         for (const hit of contacts) {
           if (hit.terrain) {
             dead = true;
+            returnAllowed = false;
             break;
           }
           const p = hit.p;
+          if (p.dashTime > 0) {
+            if (p.upgrades.evasion && p.evadeCd <= 0) {
+              p.hp = Math.min(p.maxHp, p.hp + 8);
+              p.evadeCd = 6;
+              this.events.push({
+                type: "heal",
+                x: p.x,
+                z: p.z,
+                owner: p.id,
+                amount: 8,
+              });
+            }
+            continue;
+          }
           a.hits.add(p.id);
           const hitDistance =
             priorDistance + Math.hypot(a.x - ox, a.z - oz) * hit.t;
@@ -778,23 +1009,51 @@ export class World {
           if (a.pierce > 0) a.pierce--;
           else {
             dead = true;
+            returnAllowed = true;
             break;
           }
         }
       }
+      if (
+        dead &&
+        returnAllowed &&
+        a.canReturn &&
+        !a.returning &&
+        !a.cancelled
+      ) {
+        a.canReturn = false;
+        a.returning = true;
+        a.life = 1.5;
+        a.damage *= 0.4;
+        a.poisonDps = 0;
+        a.poison = 0;
+        a.blast = a.frost = a.longshot = false;
+        a.ricochet = a.pierce = a.bounce = 0;
+        a.effect = "returning";
+        dead = false;
+      }
       if (dead) this.arrows.release(n);
     }
-    if (this.orbs.active.length < RULES.maxOrbs && this.random() < dt * 12)
+    if (
+      !this.mode.rules?.duel &&
+      this.orbs.active.length < RULES.maxOrbs &&
+      this.random() < dt * 12
+    )
       this.spawnOrb();
   }
   snapshot(viewerId, events = this.events, { radius = Infinity } = {}) {
     const viewer = this.players.get(viewerId);
     const visible = (p) =>
       !p.hidden ||
+      (viewer?.team != null && viewer.team === p.team) ||
       p.id === viewerId ||
       (viewer && Math.hypot(p.x - viewer.x, p.z - viewer.z) < 5);
     return {
       time: this.time,
+      match: this.mode.snapshot?.(this) || null,
+      objective: this.mode.rules?.duel
+        ? null
+        : this.objective.snapshot(this.time),
       roster: [...this.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
@@ -802,6 +1061,10 @@ export class World {
         score: p.score,
         alive: p.alive,
         bot: p.bot,
+        team: p.team,
+        kills: p.kills,
+        assists: p.assists,
+        matchPoints: p.matchPoints,
       })),
       players: [...this.players.values()]
         .filter(
@@ -815,6 +1078,12 @@ export class World {
           id: p.id,
           name: p.name,
           skin: p.skin,
+          team: p.team,
+          cosmetics: p.cosmetics,
+          assists: p.assists,
+          matchPoints: p.matchPoints,
+          rerolled: p.rerolled,
+          lastDeath: p.id === viewerId ? p.lastDeath : null,
           x: p.x,
           z: p.z,
           vx: p.vx,
@@ -862,6 +1131,7 @@ export class World {
           angle: Math.atan2(a.vz, a.vx),
           poison: a.poison,
           effect: a.effect,
+          trail: a.trail,
         })),
       orbs: this.orbs.active
         .filter(
@@ -877,7 +1147,7 @@ export class World {
           value: o.value,
           rare: o.rare,
         })),
-      powerups: this.powerups.snapshot(),
+      powerups: this.mode.rules?.duel ? [] : this.powerups.snapshot(),
       events: events.filter((e) => {
         if (e.type === "kill") return true; // Kill feed has names, no coordinates.
         const subject = this.players.get(e.target || e.owner);

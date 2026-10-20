@@ -22,7 +22,10 @@
     "test:network": "node tests/network.smoke.js",
     "test:live": "node tests/live.smoke.js",
     "test:hud": "node tests/hud.smoke.js",
-    "test:lobby": "node tests/lobby.browser.js"
+    "test:lobby": "node tests/lobby.browser.js",
+    "test:expansion": "node tests/expansion.browser.js",
+    "test:multimode": "node tests/multimode.smoke.js",
+    "test:profile": "node tests/profile.browser.js"
   },
   "dependencies": {
     "express": "^5.1.0",

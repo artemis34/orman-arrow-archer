@@ -14,6 +14,8 @@ Barındırma Cloudflare Workers + SQLite-backed Durable Objects olarak devam ede
 
 ## Odalar
 
+Takım/ilerleme sürümünde her format ayrı eşleştirme dizini kullanır; oda sınırı formata göre 2/4/8/16'dır. v3 profil sınıfı, maç başı ödül yazıları ve ikili protokol v2 alanları eklenmiştir. Aşağıdaki paket boyutu tablosu 19 Ekim'deki önceki ağ sürümünün ölçümüdür; yeni maç/kozmetik alanlarının ölçümü olarak değerlendirilmemelidir. [Güncel sürüm ayrıntıları](team-progression-release.md).
+
 - **Hızlı katıl:** `ArenaMatchmaker`, ilk uygun genel odada 15 saniyelik yer ayırır. Tek kullanımlık bilet bağlantıda tüketilir. Eşzamanlı başvurular aynı son yeri dolduramaz.
 - **Arkadaş odası:** oda kodu/davet aynı dünyaya gider; doluysa başka odaya ayrılmaz. Oda kodu erişim parolası değildir.
 - Genel havuz 128 oda × 16 gerçek oyuncuyla sınırlıdır. Bu, test edilmiş üretim kapasitesi garantisi değildir. Havuz dolarsa tekrar deneme mesajı gösterilir.

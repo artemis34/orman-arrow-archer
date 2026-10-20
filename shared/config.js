@@ -44,6 +44,37 @@ export const RULES = Object.freeze({
   maxOrbs: 140,
 });
 export const UPGRADES = Object.freeze({
+  returning: {
+    name: "Geri dönen ok",
+    icon: "↶",
+    max: 1,
+    description:
+      "Ana ok geri dönerken %40 hasar verir. Her rakibe bir kez vurur; siperler keser.",
+  },
+  shell: {
+    name: "Koruyucu kabuk",
+    icon: "◇",
+    max: 1,
+    description: "Bir doğrudan vuruşun hasarını %40 azaltır. Yenileme: 6 sn.",
+  },
+  magnet: {
+    name: "Kristal çekimi",
+    icon: "◇",
+    max: 1,
+    description: "Küçük XP toplama alanı %40 artar. Nadir kristallere işlemez.",
+  },
+  evasion: {
+    name: "Gölge adımı",
+    icon: "»",
+    max: 1,
+    description: "Atılmayla bir oktan sıyrılınca +8 can. Yenileme: 6 sn.",
+  },
+  rhythm: {
+    name: "Usta geriş",
+    icon: "⌁",
+    max: 1,
+    description: "Tam gerilimli atıştan sonraki 2 sn boyunca %15 hızlı germe.",
+  },
   multishot: {
     name: "Çatal atış",
     icon: "⋔",

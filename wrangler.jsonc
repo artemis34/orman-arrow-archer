@@ -18,10 +18,12 @@
     "bindings": [
       { "name": "ARENAS", "class_name": "ArenaRoom" },
       { "name": "MATCHMAKER", "class_name": "ArenaMatchmaker" },
+      { "name": "PROFILES", "class_name": "PlayerProfile" },
     ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ArenaRoom"] },
     { "tag": "v2", "new_sqlite_classes": ["ArenaMatchmaker"] },
+    { "tag": "v3", "new_sqlite_classes": ["PlayerProfile"] },
   ],
 }

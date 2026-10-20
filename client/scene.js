@@ -4,6 +4,9 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
 import { POWERUPS, POWERUP_RULES } from "../shared/powerups.js";
+import { TEAMS } from "../shared/modes.js";
+import { CATALOG } from "../shared/profile.js";
+import { REGIONS } from "../shared/regions.js";
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 /** All dynamic meshes are created once and reused across snapshots. */
 export class ArenaScene {
@@ -306,7 +309,32 @@ export class ArenaScene {
     this.scene.add(this.aimLine);
     this.aimLine.visible = false;
     this.resize();
+    this.shrine = new THREE.Mesh(
+      new THREE.RingGeometry(2.9, 3.15, 48),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd278,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+      }),
+    );
+    this.shrine.rotation.x = -Math.PI / 2;
+    this.shrine.position.y = 0.065;
+    this.shrine.visible = false;
+    this.scene.add(this.shrine);
     addEventListener("resize", () => this.resize());
+  }
+  setQuality(quality) {
+    this.quality = quality;
+    this.renderer.setPixelRatio(
+      Math.min(
+        devicePixelRatio,
+        quality === "low" ? 1 : quality === "high" ? 2 : 1.5,
+      ),
+    );
+    this.renderer.shadowMap.enabled = quality !== "low";
+    this.resize();
   }
   batch(group) {
     group.updateMatrixWorld(true);
@@ -369,7 +397,33 @@ export class ArenaScene {
     return g;
   }
   setMap(obstacles) {
-    if (this.built) return;
+    const key = JSON.stringify(obstacles);
+    if (this.mapKey === key) return;
+    this.mapKey = key;
+    this.worldGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+    });
+    this.worldGroup.clear();
+    // Broad, subtle ground patches make navigation recognizable without extra obstacles.
+    this.regionMaterials ||= REGIONS.map(
+      (region) =>
+        new THREE.MeshStandardMaterial({
+          color: region.color,
+          roughness: 1,
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+        }),
+    );
+    for (const [index, region] of REGIONS.entries()) {
+      const patch = new THREE.Mesh(
+        new THREE.CircleGeometry(region.radius, 12),
+        this.regionMaterials[index],
+      );
+      patch.rotation.x = -Math.PI / 2;
+      patch.position.set(region.x, 0.021, region.z);
+      this.worldGroup.add(patch);
+    }
     this.built = true;
     this.obstacles = obstacles;
     for (const o of obstacles)
@@ -407,9 +461,11 @@ export class ArenaScene {
     contact.position.y = 0.028;
     root.add(contact);
     const skin = SKINS[p.skin] || SKINS[0],
+      cosmetic = (slot) =>
+        CATALOG.find((item) => item.id === p.cosmetics?.[slot]),
       cloth = new THREE.MeshStandardMaterial({ color: skin.body }),
       cape = new THREE.MeshStandardMaterial({
-        color: skin.cape,
+        color: cosmetic("cape")?.color || skin.cape,
         side: THREE.DoubleSide,
       }),
       skinMat = new THREE.MeshStandardMaterial({ color: 0xf0d0a1 }),
@@ -430,7 +486,10 @@ export class ArenaScene {
     body.add(head);
     const hood = new THREE.Mesh(
       new THREE.SphereGeometry(0.34, 8, 6, Math.PI / 2, Math.PI * 1.5),
-      cape,
+      new THREE.MeshStandardMaterial({
+        color: cosmetic("hood")?.color || skin.cape,
+        side: THREE.DoubleSide,
+      }),
     );
     hood.position.set(-0.04, 1.48, 0);
     body.add(hood);
@@ -473,7 +532,9 @@ export class ArenaScene {
       .map((pt) => new THREE.Vector3(pt.x, 1, pt.y));
     const bowLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(points),
-      new THREE.LineBasicMaterial({ color: 0xe7bf79 }),
+      new THREE.LineBasicMaterial({
+        color: cosmetic("bow")?.color || 0xe7bf79,
+      }),
     );
     bow.add(bowLine);
     const string = new THREE.Line(
@@ -594,6 +655,7 @@ export class ArenaScene {
       footstep: 0,
       legs,
       bow,
+      arm,
       bowLine,
       buffRing,
       string,
@@ -611,6 +673,10 @@ export class ArenaScene {
       hp: p.hp,
       maxHp: p.maxHp,
       skin: p.skin,
+      cosmeticKey: JSON.stringify(p.cosmetics || {}),
+      bowColor: cosmetic("bow")?.color || 0xe7bf79,
+      spawnColor: cosmetic("spawn")?.color || 0xbde08d,
+      wasAlive: p.alive,
       name: p.name,
     };
   }
@@ -662,10 +728,17 @@ export class ArenaScene {
     );
   }
   pickPlayer(x, y, players, myId) {
+    const me = players.find((p) => p.id === myId);
     let nearest = null,
       distance = 34;
     for (const p of players) {
-      if (p.id === myId || !p.alive || p.spawnShield > 0 || p.levelGuard > 0)
+      if (
+        p.id === myId ||
+        (me?.team != null && p.team === me.team) ||
+        !p.alive ||
+        p.spawnShield > 0 ||
+        p.levelGuard > 0
+      )
         continue;
       const point = new THREE.Vector3(p.x, 1, p.z).project(this.camera);
       if (point.z < -1 || point.z > 1) continue;
@@ -731,7 +804,12 @@ export class ArenaScene {
       for (const p of state.players) {
         ids.add(p.id);
         let v = this.players.get(p.id);
-        if (v && (v.skin !== p.skin || v.name !== p.name)) {
+        if (
+          v &&
+          (v.skin !== p.skin ||
+            v.name !== p.name ||
+            v.cosmeticKey !== JSON.stringify(p.cosmetics || {}))
+        ) {
           this.disposePlayer(v);
           this.players.delete(p.id);
           v = null;
@@ -741,6 +819,8 @@ export class ArenaScene {
           this.players.set(p.id, v);
         }
         v.seen = this.time;
+        if (p.alive && !v.wasAlive) this.burst(p.x, p.z, v.spawnColor, 12);
+        v.wasAlive = p.alive;
         v.root.visible = p.alive;
         updatePose(v.pose, p, dt);
         const guarded = p.levelGuard > 0;
@@ -793,11 +873,24 @@ export class ArenaScene {
         )
           this.stepDust(v.pose.x, v.pose.z);
         v.footstep = footstep;
-        v.base.visible = p.id === myId || p.slowTime > 0;
-        v.base.material.color.setHex(p.slowTime > 0 ? 0x90e8ff : 0xe1f3a8);
+        v.base.visible = p.id === myId || p.slowTime > 0 || p.team != null;
+        v.base.material.color.set(
+          p.slowTime > 0
+            ? 0x90e8ff
+            : p.team != null
+              ? TEAMS[p.team].color
+              : 0xe1f3a8,
+        );
         const buff = p.buffTime > 0 ? POWERUPS[p.buffType] : null;
         v.buffRing.visible = !!buff;
-        v.bowLine.material.color.set(buff ? buff.color : 0xe7bf79);
+        v.bowLine.material.color.set(buff ? buff.color : v.bowColor);
+        const celebrating =
+          state.match?.phase === "results" &&
+          p.cosmetics?.pose === "pose-victory";
+        v.bow.rotation.z = celebrating ? 0.8 : 0;
+        v.arm.rotation.z = celebrating ? 0.8 : 0;
+        if (celebrating)
+          v.body.rotation.z = -0.1 + Math.sin(this.time * 2) * 0.04;
         if (buff) {
           v.buffRing.material.color.set(buff.color);
           v.buffRing.material.opacity = 0.6 + Math.sin(this.time * 4) * 0.15;
@@ -831,16 +924,33 @@ export class ArenaScene {
           0,
         );
         v.string.geometry.attributes.position.needsUpdate = true;
-        if (v.hp !== p.hp || v.maxHp !== p.maxHp) {
+        if (v.hp !== p.hp || v.maxHp !== p.maxHp || v.team !== p.team) {
+          v.team = p.team;
           v.hp = p.hp;
           v.maxHp = p.maxHp;
           const ctx = v.canvas.getContext("2d");
           ctx.clearRect(0, 39, 256, 22);
           ctx.fillStyle = "#192e22";
           ctx.fillRect(64, 44, 128, 8);
-          ctx.fillStyle = p.hp < p.maxHp * 0.3 ? "#e6a181" : "#bde08d";
+          ctx.fillStyle =
+            p.hp < p.maxHp * 0.3
+              ? "#e6a181"
+              : p.team != null
+                ? TEAMS[p.team].color
+                : "#bde08d";
           ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
           v.tex.needsUpdate = true;
+          if (p.team != null) {
+            ctx.clearRect(0, 0, 256, 38);
+            ctx.textAlign = "center";
+            ctx.font = "600 22px sans-serif";
+            ctx.fillStyle = TEAMS[p.team].color;
+            ctx.fillText(
+              `${TEAMS[p.team].symbol} ${p.id === myId ? "Sen" : p.name}`,
+              128,
+              27,
+            );
+          }
         }
       }
       for (const [id, v] of this.players)
@@ -876,6 +986,14 @@ export class ArenaScene {
           m.rotation.y = -a.angle;
           m.children[1].material =
             this.arrowHeadMaterials[a.effect] || this.arrowHeadMaterials.normal;
+          if (
+            this.quality !== "low" &&
+            (i + Math.floor(this.time * 30)) % 8 === 0
+          ) {
+            const item = CATALOG.find((p) => p.id === a.trail);
+            if (item && item.id !== "trail-leaf")
+              this.burst(a.x, a.z, item.color, 1);
+          }
         }
       }
       this.gems.count = state.orbs.length;
@@ -905,6 +1023,18 @@ export class ArenaScene {
       if (this.gems.instanceColor) this.gems.instanceColor.needsUpdate = true;
       this.rareHalos.count = rareCount;
       this.rareHalos.instanceMatrix.needsUpdate = true;
+      const objective = state.objective;
+      this.shrine.visible =
+        !!objective && (objective.active || objective.remaining <= 10);
+      if (this.shrine.visible) {
+        this.shrine.material.color.set(
+          objective.contested ? 0xf58b83 : 0xffd278,
+        );
+        this.shrine.material.opacity = objective.active
+          ? 0.55 + Math.sin(this.time * 3) * 0.15
+          : 0.2;
+        this.shrine.scale.setScalar(1 + (objective.progress || 0) * 0.03);
+      }
     }
     const locked = lockId ? this.players.get(lockId) : null;
     this.lockRing.visible = !!(playing && locked?.root.visible);

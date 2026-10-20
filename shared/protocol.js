@@ -1,5 +1,5 @@
 /** Versioned, dependency-free binary packets shared by Workers and browsers. */
-export const PROTOCOL = 1;
+export const PROTOCOL = 2;
 const text = new TextEncoder(),
   utf8 = new TextDecoder();
 export function encodePacket(value) {
@@ -149,6 +149,12 @@ const fields = [
   ["respawnIn", 1000],
   ["bot"],
   ["lockedTargetId"],
+  ["team"],
+  ["cosmetics"],
+  ["assists"],
+  ["matchPoints"],
+  ["rerolled"],
+  ["lastDeath"],
 ];
 const q = (n, scale = 100) => Math.round((n || 0) * scale);
 const playerValues = (p) =>
@@ -232,12 +238,15 @@ export class SnapshotEncoder {
         q(a.angle, 1000),
         a.poison,
         a.effect,
+        a.trail,
       ]),
       orbAdded,
       orbRemoved,
       state.powerups,
       state.events,
       roster,
+      state.match || null,
+      state.objective || null,
     ]);
   }
 }
@@ -247,7 +256,7 @@ export class SnapshotDecoder {
   roster = [];
   decode(buffer) {
     const p = decodePacket(buffer);
-    if (!Array.isArray(p) || p[0] !== "state" || p.length !== 12)
+    if (!Array.isArray(p) || p[0] !== "state" || p.length !== 14)
       throw new Error("Invalid snapshot");
     if (p[1]) {
       this.players.clear();
@@ -274,18 +283,21 @@ export class SnapshotDecoder {
         });
         return player;
       }),
-      arrows: p[6].map(([id, x, z, angle, poison, effect]) => ({
+      arrows: p[6].map(([id, x, z, angle, poison, effect, trail]) => ({
         id,
         x: x / 100,
         z: z / 100,
         angle: angle / 1000,
         poison,
         effect,
+        trail,
       })),
       orbs: [...this.orbs.values()],
       powerups: p[9] || [],
       events: p[10] || [],
       roster: this.roster,
+      match: p[12],
+      objective: p[13],
     };
   }
 }

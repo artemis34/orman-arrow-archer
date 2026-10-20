@@ -2,6 +2,8 @@
 
 Tarih: 19 Ekim 2026. Durum: tasarım ve önceliklendirme taslağı.
 
+Güncel uygulama durumu: [Takım, maç döngüsü, kart ve kozmetik sürümü](team-progression-release.md). Bu belgenin aşağıdaki önerileri geçmiş taslağı korur; hangi parçaların oynanabilir olduğu ve hangi ödeme özelliklerinin bağlı olmadığı sürüm notunda belirtilir.
+
 Bu belge, mevcut oyunun incelenmesinden çıkan önerileri ve kullanıcının merkez joystick'li tek el modu isteğini bir araya getirir. Tek el kontrolü, oyuncu sayısına göre botlar, Cloudflare ağ/oda iyileştirmesi ve mobil menü bu geliştirmede uygulanır. Diğer oyun modları/yetenek fikirleri öneridir; yeni yeteneklerin sayıları deneme değerleridir. [Altı paket, düello, ek fikirler ve gelir planı](product-and-revenue.md) · [Ağ tasarımı ve ölçümler](network-design.md).
 
 Başlangıç sürümü: `78235b204b4cb2d0bf393fdbe488a957302868d7`. Kullanıcı bu sürümde yürüyüş ve mevcut OTO düğmesinin düzgün çalıştığını doğruladı. [Kaynak ve oynanabilir yedek](stable-backup.md).

@@ -2,6 +2,9 @@ import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
 import { ONLINE, roomCode, pauseStaleInput } from "../shared/online.js";
 import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
+import { FORMATS, formatKey, createMode } from "../shared/modes.js";
+import { profileId, sanitizeCosmetics } from "../shared/profile.js";
+export { PlayerProfile } from "./profile.js";
 
 /** One authoritative world per room. No timers or bots run in an empty room. */
 export class ArenaRoom {
@@ -13,13 +16,23 @@ export class ArenaRoom {
     this.world = null;
     this.events = [];
     this.ticks = 0;
+    this.instance = crypto.randomUUID();
+    this.awardedRound = 0;
     // A deploy/restart cannot restore an in-memory match. Tell clients to rejoin.
     for (const ws of ctx.getWebSockets()) ws.close(1012, "arena restarted");
   }
   async fetch(request) {
     const url = new URL(request.url);
+    const requestedFormat = formatKey(url.searchParams.get("format"));
+    if (!this.sessions.size && !this.reservations.size && !this.world)
+      this.format = requestedFormat;
+    this.format ||= requestedFormat;
+    const capacity = FORMATS[this.format].capacity;
     if (url.pathname === "/reserve" && request.method === "POST") {
-      if (this.sessions.size + this.reservations.size >= ONLINE.humans)
+      if (
+        requestedFormat !== this.format ||
+        this.sessions.size + this.reservations.size >= capacity
+      )
         return new Response("Full", { status: 409 });
       const ticket = crypto.randomUUID(),
         room = url.searchParams.get("room");
@@ -39,6 +52,8 @@ export class ArenaRoom {
         humans: [...this.sessions.values()].filter((s) => s.joined).length,
         ticking: !!this.timer,
         time: this.world?.time || 0,
+        format: this.format,
+        capacity,
       });
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket connection required", { status: 426 });
@@ -51,7 +66,8 @@ export class ArenaRoom {
       this.reservations.delete(ticket);
     }
     if (
-      this.sessions.size + this.reservations.size >= ONLINE.humans ||
+      requestedFormat !== this.format ||
+      this.sessions.size + this.reservations.size >= capacity ||
       (ticket && !reservation)
     ) {
       server.send(JSON.stringify({ type: "full" }));
@@ -88,7 +104,7 @@ export class ArenaRoom {
       this.remove(ws);
     }
   }
-  webSocketMessage(ws, message) {
+  async webSocketMessage(ws, message) {
     const session = this.sessions.get(ws);
     if (!session) return;
     if (
@@ -141,15 +157,55 @@ export class ArenaRoom {
     if (
       type === "join" &&
       !session.joined &&
+      !session.joining &&
       data &&
       typeof data === "object"
     ) {
-      this.world ||= new World({ bots: 0 });
+      session.joining = true;
+      let profile = null;
+      if (this.env?.PROFILES) {
+        session.profileId = await profileId(data.profileToken);
+        if (session.profileId) {
+          try {
+            const response = await this.env.PROFILES.get(
+              this.env.PROFILES.idFromName(session.profileId),
+            ).fetch(new Request("https://profile/"));
+            profile = (await response.json()).profile;
+          } catch {
+            session.profileId = null;
+          }
+        }
+      }
+      if (!this.sessions.has(ws)) return;
+      if (!this.world) {
+        this.world = new World({
+          bots: 0,
+          mode: createMode(this.format || "arena"),
+        });
+        this.instance = crypto.randomUUID();
+        this.awardedRound = 0;
+      }
       const humans = [...this.world.players.values()].filter(
         (p) => !p.bot,
       ).length;
-      this.world.setBotCount(Math.max(0, ONLINE.roomPopulation - humans - 1));
-      const player = this.world.addPlayer(session.id, data.name, data.skin);
+      const population = this.world.mode.rules?.duel
+        ? 0
+        : Math.min(
+            ONLINE.roomPopulation,
+            this.world.mode.rules?.capacity || ONLINE.humans,
+          );
+      this.world.setBotCount(Math.max(0, population - humans - 1));
+      const player = this.world.addPlayer(
+        session.id,
+        data.name,
+        data.skin,
+        false,
+        {
+          cosmetics: sanitizeCosmetics(profile),
+          // Sharing a friend room deliberately groups its humans, within team capacity.
+          party: !/(?:^|-)wildbow-\d+$/.test(session.room) ? "friends" : "",
+        },
+      );
       if (!player) {
         this.send(ws, "full");
         ws.close(1008, "arena full");
@@ -157,6 +213,8 @@ export class ArenaRoom {
         return;
       }
       session.joined = true;
+      session.joining = false;
+      session.joinedAt = this.world.time;
       session.viewRadius = viewRadius(data.viewRadius);
       if (data.protocol === PROTOCOL) session.encoder = new SnapshotEncoder();
       clearTimeout(session.joinTimer);
@@ -166,6 +224,7 @@ export class ArenaRoom {
         rules: RULES,
         room: session.room,
         protocol: session.encoder ? PROTOCOL : 0,
+        format: this.format,
       });
       if (!this.world || !this.sessions.has(ws)) return;
       this.send(ws, "state", this.snapshot(session));
@@ -178,6 +237,9 @@ export class ArenaRoom {
       } else if (type === "upgrade" && typeof data === "string")
         this.world.choose(session.id, data);
       else if (type === "respawn") this.world.respawn(session.id);
+      else if (type === "reroll") this.world.reroll(session.id);
+      else if (type === "rematch")
+        this.world.mode.vote?.(this.world, session.id);
       else if (type === "ping") this.send(ws, "pong");
       else if (type === "view") session.viewRadius = viewRadius(data);
     }
@@ -192,14 +254,27 @@ export class ArenaRoom {
     );
   }
   available(room) {
-    if (!this.env?.MATCHMAKER || !/^wildbow-\d+$/.test(room || "")) return;
+    if (
+      !this.env?.MATCHMAKER ||
+      !/^(?:[a-z0-9]+-)?wildbow-\d+$/.test(room || "")
+    )
+      return;
     this.ctx.waitUntil(
-      this.env.MATCHMAKER.get(this.env.MATCHMAKER.idFromName("public"))
+      this.env.MATCHMAKER.get(
+        this.env.MATCHMAKER.idFromName(
+          this.format && this.format !== "arena"
+            ? `public:${this.format}`
+            : "public",
+        ),
+      )
         .fetch(
-          new Request("https://internal/available", {
-            method: "POST",
-            body: JSON.stringify({ room }),
-          }),
+          new Request(
+            `https://internal/available?format=${this.format || "arena"}`,
+            {
+              method: "POST",
+              body: JSON.stringify({ room }),
+            },
+          ),
         )
         .catch(() => {}),
     );
@@ -222,7 +297,11 @@ export class ArenaRoom {
       if (p) pauseStaleInput(p, now - session.lastInput);
     }
     if (!this.world) return;
+    const previousRound = this.world.mode.round;
     this.world.step();
+    if (this.world.mode.round !== previousRound)
+      for (const session of this.sessions.values()) session.inputs = [];
+    this.rewardRound();
     this.events.push(...this.world.events);
     if (++this.ticks % (RULES.tick / ONLINE.snapshots) !== 0) return;
     for (const [ws, session] of this.sessions) {
@@ -230,6 +309,52 @@ export class ArenaRoom {
         this.send(ws, "state", this.snapshot(session));
     }
     this.events.length = 0;
+  }
+  rewardRound() {
+    const mode = this.world?.mode;
+    if (
+      !this.env?.PROFILES ||
+      mode?.phase !== "results" ||
+      this.awardedRound === mode.round
+    )
+      return;
+    this.awardedRound = mode.round;
+    const top = mode.results[0];
+    const high = Math.max(...mode.teamScores);
+    const teamWinners = mode.teamScores
+      .map((s, id) => (s === high ? id : -1))
+      .filter((id) => id >= 0);
+    for (const [ws, session] of this.sessions) {
+      const p = this.world.players.get(session.id);
+      if (!p || !session.profileId || this.world.time - session.joinedAt < 30)
+        continue;
+      const win =
+        p.team != null
+          ? teamWinners.length === 1 && teamWinners[0] === p.team
+          : top?.id === p.id &&
+            (!mode.results[1] || top.points > mode.results[1].points);
+      const task = this.env.PROFILES.get(
+        this.env.PROFILES.idFromName(session.profileId),
+      )
+        .fetch(
+          new Request("https://profile/award", {
+            method: "POST",
+            body: JSON.stringify({
+              receipt: `${this.instance}:${mode.round}`,
+              kills: p.kills,
+              assists: p.assists,
+              hits: p.hits,
+              objectives: p.objectives,
+              points: p.matchPoints,
+              win,
+            }),
+          }),
+        )
+        .then((r) => r.json())
+        .then((data) => this.send(ws, "profile", data.profile))
+        .catch(() => {});
+      this.ctx.waitUntil(task);
+    }
   }
   remove(ws) {
     const session = this.sessions.get(ws);
@@ -248,7 +373,12 @@ export class ArenaRoom {
       this.world.setBotCount(
         Math.max(
           0,
-          ONLINE.roomPopulation -
+          (this.world.mode.rules?.duel
+            ? 0
+            : Math.min(
+                ONLINE.roomPopulation,
+                this.world.mode.rules?.capacity || ONLINE.humans,
+              )) -
             [...this.world.players.values()].filter((p) => !p.bot).length,
         ),
       );
@@ -281,9 +411,11 @@ export class ArenaMatchmaker {
   }
   async fetch(request) {
     const path = new URL(request.url).pathname;
+    const key = formatKey(new URL(request.url).searchParams.get("format"));
+    const prefix = key === "arena" ? "" : `${key}-`;
     if (path === "/available") {
       const { room } = await request.json();
-      const match = /^wildbow-(\d+)$/.exec(room || "");
+      const match = new RegExp(`^${prefix}wildbow-(\\d+)$`).exec(room || "");
       if (match && Number(match[1]) - 1 < this.cursor) {
         this.cursor = Math.max(0, Number(match[1]) - 1);
         await this.ctx.storage.put("cursor", this.cursor);
@@ -293,11 +425,11 @@ export class ArenaMatchmaker {
     const initial = this.cursor;
     for (let attempt = 0; attempt < ONLINE.publicRooms; attempt++) {
       const index = this.cursor,
-        room = `wildbow-${index + 1}`;
+        room = `${prefix}wildbow-${index + 1}`;
       const response = await this.env.ARENAS.get(
         this.env.ARENAS.idFromName(room),
       ).fetch(
-        new Request(`https://internal/reserve?room=${room}`, {
+        new Request(`https://internal/reserve?room=${room}&format=${key}`, {
           method: "POST",
         }),
       );
@@ -325,6 +457,11 @@ export default {
       headers.set("Cache-Control", "no-store");
       if (origin) {
         headers.set("Access-Control-Allow-Origin", origin);
+        headers.set(
+          "Access-Control-Allow-Headers",
+          "Authorization, Content-Type",
+        );
+        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         headers.append("Vary", "Origin");
       }
       return new Response(response.body, { status: response.status, headers });
@@ -332,15 +469,51 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       if (origin && origin !== url.origin && !allowed.includes(origin))
         return new Response("Origin denied", { status: 403 });
-      if (request.method !== "GET")
+      if (request.method === "OPTIONS")
+        return apiResponse(new Response(null, { status: 204 }));
+      if (
+        request.method !== "GET" &&
+        !(
+          /^\/api\/profile(?:\/(purchase|equip))?$/.test(url.pathname) &&
+          request.method === "POST"
+        )
+      )
         return new Response("Method not allowed", { status: 405 });
     }
-    if (url.pathname === "/api/matchmake")
+    if (/^\/api\/profile(?:\/(purchase|equip))?$/.test(url.pathname)) {
+      const id = await profileId(
+        request.headers.get("Authorization")?.replace(/^Bearer /, ""),
+      );
+      if (!id) return new Response("Invalid profile key", { status: 401 });
+      if (Number(request.headers.get("Content-Length")) > 2048)
+        return new Response("Too large", { status: 413 });
+      const action = url.pathname.split("/")[3] || "";
+      if (action && request.method !== "POST")
+        return new Response("Method not allowed", { status: 405 });
+      if (!action && request.method !== "GET")
+        return new Response("Method not allowed", { status: 405 });
+      const body = request.method === "POST" ? await request.text() : undefined;
+      if (body?.length > 2048)
+        return new Response("Too large", { status: 413 });
       return apiResponse(
-        await env.MATCHMAKER.get(env.MATCHMAKER.idFromName("public")).fetch(
-          new Request("https://internal/find"),
+        await env.PROFILES.get(env.PROFILES.idFromName(id)).fetch(
+          new Request(`https://profile/${action}`, {
+            method: request.method,
+            body,
+          }),
         ),
       );
+    }
+    if (url.pathname === "/api/matchmake") {
+      const key = formatKey(url.searchParams.get("format"));
+      return apiResponse(
+        await env.MATCHMAKER.get(
+          env.MATCHMAKER.idFromName(
+            key === "arena" ? "public" : `public:${key}`,
+          ),
+        ).fetch(new Request(`https://internal/find?format=${key}`)),
+      );
+    }
     if (url.pathname === "/health")
       return Response.json({
         ok: true,

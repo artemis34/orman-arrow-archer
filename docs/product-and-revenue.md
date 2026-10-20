@@ -1,6 +1,6 @@
 # Wildbow: sonraki özellikler ve gelir planı
 
-Durum: öneri ve karar belgesi. Bu belgedeki oyun modları, satın alma, profil, reklam ve mağaza özellikleri uygulanmadı. Mevcut yayın Cloudflare'da devam eder; Oracle/VPS geçişi kullanıcı ayrıca istediğinde değerlendirilir.
+Güncel durum: [Takım ve ilerleme sürümü](team-progression-release.md), süreli maçları, bütün takım formatlarını, profil/başarımları ve kazanılan yapraklarla kozmetik açmayı uygular. Aşağıdaki gerçek para satışı, destekçi paketi, reklam ve sezon önerileri uygulanmadı. Mevcut yayın Cloudflare'da devam eder; Oracle/VPS geçişi kullanıcı ayrıca istediğinde değerlendirilir.
 
 ## Önceki altı geliştirme paketi
 

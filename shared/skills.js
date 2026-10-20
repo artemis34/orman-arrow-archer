@@ -60,6 +60,7 @@ export function applyArrowImpact(world, arrow, target, distance = 0) {
         other,
         RULES.blastDamage * (owner.bot ? RULES.botDamageScale : 1),
         arrow.owner,
+        "blast",
       );
     }
   }
@@ -73,7 +74,7 @@ export function redirectRicochet(world, arrow, impact) {
     ...world.grid.query(impact.x, impact.z, RULES.ricochetRange),
   ].filter((p) => !arrow.hits.has(p.id) && world.mode.canDamage(owner, p));
   const next = selectTarget(
-    { ...impact, id: arrow.owner },
+    { ...impact, id: arrow.owner, team: owner.team },
     candidates,
     world.obstacles,
     { range: RULES.ricochetRange, priority: "nearest", preferredId: null },

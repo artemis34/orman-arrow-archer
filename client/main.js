@@ -3,6 +3,8 @@ import { bindAction } from "./ui.js";
 import { selectTarget } from "../shared/aim.js";
 import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
+import { setupProgression } from "./progression.js";
+import { FORMATS, TEAMS, formatKey } from "../shared/modes.js";
 import "@fontsource/manrope/latin-800.css";
 import "@fontsource/manrope/latin-700.css";
 import "@fontsource/dm-sans/latin-400.css";
@@ -16,6 +18,7 @@ import "@fontsource/dm-sans/latin-ext-700.css";
 import "./style.css";
 import "./hud.css";
 import "./lobby.css";
+import "./expansion.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -45,6 +48,10 @@ scene.setMap(atHome.obstacles);
 const query = new URLSearchParams(location.search);
 const cloudflare =
   import.meta.env.MODE === "cloudflare" || query.get("network") === "websocket";
+let format = formatKey(
+  query.get("format") || preferences.get("wildbow-format"),
+);
+let resultKey = "";
 let playing = false,
   transport = null,
   state = atHome.snapshot(),
@@ -73,6 +80,46 @@ const initialServer =
     ? location.origin
     : "");
 $("server-url").value = initialServer;
+const progression = setupProgression({
+  cloudflare,
+  server: () => $("server-url").value || location.origin,
+  onSettings: () => {
+    scene.setQuality(preferences.get("wildbow-quality") || "balanced");
+    document.body.classList.toggle(
+      "left-handed",
+      preferences.get("wildbow-hand") === "left",
+    );
+    document.body.classList.toggle(
+      "stick-small",
+      preferences.get("wildbow-stick") === "small",
+    );
+    document.body.classList.toggle(
+      "stick-large",
+      preferences.get("wildbow-stick") === "large",
+    );
+  },
+});
+progression.refresh();
+$("match-format").value = format;
+function updateFormat() {
+  format = formatKey($("match-format").value);
+  preferences.set("wildbow-format", format);
+  text(
+    "format-note",
+    FORMATS[format].duel
+      ? "Eşit başlangıç · Online düelloda bot yok · Rastgele yetenek yok"
+      : FORMATS[format].teams
+        ? `${FORMATS[format].teams} takım · Dost ateşi kapalı · 4 dakika`
+        : format === "round"
+          ? "4 dakika · Eleme, asist ve sunak puanı"
+          : "Kristalleri topla, yeteneklerini geliştir.",
+  );
+}
+$("match-format").addEventListener("change", () => {
+  updateFormat();
+  setMode(mode);
+});
+updateFormat();
 $("room-code").value = roomCode(query.get("room") || "arena") || "arena";
 show("server-address", !cloudflare);
 show("room-field", cloudflare);
@@ -117,8 +164,8 @@ function setMode(next) {
   text(
     "server-label",
     mode === "practice"
-      ? "Yerel arena • 7 bot rakip"
-      : "Online · En fazla 16 oyuncu",
+      ? `Yerel arena · ${Math.min(7, FORMATS[format].capacity - 1)} bot rakip`
+      : `Online · En fazla ${FORMATS[format].capacity} oyuncu`,
   );
 }
 let privateRoom = !!query.get("room") && query.get("match") !== "quick";
@@ -149,6 +196,7 @@ bindAction($("copy-invite"), async () => {
   }
   const invite = new URL(location.href);
   invite.searchParams.set("room", room);
+  invite.searchParams.set("format", format);
   invite.searchParams.delete("match");
   // A shared external/static frontend must retain its explicit server adapter.
   if (query.get("network")) invite.searchParams.set("network", "websocket");
@@ -263,7 +311,10 @@ function consume(next) {
     if (guarded && !guardWasActive) {
       panels.close();
     }
-    controls.active = me.alive && $("help").classList.contains("hidden");
+    controls.active =
+      me.alive &&
+      (!next.match || next.match.phase === "playing") &&
+      $("help").classList.contains("hidden");
     guardWasActive = guarded;
   }
   for (const e of next.events || []) {
@@ -279,7 +330,8 @@ function consume(next) {
       scene.burst(e.x, e.z, 0xf4c98b, 7);
       if (e.owner === myId || e.target === myId) {
         audio.play("hit");
-        if (e.target === myId) navigator.vibrate?.(18);
+        if (e.target === myId && preferences.get("wildbow-haptics") !== "false")
+          navigator.vibrate?.(18);
       }
     } else if (e.type === "shot") {
       if (e.owner === myId) {
@@ -311,11 +363,20 @@ function consume(next) {
       scene.burst(e.x, e.z, e.rare ? 0xffd680 : 0xd1f59b, e.rare ? 12 : 4);
       if (e.rare) toast("✧ +60 XP");
       audio.play("gem");
+    } else if (e.type === "guardHit") {
+      scene.burst(e.x, e.z, 0xbde0ff, 6);
+    } else if (e.type === "shrineStart" || e.type === "shrineClaim") {
+      scene.burst(0, 0, 0xffd278, 16);
+      toast(
+        e.type === "shrineStart"
+          ? "✧ Orman Sunağı açıldı · Haritaya bak"
+          : "✧ Sunak ele geçirildi",
+      );
     } else if (e.type === "heal") {
       scene.burst(e.x, e.z, 0xa8efa1, 14);
       if (e.owner === myId) {
         audio.play("level");
-        toast("+25 CAN");
+        toast(`+${e.amount || 25} CAN`);
       }
     } else if (e.type === "dash") {
       scene.burst(e.x, e.z, 0xdbedbc, 6);
@@ -358,13 +419,23 @@ async function join() {
           room,
           matchmake: !privateRoom,
           viewRadius: scene.networkRadius(),
+          format,
         });
       } else candidate = new SocketTransport(url, consume, onDisconnect);
-    } else candidate = new LocalTransport();
-    const welcome = await candidate.connect(name, skin);
+    } else candidate = new LocalTransport(format);
+    candidate.onProfile = (next) => progression.apply(next);
+    const welcome = await candidate.connect(name, skin, {
+      format,
+      room: privateRoom ? roomCode($("room-code").value) : undefined,
+      profileToken:
+        cloudflare && mode === "online" ? progression.token : undefined,
+      cosmetics: progression.equipped,
+    });
+    scene.setMap(welcome.obstacles);
     if (cloudflare && candidate.online) {
       const invite = new URL(location.href);
       invite.searchParams.set("room", welcome.room);
+      invite.searchParams.set("format", format);
       if (!privateRoom) invite.searchParams.set("match", "quick");
       else invite.searchParams.delete("match");
       $("room-code").value = welcome.room;
@@ -373,6 +444,7 @@ async function join() {
     transport = candidate;
     myId = welcome.id;
     playing = true;
+    resultKey = "";
     controls.active = true;
     controls.reset();
     if (controls.oneHanded) controls.setAutoFire(true);
@@ -410,7 +482,15 @@ function leave() {
   myId = null;
   panels.close();
   state = atHome.snapshot();
-  for (const id of ["hud", "death", "upgrades", "help", "upgrade-reminder"])
+  scene.setMap(atHome.obstacles);
+  for (const id of [
+    "hud",
+    "death",
+    "upgrades",
+    "help",
+    "upgrade-reminder",
+    "round-results",
+  ])
     show(id, false);
   show("lobby", true);
   document.body.classList.remove("playing");
@@ -424,6 +504,9 @@ function leave() {
 }
 bindAction($("exit"), leave);
 bindAction($("back-lobby"), leave);
+bindAction($("results-exit"), leave);
+bindAction($("rematch"), () => transport?.rematch());
+bindAction($("reroll"), () => transport?.reroll());
 bindAction($("respawn"), () => {
   transport?.respawn();
   controls.reset();
@@ -431,6 +514,90 @@ bindAction($("respawn"), () => {
 function updateHud(current) {
   const me = current?.players.find((p) => p.id === myId);
   if (!me) return;
+  const match = current.match;
+  const finished = match?.phase === "results";
+  show("match-status", !!match);
+  if (match) {
+    const seconds = Math.max(0, match.remaining);
+    const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    const team = me.team != null ? match.teams[me.team] : null;
+    text(
+      "match-status",
+      match.phase === "waiting"
+        ? "Rakip bekleniyor…"
+        : `${time}${team ? `\n${team.symbol} ${team.name} · ${team.score}` : " · Tur " + match.round}`,
+    );
+  }
+  show("round-results", finished);
+  if (finished) {
+    controls.active = false;
+    controls.reset();
+    const key = `${match.format}:${match.round}`;
+    text(
+      "round-countdown",
+      `Yeni maç ${match.remaining} sn sonra · ${match.votes.length} oyuncu hazır`,
+    );
+    $("rematch").disabled = match.votes.includes(myId);
+    if (key !== resultKey) {
+      resultKey = key;
+      audio.play("level");
+      $("rematch").focus();
+      const top = [...match.teams].sort((a, b) => b.score - a.score);
+      text(
+        "round-winner",
+        top.length
+          ? top[0].score === top[1]?.score
+            ? "Takımlar berabere"
+            : `${top[0].symbol} ${top[0].name} kazandı`
+          : !match.results.length ||
+              match.results[0].points === match.results[1]?.points
+            ? "Berabere"
+            : `${match.results[0].name} kazandı`,
+      );
+      const rows = [
+        {
+          name: "OKÇU",
+          kills: "E",
+          assists: "A",
+          points: "PUAN",
+          heading: true,
+        },
+        ...match.results,
+      ];
+      $("round-ranking").replaceChildren(
+        ...rows.map((p) => {
+          const row = document.createElement("div");
+          row.className =
+            "results-row" +
+            (p.id === myId ? " me" : "") +
+            (p.heading ? " heading" : "");
+          for (const value of [
+            p.team != null ? `${TEAMS[p.team].symbol} ${p.name}` : p.name,
+            p.kills,
+            p.assists,
+            p.points,
+          ]) {
+            const cell = document.createElement("span");
+            cell.textContent = value;
+            row.append(cell);
+          }
+          return row;
+        }),
+      );
+      text(
+        "round-reward",
+        transport.online && cloudflare
+          ? "En az 30 sn katıldığın maçlardan 20+ yaprak kazanırsın. Ödüllerin profiline kaydedilir."
+          : transport.online
+            ? "Maç tamamlandı."
+            : "Antrenman tamamlandı. Yaprak ve başarımlar online maçlarda kazanılır.",
+      );
+    }
+  } else resultKey = "";
+  $("reroll").disabled = !!me.rerolled;
+  $("reroll").title = me.rerolled
+    ? "Yenileme hakkı kullanıldı"
+    : "Kartları yenile · Maçta bir kez";
   text("hud-name", me.name);
   text("level", me.level);
   text("kills", me.kills);
@@ -504,8 +671,8 @@ function updateHud(current) {
   $("connection").title = transport.online
     ? `Gecikme: ${transport.ping} ms`
     : "Botlarla antrenman";
-  const ranking = [...(current.roster || current.players)].sort(
-    (a, b) => b.score - a.score,
+  const ranking = [...(current.roster || current.players)].sort((a, b) =>
+    match ? (b.matchPoints || 0) - (a.matchPoints || 0) : b.score - a.score,
   );
   text("my-rank", Math.max(1, ranking.findIndex((p) => p.id === myId) + 1));
   const sorted = ranking.slice(0, 3);
@@ -518,12 +685,18 @@ function updateHud(current) {
       rank.textContent = String(i + 1).padStart(2, "0");
       const dot = document.createElement("span");
       dot.className = "swatch";
-      dot.style.background = "#" + SKINS[p.skin].body.toString(16);
+      dot.style.background =
+        p.team != null
+          ? TEAMS[p.team].color
+          : "#" + SKINS[p.skin].body.toString(16);
       const name = document.createElement("span");
-      name.textContent = p.name + (p.id === myId ? " · sen" : "");
+      name.textContent =
+        (p.team != null ? TEAMS[p.team].symbol + " " : "") +
+        p.name +
+        (p.id === myId ? " · sen" : "");
       const score = document.createElement("span");
       score.className = "score";
-      score.textContent = p.score;
+      score.textContent = match ? p.matchPoints || 0 : p.score;
       row.append(rank, dot, name, score);
       return row;
     }),
@@ -583,11 +756,11 @@ function updateHud(current) {
       }),
     );
   }
-  show("death", !me.alive);
+  show("death", !me.alive && !finished);
   if (!me.alive) {
     text(
       "death-summary",
-      `${me.kills} eleme · ${me.score} skor · Seviye ${me.level}`,
+      `${me.kills} eleme · ${me.assists || 0} asist · Seviye ${me.level}${me.lastDeath ? ` · Son vuruş: ${me.lastDeath.killer} (${me.lastDeath.amount})` : ""}`,
     );
     $("respawn").disabled = me.respawnIn > 0.05;
     $("respawn").firstChild.textContent =
@@ -663,7 +836,12 @@ function updateHud(current) {
   }
   for (const p of current.players) {
     if (!p.alive) continue;
-    ctx.fillStyle = p.id === myId ? "#e2f7b3" : "#e0ad7a";
+    ctx.fillStyle =
+      p.id === myId
+        ? "#e2f7b3"
+        : p.team != null
+          ? TEAMS[p.team].color
+          : "#e0ad7a";
     ctx.beginPath();
     ctx.arc(
       (p.x + 42) * scale,
@@ -675,6 +853,15 @@ function updateHud(current) {
     ctx.fill();
   }
   ctx.strokeStyle = "#d7b17e88";
+  if (
+    current.objective &&
+    (current.objective.active || current.objective.remaining <= 10)
+  ) {
+    ctx.fillStyle = current.objective.contested ? "#f58b83" : "#ffd278";
+    ctx.font = "bold 15px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("✧", 80, 85);
+  }
   ctx.strokeRect(0.5, 0.5, 159, 159);
 }
 function frame(now) {
@@ -730,4 +917,18 @@ addEventListener("resize", () =>
 show("loading", false);
 show("lobby", true);
 requestAnimationFrame(frame);
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker
+    .register(new URL("sw.js", document.baseURI))
+    .then(() => navigator.serviceWorker.ready)
+    .then((registration) => {
+      registration.active?.postMessage({
+        type: "CACHE_ASSETS",
+        urls: performance
+          .getEntriesByType("resource")
+          .map((entry) => entry.name),
+      });
+    })
+    .catch(() => {});
+}
 // Deliberately expose no mutable world or socket on window.

@@ -1,7 +1,7 @@
 name: Validate and publish
 on:
   push:
-    branches: [main, feature/cloudflare-arena-refresh]
+    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -47,7 +47,9 @@ jobs:
           npm run test:interaction
           npm run test:motion
           npm run test:lobby
+          npm run test:expansion
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:expansion
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:interaction
       - name: Validate Cloudflare rooms and desktop/mobile multiplayer
         shell: bash
@@ -64,6 +66,8 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:8787/health
           npm run test:cloudflare
+          npm run test:multimode
+          npm run test:profile
           npm run test:cloudflare:browser
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
       - uses: actions/upload-artifact@v4
@@ -252,6 +256,8 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:cloudflare
           npm run test:cloudflare:browser
+          npm run test:multimode
+          npm run test:profile
       - uses: actions/upload-artifact@v4
         if: always()
         with:

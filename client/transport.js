@@ -1,5 +1,6 @@
 import { io } from "socket.io-client";
 import { World } from "../shared/world.js";
+import { createMode, FORMATS, formatKey } from "../shared/modes.js";
 import {
   advanceMovement,
   moveBody,
@@ -8,13 +9,17 @@ import {
 } from "../shared/config.js";
 /** Transport adapters isolate rendering from the authority implementation. */
 export class LocalTransport {
-  constructor() {
-    this.world = new World();
+  constructor(format = "arena") {
+    const key = formatKey(format);
+    this.world = new World({
+      mode: createMode(key),
+      bots: Math.min(7, FORMATS[key].capacity - 1),
+    });
     this.id = "local";
     this.online = false;
   }
-  async connect(name, skin) {
-    this.world.addPlayer(this.id, name, skin);
+  async connect(name, skin, options = {}) {
+    this.world.addPlayer(this.id, name, skin, false, options);
     return { id: this.id, obstacles: this.world.obstacles };
   }
   step(input) {
@@ -27,6 +32,12 @@ export class LocalTransport {
   }
   respawn() {
     this.world.respawn(this.id);
+  }
+  reroll() {
+    this.world.reroll(this.id);
+  }
+  rematch() {
+    this.world.mode.vote?.(this.world, this.id);
   }
   close() {}
 }
@@ -47,6 +58,17 @@ export class NetworkTransport {
     this.correction = { x: 0, z: 0, at: 0 };
   }
   acceptState(state) {
+    const previousMatch = this.snapshots.at(-1)?.state.match;
+    if (
+      state.match &&
+      previousMatch &&
+      (state.match.round !== previousMatch.round ||
+        (state.match.phase === "playing" && previousMatch.phase !== "playing"))
+    ) {
+      this.pending = [];
+      this.lastInput = null;
+    }
+    this.frozen = !!state.match && state.match.phase !== "playing";
     const now = performance.now();
     const previous = this.localPose(now);
     const wasGuarded =
@@ -63,7 +85,7 @@ export class NetworkTransport {
       this.pending = this.pending.filter((i) => i.seq > me.seq);
       this.predicted = { ...me, upgrades: { ...me.upgrades } };
       this.previousPrediction = null;
-      if (this.predicted.alive)
+      if (this.predicted.alive && !this.frozen)
         for (const i of this.pending) {
           this.previousPrediction = { ...this.predicted };
           advanceMovement(this.predicted, i, 1 / RULES.tick, this.obstacles);
@@ -92,7 +114,7 @@ export class NetworkTransport {
     this.inputAt = performance.now();
     this.pending.push(input);
     if (this.pending.length > 120) this.pending.shift();
-    if (this.predicted?.alive) {
+    if (this.predicted?.alive && !this.frozen) {
       this.previousPrediction = { ...this.predicted };
       advanceMovement(this.predicted, input, 1 / RULES.tick, this.obstacles);
     }
@@ -101,7 +123,7 @@ export class NetworkTransport {
   localPose(now = performance.now()) {
     if (!this.predicted) return null;
     const p = { ...this.predicted };
-    if (!p.alive || p.levelGuard > 0) return p;
+    if (!p.alive || p.levelGuard > 0 || this.frozen) return p;
     // Present the latest predicted step at display rate. Interpolating its two
     // endpoints also keeps turns/stops continuous; extrapolating old velocity
     // would jump backward when the next input points in another direction.
@@ -195,6 +217,12 @@ export class NetworkTransport {
   respawn() {
     this.send("respawn");
   }
+  reroll() {
+    this.send("reroll");
+  }
+  rematch() {
+    this.send("rematch");
+  }
 }
 export class SocketTransport extends NetworkTransport {
   constructor(
@@ -208,7 +236,7 @@ export class SocketTransport extends NetworkTransport {
     this.connectTimeout = connectTimeout;
     this.url = url;
   }
-  connect(name, skin) {
+  connect(name, skin, options = {}) {
     return new Promise((resolve, reject) => {
       let ready = false;
       this.socket = this.createSocket(this.url, {
@@ -225,7 +253,9 @@ export class SocketTransport extends NetworkTransport {
           ),
         );
       }, this.connectTimeout));
-      this.socket.on("connect", () => this.socket.emit("join", { name, skin }));
+      this.socket.on("connect", () =>
+        this.socket.emit("join", { name, skin, ...options }),
+      );
       this.socket.on("welcome", (data) => {
         clearTimeout(timer);
         ready = true;

@@ -159,6 +159,8 @@ try {
     humans: 0,
     ticking: false,
     time: 0,
+    format: "arena",
+    capacity: 16,
   });
   await wait(150);
   assert.equal(

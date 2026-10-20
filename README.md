@@ -2,7 +2,7 @@
 
 Planlama: [geliştirme taslağı ve deneysel tek el modu](docs/development-roadmap.md) · [geliştirme öncesi kararlı sürüm yedeği](docs/stable-backup.md).
 
-Bu geliştirme: [Cloudflare ağ/oda tasarımı ve ölçümleri](docs/network-design.md) · [altı geliştirme paketi, düello ve kozmetik/gelir önerileri](docs/product-and-revenue.md). Ek oyun modları ve mağaza öneridir; bu sürüme ödeme veya reklam sistemi eklenmez.
+Bu geliştirme: [Takımlar, süreli maçlar, yeni kartlar ve kozmetik koleksiyonu](docs/team-progression-release.md) · [Cloudflare ağ tasarımı](docs/network-design.md). 1v1, 2v2, 4v4, 8v8, 4×4 ve 8×2 formatları oynanabilir. Mağaza kazanılan yapraklarla çalışır; gerçek para ödemesi ve reklam bağlı değildir.
 
 [Online arenayı oyna](https://orman-arrow-archer.cangunes1995.workers.dev) · [Botlu antrenman](https://rawcdn.githack.com/artemis34/orman-arrow-archer/df3c81bc134b13837842ead2279aae4dd033318b/index.html) · [Kendi Cloudflare hesabında kur](https://deploy.workers.cloudflare.com/?url=https://github.com/artemis34/orman-arrow-archer)
 
@@ -24,7 +24,7 @@ npm run build
 npm start
 ```
 
-`PORT` varsayılan 3000. İsteğe bağlı `ALLOWED_ORIGINS=https://site.example,https://diger.example` çevrimiçi istemci origin listesini sınırlar; varsayılan açık CORS, genel arena içindir. Uygulama veri tabanı, API anahtarı veya ücretli servis istemez. Oyuncu bilgileri bellektedir; sunucu yeniden başlarsa sıfırlanır.
+`PORT` varsayılan 3000. İsteğe bağlı `ALLOWED_ORIGINS=https://site.example,https://diger.example` çevrimiçi istemci origin listesini sınırlar. Antrenman API anahtarı veya ücretli servis istemez. Oda/maç bilgileri bellektedir; yeniden başlatmada sıfırlanır. Cloudflare misafir profili, istatistik ve kozmetikler PROFILES Durable Object'inde kalıcıdır; Node adaptöründe bulut profil servisi bulunmaz.
 
 ## Ücretsiz yayın
 

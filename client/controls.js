@@ -47,7 +47,7 @@ export class Controls {
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
-        time: performance.now(),
+        time: e.timeStamp,
       };
       canvas.setPointerCapture(e.pointerId);
     });
@@ -55,7 +55,7 @@ export class Controls {
       if (canvasTouch?.id !== e.pointerId) return;
       if (
         this.active &&
-        performance.now() - canvasTouch.time < 280 &&
+        e.timeStamp - canvasTouch.time < 280 &&
         Math.hypot(e.clientX - canvasTouch.x, e.clientY - canvasTouch.y) < 14
       ) {
         if (this.oneHanded)
@@ -203,7 +203,7 @@ export class Controls {
       this.audio.unlock();
       this.isTouch = true;
       dragged = false;
-      pressedAt = performance.now();
+      pressedAt = e.timeStamp;
       startX = e.clientX;
       startY = e.clientY;
       pointer = e.pointerId;
@@ -242,7 +242,7 @@ export class Controls {
           aim &&
           e.type === "pointerup" &&
           !dragged &&
-          performance.now() - pressedAt < 280 &&
+          e.timeStamp - pressedAt < 280 &&
           this.active
         )
           this.quickShot = true;

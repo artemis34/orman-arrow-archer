@@ -22,7 +22,8 @@ export const POWERUPS = Object.freeze({
   },
 });
 export const attackRate = (p) =>
-  p.buffTime > 0 ? POWERUPS[p.buffType]?.rate || 1 : 1;
+  (p.buffTime > 0 ? POWERUPS[p.buffType]?.rate || 1 : 1) *
+  (p.rhythmTime > 0 ? 1.15 : 1);
 export const arrowPower = (p) =>
   p.buffTime > 0 ? POWERUPS[p.buffType]?.damage || 1 : 1;
 

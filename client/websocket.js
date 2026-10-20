@@ -15,6 +15,7 @@ export class WebSocketTransport extends NetworkTransport {
       matchmake = false,
       fetcher = (...args) => fetch(...args),
       viewRadius = 34,
+      format = "arena",
     } = {},
   ) {
     super(onState, onDisconnect);
@@ -25,10 +26,11 @@ export class WebSocketTransport extends NetworkTransport {
     this.matchmake = matchmake;
     this.fetcher = fetcher;
     this.viewRadius = viewRadius;
+    this.format = format;
     this.decoder = new SnapshotDecoder();
     this.inputBatch = [];
   }
-  connect(name, skin) {
+  connect(name, skin, options = {}) {
     return new Promise((resolve, reject) => {
       const room = roomCode(this.room);
       if (!room)
@@ -53,7 +55,10 @@ export class WebSocketTransport extends NetworkTransport {
           ticket = null;
         if (this.matchmake) {
           const response = await this.fetcher(
-            new URL("/api/matchmake", this.url),
+            new URL(
+              `/api/matchmake${this.format !== "arena" ? `?format=${encodeURIComponent(this.format)}` : ""}`,
+              this.url,
+            ),
             { signal: this.abort.signal },
           );
           if (!response.ok)
@@ -66,6 +71,8 @@ export class WebSocketTransport extends NetworkTransport {
         }
         if (this.closed) return;
         const address = new URL(`/api/rooms/${selectedRoom}`, this.url);
+        if (this.format !== "arena")
+          address.searchParams.set("format", this.format);
         if (ticket) address.searchParams.set("ticket", ticket);
         address.protocol = address.protocol === "https:" ? "wss:" : "ws:";
         this.ws = this.createWebSocket(address.href);
@@ -76,6 +83,8 @@ export class WebSocketTransport extends NetworkTransport {
             skin,
             protocol: PROTOCOL,
             viewRadius: this.viewRadius,
+            ...(this.format !== "arena" ? { format: this.format } : {}),
+            ...options,
           }),
         );
         this.ws.addEventListener("message", (event) => {
@@ -109,6 +118,7 @@ export class WebSocketTransport extends NetworkTransport {
             }, 10000);
           } else if (packet.type === "state" && ready)
             this.acceptState(packet.data);
+          else if (packet.type === "profile") this.onProfile?.(packet.data);
           else if (packet.type === "pong")
             this.ping = Math.round(performance.now() - this.pingAt);
           else if (packet.type === "full" || packet.type === "error") {

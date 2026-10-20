@@ -30,6 +30,7 @@ export function selectTarget(
   for (const p of players) {
     if (
       p.id === shooter.id ||
+      (shooter.team != null && p.team === shooter.team) ||
       !p.alive ||
       p.spawnShield > 0 ||
       p.levelGuard > 0
