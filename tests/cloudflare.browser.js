@@ -97,7 +97,8 @@ async function open(mobile, name) {
     });
   });
   await page.bringToFront();
-  await page.goto(`${base}/?room=${room}`);
+  // Exercise the shipped two-human duel, including its real matchmaking rules.
+  await page.goto(`${base}/?room=${room}&format=duel`);
   await expect(page.locator("#lobby")).toBeVisible({ timeout: 20000 });
   await expect(page.locator("#online-mode")).toHaveClass(/selected/);
   await expect(page.locator("#room-code")).toHaveValue(room);
@@ -145,12 +146,41 @@ async function exit(page, touch) {
   }
   await expect(page.locator("#lobby")).toBeVisible();
 }
+async function ready(client, touch = false) {
+  await client.page.bringToFront();
+  const activate = (selector) =>
+    client.page.locator(selector)[touch ? "tap" : "click"]();
+  // This is a live arena: bots continue fighting while the other WebGL browser
+  // compiles shaders. Resume through the same death/respawn flow as a player.
+  if (!client.me()?.alive) {
+    await expect(client.page.locator("#death")).toBeVisible();
+    await expect(client.page.locator("#respawn")).toBeEnabled({
+      timeout: 6000,
+    });
+    await activate("#respawn");
+    await expect.poll(() => client.me()?.alive).toBe(true);
+    await expect(client.page.locator("#death")).toBeHidden();
+  }
+  for (let n = 0; n < 4 && client.me()?.choices.length; n++) {
+    const before = client.me().pending;
+    await activate("#upgrade-options button:first-child");
+    await expect.poll(() => client.me()?.pending).toBeLessThan(before);
+  }
+  if (client.me()?.hp < 100 && client.me()?.healCd <= 0) {
+    await activate("#heal");
+    await expect.poll(() => client.me()?.healCd).toBeGreaterThan(0);
+  }
+}
 try {
   const a = await open(false, "CF Desktop"),
     b = await open(true, "CF Mobile");
   const status = await (await fetch(`${base}/api/rooms/${room}/status`)).json();
   assert.equal(status.humans, 2);
+  assert.equal(status.capacity, 2);
   assert.notEqual(a.probe.id, b.probe.id);
+  await expect.poll(() => a.probe.state?.match?.phase).toBe("playing");
+  assert.equal(a.probe.state.roster.filter((p) => p.bot).length, 0);
+  await ready(a);
   await a.page.mouse.move(900, 420);
   await a.page.mouse.down();
   await expect
@@ -168,6 +198,7 @@ try {
     )
     .toBe(true);
   const aim = await b.page.locator("#aim-stick").boundingBox();
+  await ready(b, true);
   if (engine === "chromium") {
     const cd = await b.context.newCDPSession(b.page);
     await cd.send("Input.dispatchTouchEvent", {
@@ -198,6 +229,7 @@ try {
     .toBe(true);
   await expect.poll(() => a.probe.seen.has(b.probe.id)).toBe(true);
   await expect.poll(() => b.probe.seen.has(a.probe.id)).toBe(true);
+  await ready(b, true);
   await b.page.locator("#auto-fire").tap();
   await expect(b.page.locator("#auto-fire")).toHaveAttribute(
     "aria-pressed",
@@ -206,6 +238,7 @@ try {
   await expect.poll(() => b.probe.inputs.at(-1)?.data.autoFire).toBe(true);
   await b.page.locator("#auto-fire").tap();
   await expect.poll(() => b.probe.inputs.at(-1)?.data.autoFire).toBe(false);
+  await ready(b, true);
   const start = { x: b.me().x, z: b.me().z };
   const move = await b.page.locator("#move-stick").boundingBox();
   if (engine === "chromium") {

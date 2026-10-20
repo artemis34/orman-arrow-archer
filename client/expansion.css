@@ -310,7 +310,11 @@ body.left-handed:not(.onehand) #aim-stick {
     top: 8px;
   }
   body.stick-large .joystick {
-    width: 120px;
-    height: 120px;
+    width: 102px;
+    height: 102px;
+  }
+  body.stick-large:not(.onehand) .arena-actions {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(128px, env(safe-area-inset-right));
   }
 }

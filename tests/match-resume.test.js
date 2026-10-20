@@ -5,6 +5,23 @@ import { RoundMode, createMode } from "../shared/modes.js";
 import { NetworkTransport } from "../client/transport.js";
 import { ArenaRoom } from "../cloudflare/worker.js";
 import { newProfile } from "../shared/profile.js";
+test("duel eliminations and respawns never introduce XP drops or random upgrades", () => {
+  const w = new World({ bots: 0, mode: createMode("duel") });
+  const a = w.addPlayer("a"),
+    b = w.addPlayer("b");
+  w.step();
+  a.spawnShield = b.spawnShield = 0;
+  w.damage(b, 1000, a.id);
+  assert.equal(b.alive, false);
+  assert.equal(w.orbs.active.length, 0);
+  assert.equal(a.level, 1);
+  assert.deepEqual(a.choices, []);
+  w.time += 3.1;
+  assert.equal(w.respawn(b.id), true);
+  assert.equal(w.snapshot(a.id).orbs.length, 0);
+  assert.equal(b.hp, a.maxHp);
+  assert.equal(b.level, 1);
+});
 test("malformed format objects fall back safely without invoking attacker-controlled coercion", () => {
   assert.equal(createMode({ toString: 0, valueOf: 0 }).id, "arena");
   assert.equal(createMode("__proto__").id, "arena");

@@ -50,6 +50,12 @@ try {
   await page.screenshot({
     path: "/tmp/archer-validation/profile-cloudflare-phone.png",
   });
+  await page.locator('[data-tab="settings"]').tap();
+  await page
+    .locator(".collection-content label")
+    .filter({ hasText: "Joystick boyutu" })
+    .locator("select")
+    .selectOption("large");
   await page.locator("#collection-close").tap();
   await page.reload();
   await expect(page.locator("#lobby")).toBeVisible();
@@ -90,6 +96,39 @@ try {
   await page.locator("#practice-mode").tap();
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
+  for (const [width, height] of [
+    [390, 844],
+    [375, 667],
+    [844, 390],
+    [568, 320],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const boxes = [];
+    for (const id of ["move-stick", "aim-stick", "dash", "heal", "auto-fire"]) {
+      const b = await page.locator(`#${id}`).boundingBox();
+      assert.ok(
+        b &&
+          b.x >= 0 &&
+          b.y >= 0 &&
+          b.x + b.width <= width + 1 &&
+          b.y + b.height <= height + 1,
+        `${id} fits ${width}x${height}`,
+      );
+      boxes.push(b);
+    }
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i],
+          b = boxes[j];
+        assert.ok(
+          a.x + a.width <= b.x ||
+            b.x + b.width <= a.x ||
+            a.y + a.height <= b.y ||
+            b.y + b.height <= a.y,
+          `large controls do not overlap at ${width}x${height}`,
+        );
+      }
+  }
   assert.deepEqual(errors, []);
   console.log(
     "PROFILE_BROWSER_OK real Cloudflare persistence, insufficient-balance rejection, SVG cosmetics, achievements and offline practice without caching API responses.",

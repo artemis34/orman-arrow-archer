@@ -444,12 +444,13 @@ export class World {
         kind,
         amount: Math.round(amount),
       };
-      for (let i = 0; i < 5; i++)
-        this.spawnOrb(
-          p.x + (this.random() - 0.5) * 3,
-          p.z + (this.random() - 0.5) * 3,
-          18,
-        );
+      if (!this.mode.rules?.duel)
+        for (let i = 0; i < 5; i++)
+          this.spawnOrb(
+            p.x + (this.random() - 0.5) * 3,
+            p.z + (this.random() - 0.5) * 3,
+            18,
+          );
     }
     return dealt;
   }
