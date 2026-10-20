@@ -1,6 +1,12 @@
 .format-entry {
   margin: 12px 0;
 }
+#leaders {
+  max-height: min(240px, 36dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
 select {
   width: 100%;
   min-height: 44px;

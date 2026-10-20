@@ -109,6 +109,9 @@ try {
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
   await expect(page.locator("#match-status")).toContainText(/Kırmızı|Mavi/);
+  await expect(page.locator("#leaders .arena-leader-row")).toHaveCount(2);
+  await expect(page.locator("#leaders")).toContainText("Kırmızı");
+  await expect(page.locator("#leaders")).toContainText("Mavi");
   await expect(page.locator("#round-results")).toBeVisible({ timeout: 12000 });
   assert.equal(await page.locator("#round-ranking .results-row").count(), 5);
   await expect(page.locator("#death")).toBeHidden();

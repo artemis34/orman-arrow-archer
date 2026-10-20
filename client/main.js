@@ -674,12 +674,26 @@ function updateHud(current) {
   const ranking = [...(current.roster || current.players)].sort((a, b) =>
     match ? (b.matchPoints || 0) - (a.matchPoints || 0) : b.score - a.score,
   );
-  text("my-rank", Math.max(1, ranking.findIndex((p) => p.id === myId) + 1));
-  const sorted = ranking.slice(0, 3);
+  const teams = match?.teams?.length
+    ? [...match.teams].sort((a, b) => b.score - a.score || a.id - b.id)
+    : null;
+  text(
+    "my-rank",
+    Math.max(
+      1,
+      teams
+        ? teams.findIndex((t) => t.id === me.team) + 1
+        : ranking.findIndex((p) => p.id === myId) + 1,
+    ),
+  );
+  const sorted = teams
+    ? teams.map((t) => ({ ...t, team: t.id, matchPoints: t.score }))
+    : ranking.slice(0, 3);
   $("leaders").replaceChildren(
     ...sorted.map((p, i) => {
       const row = document.createElement("div");
-      row.className = "arena-leader-row" + (p.id === myId ? " me" : "");
+      const self = teams ? p.id === me.team : p.id === myId;
+      row.className = "arena-leader-row" + (self ? " me" : "");
       const rank = document.createElement("span");
       rank.className = "rank";
       rank.textContent = String(i + 1).padStart(2, "0");
@@ -693,7 +707,7 @@ function updateHud(current) {
       name.textContent =
         (p.team != null ? TEAMS[p.team].symbol + " " : "") +
         p.name +
-        (p.id === myId ? " · sen" : "");
+        (self ? (teams ? " · biz" : " · sen") : "");
       const score = document.createElement("span");
       score.className = "score";
       score.textContent = match ? p.matchPoints || 0 : p.score;
