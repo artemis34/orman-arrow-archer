@@ -94,8 +94,10 @@ try {
   await page.reload();
   await expect(page.locator("#lobby")).toBeVisible();
   await page.locator("#practice-mode").tap();
+  await page.locator("#match-format").selectOption("t8");
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
+  await expect(page.locator("#population")).toHaveText("1 OYUNCU · 15 BOT");
   for (const [width, height] of [
     [390, 844],
     [375, 667],
@@ -103,6 +105,15 @@ try {
     [568, 320],
   ]) {
     await page.setViewportSize({ width, height });
+    await page.locator("#leaders-toggle").tap();
+    for (const selector of ["#exit", ".arena-session .sound-button"]) {
+      const b = await page.locator(selector).boundingBox();
+      assert.ok(
+        b && b.x >= 0 && b.x + b.width <= width + 1,
+        `${selector} fits a full team's mobile toolbar`,
+      );
+    }
+    await page.locator("#leaders-toggle").tap();
     const boxes = [];
     for (const id of ["move-stick", "aim-stick", "dash", "heal", "auto-fire"]) {
       const b = await page.locator(`#${id}`).boundingBox();
@@ -129,6 +140,9 @@ try {
         );
       }
   }
+  await page.locator("#leaders-toggle").tap();
+  await page.locator("#exit").tap();
+  await expect(page.locator("#lobby")).toBeVisible();
   assert.deepEqual(errors, []);
   console.log(
     "PROFILE_BROWSER_OK real Cloudflare persistence, insufficient-balance rejection, SVG cosmetics, achievements and offline practice without caching API responses.",

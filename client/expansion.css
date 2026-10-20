@@ -7,6 +7,15 @@
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
+.arena-session {
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr) 32px 32px;
+}
+.arena-session #population {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-right: 0;
+}
 select {
   width: 100%;
   min-height: 44px;
