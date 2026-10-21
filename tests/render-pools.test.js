@@ -161,6 +161,14 @@ test("ground marker instances retain opacity, team tint and per-player visibilit
   const color = new THREE.Color();
   batch.mesh.getColorAt(0, color);
   close(color.toArray(), ring.material.color.toArray());
+  ring.userData.sharedOpacity = true;
+  ring.material.opacity = 0.46;
+  pool.update();
+  assert.equal(
+    batch.mesh.material.opacity,
+    0.46,
+    "a batched buff ring keeps its breathing animation",
+  );
 });
 
 test("all 360 arrows keep full shaft/head geometry, pose and elemental emissive colors in five draws", () => {

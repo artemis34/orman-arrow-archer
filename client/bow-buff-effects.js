@@ -180,6 +180,7 @@ export class BowBuffEffects {
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
+        forceSinglePass: true,
         blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
         toneMapped: false,
       }),

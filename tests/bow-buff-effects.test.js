@@ -25,6 +25,8 @@ test("bow effects switch type, hide dead/camouflaged players and reuse their buf
     effects.fire.instanceMatrix,
     effects.lightning.instanceMatrix,
   ];
+  assert.equal(effects.fire.material.forceSinglePass, true);
+  assert.equal(effects.lightning.material.forceSinglePass, true);
   effects.update(views, 1);
   assert.equal(effects.fire.count, 1);
   assert.equal(effects.lightning.count, 1);

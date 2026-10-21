@@ -571,12 +571,15 @@ export class ArenaScene {
         transparent: true,
         opacity: 0.7,
         side: THREE.DoubleSide,
+        forceSinglePass: true,
         depthWrite: false,
       }),
     );
     buffRing.rotation.x = -Math.PI / 2;
     buffRing.position.y = 0.06;
     buffRing.visible = false;
+    buffRing.userData.instanceGround = true;
+    buffRing.userData.sharedOpacity = true;
     root.add(buffRing);
     const shield = new THREE.Mesh(
       new THREE.SphereGeometry(0.95, 16, 12),

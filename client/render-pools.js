@@ -77,6 +77,10 @@ export class AvatarBatches {
       let colorsChanged = false;
       for (const { root, part } of parts) {
         if (!root.visible || !part.visible) continue;
+        // Buff rings all use the same time-based opacity; keep that animation
+        // while batching their different per-archer colors and transforms.
+        if (count === 0 && part.userData.sharedOpacity)
+          mesh.material.opacity = part.material.opacity;
         mesh.setMatrixAt(count, part.matrixWorld);
         const color = part.material.color;
         const previous = colors[count];
