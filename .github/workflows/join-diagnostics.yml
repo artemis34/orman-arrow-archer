@@ -1,0 +1,31 @@
+name: Diagnose public mobile connection
+on:
+  push:
+    branches: [fix/arena-join-recovery]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Check current public quick join and returning mobile sessions
+        run: |
+          node tests/join.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/join.browser.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-join-screenshots
+          path: /tmp/archer-validation/join-*.png
+          if-no-files-found: ignore
