@@ -1,0 +1,55 @@
+{
+  "baseline": "48605fa64d6283dd275715b913e6c0288a38ecd2",
+  "purpose": "Intentional critical hits, lifesteal and additive loot metadata. Original v2 contract/golden vectors and projectile presentation are preserved.",
+  "scenarios": [
+    {
+      "id": "arena-8",
+      "physics": "ed4536ee2569a7464c3bfb822ae42cd63c2cfd3e2c1d4e721a47a793a08e381a",
+      "json": "f88958405694fdab85f999966f1469cfa46d95013f974e4186c62bf657fc0ff9",
+      "wire": "dde2fc2df75a92cdbd7ee7ed5ddef1359f825df040c9291187f651d80b4ae710",
+      "decoded": "fefe5ed96ae39ffa4826e4a569cb1051ce4502b9273e1f9b00fc041f4d77b487",
+      "inputWire": "05c6ba2fb14a3d2c0f4ba4c9bc67e996f1effd34597fe0255c9b41c0d6508508",
+      "bytes": 4278299,
+      "messages": 3600,
+      "legacyBytes": 54913438,
+      "inputBytes": 186073,
+      "inputMessages": 3688,
+      "hits": 132,
+      "kills": 9,
+      "shots": 291
+    },
+    {
+      "id": "team-16",
+      "physics": "e73766f491faa632b2e690037b7d977fdb076f9d417d07cb20ac9db7417fbc40",
+      "json": "61d05873f4d184551ec74948925c5ee8deea6b2bb09f08095d109cfbe6d638fd",
+      "wire": "925497e2098d2fbbf2df97ec243ef8645371daf76c9095bcd096a11bb6a18949",
+      "decoded": "8602341736acd44343af2eddaa5692e1f517907f54f621daa3b9255cbf84eff5",
+      "inputWire": "fe5c8fc35a0c164b849f92770b378ec9e91cace8d045eef3fa78647cfd9ad713",
+      "bytes": 17966311,
+      "messages": 7200,
+      "legacyBytes": 164669052,
+      "inputBytes": 372610,
+      "inputMessages": 7375,
+      "hits": 361,
+      "kills": 14,
+      "shots": 588
+    },
+    {
+      "id": "team-bots",
+      "physics": "9c0ea6d48ebc59ab7267bfecb6d1d27fef70fda60f438724deba18e0208f3b77",
+      "json": "ee12f91d8db263fdb48ac62b695c9b9733abb33452f27e541ca5ae59c3c1a098",
+      "wire": "2779cdb463e722997f17a0fe5208f5a24b5a9183e92828705de8d49bcf98a27e",
+      "decoded": "d415bbc7bf0f16f541351b921075b4ac6312aeda402047b5bed9d61cd181d1cb",
+      "inputWire": "e0c0fe9a7e7c7cacc6a1bc85b90e9ee8579db501536119e23bf2420980a263cd",
+      "bytes": 960370,
+      "messages": 450,
+      "legacyBytes": 8309410,
+      "inputBytes": 23244,
+      "inputMessages": 460,
+      "hits": 602,
+      "kills": 2,
+      "shots": 226
+    }
+  ],
+  "clientViews": "ab0d073e6cde2bea4f93ceb71ffbdb3d414b08eb867fa34efa05c1cd294f1edd"
+}

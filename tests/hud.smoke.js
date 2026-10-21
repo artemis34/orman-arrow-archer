@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
 import { createServer } from "node:http";
@@ -67,6 +68,7 @@ try {
       hasTouch: touch,
     });
     const page = await context.newPage();
+    installFloatingGestures(page);
     page.on("pageerror", (e) => errors.push(e.message));
     const activate = (selector) =>
       page.locator(selector)[touch ? "tap" : "click"]();

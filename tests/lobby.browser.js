@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "node:http";
@@ -74,6 +75,7 @@ try {
       hasTouch: true,
     }),
     page = await context.newPage();
+  installFloatingGestures(page);
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();

@@ -10,6 +10,10 @@ import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 import { FORMATS, formatKey, createMode } from "../shared/modes.js";
 import { profileId, sanitizeCosmetics } from "../shared/profile.js";
 export { PlayerProfile } from "./profile.js";
+export { CommunityHub } from "./community.js";
+import { community, canonicalProfile } from "./community.js";
+import { authFetch } from "./auth.js";
+const ACTIVITY_KEYS = ["kills", "hits", "assists", "objectives"];
 
 /** One authoritative world per room. No timers or bots run in an empty room. */
 export class ArenaRoom {
@@ -73,7 +77,8 @@ export class ArenaRoom {
     if (
       requestedFormat !== this.format ||
       this.sessions.size + this.reservations.size >= capacity ||
-      (ticket && !reservation)
+      (ticket && !reservation) ||
+      (FORMATS[this.format].ranked && !reservation)
     ) {
       server.send(JSON.stringify({ type: "full" }));
       server.close(1008, "arena full");
@@ -169,12 +174,24 @@ export class ArenaRoom {
       session.joining = true;
       let profile = null;
       if (this.env?.PROFILES) {
-        session.profileId = await profileId(data.profileToken);
+        try {
+          session.profileId = await canonicalProfile(
+            this.env,
+            await profileId(data.profileToken),
+          );
+        } catch {
+          session.profileId = null;
+        }
         if (session.profileId) {
           try {
             const response = await this.env.PROFILES.get(
               this.env.PROFILES.idFromName(session.profileId),
-            ).fetch(new Request("https://profile/"));
+            ).fetch(
+              new Request("https://profile/name", {
+                method: "POST",
+                body: JSON.stringify({ name: data.name }),
+              }),
+            );
             profile = (await response.json()).profile;
           } catch {
             session.profileId = null;
@@ -182,6 +199,20 @@ export class ArenaRoom {
         }
       }
       if (!this.sessions.has(ws)) return;
+      if (
+        FORMATS[this.format]?.ranked &&
+        (!profile ||
+          [...this.sessions.values()].some(
+            (s) => s !== session && s.profileId === session.profileId,
+          ))
+      ) {
+        this.send(ws, "error", {
+          message: "Ranked için iki farklı online profil gerekir.",
+        });
+        ws.close(1008, "ranked identity required");
+        this.remove(ws);
+        return;
+      }
       if (!this.world) {
         this.world = new World({
           bots: 0,
@@ -298,7 +329,35 @@ export class ArenaRoom {
     }
     if (!this.world) return;
     const previousRound = this.world.mode.round;
+    const previousPhase = this.world.mode.phase;
+    for (const s of this.sessions.values()) {
+      const p = this.world.players.get(s.id);
+      if (!p) continue;
+      s.tickCounters ||= {};
+      for (const key of ACTIVITY_KEYS) s.tickCounters[key] = p[key];
+    }
     this.world.step();
+    if (
+      this.world.mode.rules?.ranked &&
+      previousPhase !== "playing" &&
+      this.world.mode.phase === "playing"
+    ) {
+      this.rankedStartedAt = this.world.time;
+      this.rankedParticipants = new Map(
+        [...this.sessions.values()]
+          .filter((s) => s.joined)
+          .map((s) => [s.id, s.profileId]),
+      );
+    }
+    for (const [ws, s] of this.sessions) {
+      const p = this.world.players.get(s.id),
+        before = s.tickCounters;
+      if (!p || !before || !s.profileId) continue;
+      s.activity ||= { kills: 0, hits: 0, assists: 0, objectives: 0 };
+      for (const key of ACTIVITY_KEYS)
+        s.activity[key] += Math.max(0, p[key] - before[key]);
+      if (this.world.time - (s.flushedAt || 0) >= 60) this.flushActivity(ws, s);
+    }
     if (this.world.mode.round !== previousRound)
       for (const session of this.sessions.values()) session.inputs = [];
     this.rewardRound();
@@ -326,29 +385,49 @@ export class ArenaRoom {
       .filter((id) => id >= 0);
     for (const [ws, session] of this.sessions) {
       const p = this.world.players.get(session.id);
-      if (!p || !session.profileId || this.world.time - session.joinedAt < 30)
+      const ranked =
+        !!mode.rules?.ranked &&
+        this.rankedParticipants?.size === 2 &&
+        new Set(this.rankedParticipants.values()).size === 2 &&
+        this.rankedParticipants.get(session.id) === session.profileId;
+      if (
+        !p ||
+        !session.profileId ||
+        (!ranked && this.world.time - session.joinedAt < 30)
+      )
         continue;
-      const win =
-        p.team != null
+      const win = mode.forfeit
+        ? mode.forfeit !== session.id
+        : p.team != null
           ? teamWinners.length === 1 && teamWinners[0] === p.team
           : top?.id === p.id &&
             (!mode.results[1] || top.points > mode.results[1].points);
-      const task = this.env.PROFILES.get(
-        this.env.PROFILES.idFromName(session.profileId),
-      )
-        .fetch(
-          new Request("https://profile/award", {
-            method: "POST",
-            body: JSON.stringify({
-              receipt: `${this.instance}:${mode.round}`,
-              kills: p.kills,
-              assists: p.assists,
-              hits: p.hits,
-              objectives: p.objectives,
-              points: p.matchPoints,
-              win,
+      const draw =
+        !mode.forfeit &&
+        mode.results.length > 1 &&
+        mode.results[0].points === mode.results[1].points;
+      const awardData = {
+        receipt: `${this.instance}:${mode.round}`,
+        kills: p.kills,
+        assists: p.assists,
+        hits: p.hits,
+        objectives: p.objectives,
+        points: p.matchPoints,
+        win,
+        statsRecorded: true,
+        ranked,
+        outcome: draw ? "draw" : win ? "win" : "loss",
+      };
+      const task = this.flushActivity(ws, session)
+        .then(() =>
+          this.env.PROFILES.get(
+            this.env.PROFILES.idFromName(session.profileId),
+          ).fetch(
+            new Request("https://profile/award", {
+              method: "POST",
+              body: JSON.stringify(awardData),
             }),
-          }),
+          ),
         )
         .then((r) => r.json())
         .then((data) => this.send(ws, "profile", data.profile))
@@ -359,6 +438,16 @@ export class ArenaRoom {
   remove(ws) {
     const session = this.sessions.get(ws);
     if (!session) return;
+    if (
+      this.world?.mode.rules?.ranked &&
+      this.world.mode.phase === "playing" &&
+      this.world.time - this.rankedStartedAt >= 10
+    ) {
+      this.world.mode.forfeit = session.id;
+      this.world.mode.finish(this.world);
+      this.rewardRound();
+    }
+    this.flushActivity(ws, session);
     clearTimeout(session.joinTimer);
     this.world?.removePlayer(session.id);
     this.sessions.delete(ws);
@@ -380,6 +469,57 @@ export class ArenaRoom {
   }
   webSocketClose(ws) {
     this.remove(ws);
+  }
+  flushActivity(ws, session) {
+    if (!this.env?.PROFILES || !session.profileId) return Promise.resolve();
+    if (session.flushingActive) return session.flushing;
+    if (
+      !session.pendingActivity &&
+      !Object.values(session.activity || {}).some(Boolean)
+    )
+      return Promise.resolve();
+    session.flushedAt = this.world?.time || 0;
+    session.flushingActive = true;
+    const task = (async () => {
+      // Keep the same receipt across a lost acknowledgement. A successful DB
+      // write followed by a failed response must not duplicate lifetime kills.
+      for (let batch = 0; batch < 2; batch++) {
+        if (!session.pendingActivity) {
+          if (!Object.values(session.activity || {}).some(Boolean)) break;
+          session.pendingActivity = {
+            ...session.activity,
+            receipt: `${this.instance}:activity:${session.id}:${(session.activitySeq = (session.activitySeq || 0) + 1)}`,
+          };
+          session.activity = { kills: 0, hits: 0, assists: 0, objectives: 0 };
+        }
+        let result;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await this.env.PROFILES.get(
+              this.env.PROFILES.idFromName(session.profileId),
+            ).fetch(
+              new Request("https://profile/activity", {
+                method: "POST",
+                body: JSON.stringify(session.pendingActivity),
+                signal: AbortSignal.timeout(5000),
+              }),
+            );
+            if (!response.ok) throw new Error("stats unavailable");
+            result = await response.json();
+            break;
+          } catch {
+            if (attempt === 1) return;
+          }
+        }
+        session.pendingActivity = null;
+        this.send(ws, "profile", result.profile);
+      }
+    })().finally(() => {
+      session.flushingActive = false;
+    });
+    session.flushing = task;
+    this.ctx.waitUntil(task);
+    return task;
   }
   webSocketError(ws) {
     try {
@@ -462,40 +602,120 @@ export default {
       return new Response(response.body, { status: response.status, headers });
     };
     if (url.pathname.startsWith("/api/")) {
-      if (origin && origin !== url.origin && !allowed.includes(origin))
+      const appleCallback =
+        url.pathname === "/api/auth/apple/callback" &&
+        request.method === "POST" &&
+        origin === "https://appleid.apple.com";
+      if (
+        origin &&
+        origin !== url.origin &&
+        !allowed.includes(origin) &&
+        !appleCallback
+      )
         return new Response("Origin denied", { status: 403 });
       if (request.method === "OPTIONS")
         return apiResponse(new Response(null, { status: 204 }));
+      if (url.pathname.startsWith("/api/auth/")) {
+        if (!["GET", "POST"].includes(request.method))
+          return new Response("Method not allowed", { status: 405 });
+        return authFetch(request, env);
+      }
       if (
         request.method !== "GET" &&
         !(
-          /^\/api\/profile(?:\/(purchase|equip))?$/.test(url.pathname) &&
-          request.method === "POST"
+          /^\/api\/profile\/(?:purchase|equip|name|friends\/(?:request|accept|decline|remove))$/.test(
+            url.pathname,
+          ) && request.method === "POST"
         )
       )
         return new Response("Method not allowed", { status: 405 });
     }
-    if (/^\/api\/profile(?:\/(purchase|equip))?$/.test(url.pathname)) {
-      const id = await profileId(
-        request.headers.get("Authorization")?.replace(/^Bearer /, ""),
+    if (
+      /^\/api\/profile(?:\/(?:purchase|equip|name|friends)(?:\/(?:request|accept|decline|remove))?)?$/.test(
+        url.pathname,
+      )
+    ) {
+      const id = await canonicalProfile(
+        env,
+        await profileId(
+          request.headers.get("Authorization")?.replace(/^Bearer /, ""),
+        ),
       );
       if (!id) return new Response("Invalid profile key", { status: 401 });
       if (Number(request.headers.get("Content-Length")) > 2048)
         return new Response("Too large", { status: 413 });
-      const action = url.pathname.split("/")[3] || "";
-      if (action && request.method !== "POST")
+      const action = url.pathname.slice("/api/profile/".length);
+      const isRoot = url.pathname === "/api/profile";
+      if (action.startsWith("friends")) {
+        if (!env.COMMUNITY)
+          return Response.json(
+            { error: "Arkadaşlar şu anda yüklenemedi." },
+            { status: 503 },
+          );
+        if (request.method !== (action === "friends" ? "GET" : "POST"))
+          return new Response("Method not allowed", { status: 405 });
+        const response = await env.PROFILES.get(
+          env.PROFILES.idFromName(id),
+        ).fetch(new Request("https://profile/"));
+        const { profile } = await response.json();
+        await community(env, "/upsert", {
+          code: profile.socialCode,
+          name: profile.displayName,
+          points: profile.ranked.points,
+          rankedMatches: profile.ranked.matches,
+          kills: profile.stats.kills,
+          matches: profile.stats.matches,
+          wins: profile.stats.wins,
+        });
+        const raw = request.method === "POST" ? await request.text() : "";
+        if (raw.length > 2048)
+          return new Response("Too large", { status: 413 });
+        let data;
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          return Response.json({ error: "Geçersiz istek." }, { status: 400 });
+        }
+        if (!data || typeof data !== "object" || Array.isArray(data))
+          return Response.json({ error: "Geçersiz istek." }, { status: 400 });
+        return apiResponse(
+          await community(
+            env,
+            action === "friends"
+              ? `/friends?code=${profile.socialCode}`
+              : `/${action.split("/")[1]}`,
+            request.method === "POST"
+              ? { code: profile.socialCode, target: data.target }
+              : undefined,
+          ),
+        );
+      }
+      if (!isRoot && request.method !== "POST")
         return new Response("Method not allowed", { status: 405 });
-      if (!action && request.method !== "GET")
+      if (isRoot && request.method !== "GET")
         return new Response("Method not allowed", { status: 405 });
       const body = request.method === "POST" ? await request.text() : undefined;
       if (body?.length > 2048)
         return new Response("Too large", { status: 413 });
       return apiResponse(
         await env.PROFILES.get(env.PROFILES.idFromName(id)).fetch(
-          new Request(`https://profile/${action}`, {
+          new Request(`https://profile/${isRoot ? "" : action}`, {
             method: request.method,
             body,
           }),
+        ),
+      );
+    }
+    if (url.pathname === "/api/leaderboard") {
+      if (!env.COMMUNITY)
+        return Response.json(
+          { entries: [] },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      return apiResponse(
+        await community(
+          env,
+          `/leaderboard?kind=${url.searchParams.get("kind") === "kills" ? "kills" : "ranked"}`,
         ),
       );
     }

@@ -1,10 +1,14 @@
 # Wildbow v2: web ve Swift istemci sözleşmesi
 
-Bu belge çalışan `7397e49` sürümünü tarif eder. Yeni bir protokol veya Swift oyun
+Bu belge `7397e49` sürümünden sabitlenen v2 temel sözleşmesini tarif eder. Yeni bir protokol veya Swift oyun
 istemcisi devreye alınmamıştır. Makine tarafından okunabilir sözleşme
 [`protocol/wildbow-v2.json`](../protocol/wildbow-v2.json), çalışan sürümden
 alınmış sabit örnekler
 [`protocol-v2-7397e49.json`](../tests/fixtures/protocol-v2-7397e49.json) içindedir.
+
+Güncel geriye uyumlu kritik/ikmal metadata'sı, ranked ve profil/topluluk HTTP uçları
+[orman ilerlemesi notlarında](forest-ranked-social.md) açıklanır. Tuple sırası ve
+protokol numarası değişmez; istemci bilinmeyen isteğe bağlı alanları yok sayar.
 
 ## Sunucu ve taşıma
 

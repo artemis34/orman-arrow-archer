@@ -31,6 +31,7 @@ export class Controls {
     this.joy = { x: 0, z: 0 };
     this.aimJoy = { x: 0, z: 0 };
     this.stickResets = [];
+    this.floatingSticks = [];
     this.isTouch = matchMedia("(pointer:coarse)").matches;
     let canvasTouch = null;
     canvas.addEventListener("pointerdown", (e) => {
@@ -41,6 +42,7 @@ export class Controls {
         e.button > 0
       )
         return;
+      if (!this.oneHanded) return;
       if (e.pointerType === "touch") this.isTouch = true;
       this.audio.unlock();
       canvasTouch = {
@@ -145,6 +147,29 @@ export class Controls {
     });
     this.stick("move-stick", false);
     this.stick("aim-stick", true);
+    canvas.addEventListener("pointerdown", (e) => {
+      if (
+        !this.active ||
+        (e.pointerType !== "touch" && !this.oneHanded) ||
+        e.button > 0
+      )
+        return;
+      if (
+        this.oneHanded &&
+        this.scene.pickPlayer(
+          e.clientX,
+          e.clientY,
+          this.latestState?.players || [],
+          this.latestMe?.id,
+        )
+      )
+        return;
+      const leftHanded = document.body.classList.contains("left-handed");
+      const move =
+        this.oneHanded ||
+        (leftHanded ? e.clientX >= innerWidth / 2 : e.clientX < innerWidth / 2);
+      this.floatingSticks[move ? 0 : 1]?.begin(e, canvas);
+    });
   }
   reset() {
     this.cancelShot ||= this.charge;
@@ -177,11 +202,12 @@ export class Controls {
       pressedAt = 0,
       startX = 0,
       startY = 0;
+    let captureTarget = el;
     const update = (e) => {
       const r = el.getBoundingClientRect(),
         radius = r.width * 0.35,
-        dx = e.clientX - r.left - r.width / 2,
-        dz = e.clientY - r.top - r.height / 2,
+        dx = e.clientX - startX,
+        dz = e.clientY - startY,
         l = Math.hypot(dx, dz),
         scale = l > radius ? radius / l : 1;
       const vector = stickVector(dx, dz, radius);
@@ -197,7 +223,7 @@ export class Controls {
         this.joy = vector;
       }
     };
-    el.addEventListener("pointerdown", (e) => {
+    const begin = (e, target = el) => {
       if (pointer !== null || !this.active) return;
       e.preventDefault();
       this.audio.unlock();
@@ -206,11 +232,17 @@ export class Controls {
       pressedAt = e.timeStamp;
       startX = e.clientX;
       startY = e.clientY;
+      captureTarget = target;
+      el.style.setProperty("--floating-x", `${startX}px`);
+      el.style.setProperty("--floating-y", `${startY}px`);
+      el.classList.add("floating-origin");
       pointer = e.pointerId;
-      el.setPointerCapture(pointer);
+      captureTarget.setPointerCapture(pointer);
       update(e);
-    });
-    el.addEventListener("pointermove", (e) => {
+    };
+    this.floatingSticks.push({ begin });
+    el.addEventListener("pointerdown", (e) => begin(e));
+    addEventListener("pointermove", (e) => {
       if (e.pointerId === pointer) {
         if (Math.hypot(e.clientX - startX, e.clientY - startY) > 8)
           dragged = true;
@@ -220,8 +252,9 @@ export class Controls {
     const release = () => {
       const captured = pointer;
       pointer = null;
-      if (captured !== null && el.hasPointerCapture(captured))
-        el.releasePointerCapture(captured);
+      if (captured !== null && captureTarget.hasPointerCapture(captured))
+        captureTarget.releasePointerCapture(captured);
+      el.classList.remove("floating-origin");
       knob.style.transform = "";
       if (aim) {
         this.charge = false;
@@ -249,9 +282,9 @@ export class Controls {
         release();
       }
     };
-    el.addEventListener("pointerup", end);
-    el.addEventListener("pointercancel", end);
-    el.addEventListener("lostpointercapture", end);
+    addEventListener("pointerup", end);
+    addEventListener("pointercancel", end);
+    addEventListener("lostpointercapture", end);
   }
   sample(me, state, obstacles = []) {
     this.latestMe = me;

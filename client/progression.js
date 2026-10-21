@@ -8,6 +8,7 @@ import {
 import { UPGRADES } from "../shared/config.js";
 import { bindAction } from "./ui.js";
 import { cosmeticIcon } from "./cosmetic-icons.js";
+import { communityUI } from "./community-ui.js";
 const labels = {
   bow: "Yay",
   cape: "Pelerin",
@@ -41,6 +42,17 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     bindAction(b, action);
     return b;
   };
+  const social = communityUI({
+    content,
+    status,
+    button,
+    request,
+    profile: () => profile,
+    server,
+    token: () => token,
+    cloudflare,
+    activeTab: () => tab,
+  });
   async function request(action = "", data) {
     const response = await fetch(
       new URL(`/api/profile${action ? "/" + action : ""}`, server()),
@@ -162,6 +174,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
       }
       content.append(grid);
     } else if (tab === "profile") {
+      social.rankSummary();
       const stats = document.createElement("div");
       stats.className = "profile-stats";
       stats.style.borderColor =
@@ -220,6 +233,8 @@ export function setupProgression({ cloudflare, server, onSettings }) {
         }
       });
       content.append(file);
+    } else if (tab === "friends" || tab === "leaderboard") {
+      social.render(tab);
     } else if (tab === "skills") {
       const note = document.createElement("p");
       note.textContent =
@@ -321,6 +336,9 @@ export function setupProgression({ cloudflare, server, onSettings }) {
       render();
     });
   render();
+  social.loadProviders();
+  const lobbyAccounts = document.getElementById("lobby-accounts");
+  if (lobbyAccounts) social.authButtons(lobbyAccounts);
   onSettings();
   return {
     get token() {
@@ -331,5 +349,13 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     },
     apply,
     refresh,
+    open(tabName = "profile") {
+      tab = tabName;
+      returnFocus = document.activeElement;
+      root.classList.remove("hidden");
+      render();
+      document.getElementById("collection-close").focus();
+      refresh();
+    },
   };
 }

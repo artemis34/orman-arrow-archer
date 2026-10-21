@@ -19,11 +19,13 @@
       { "name": "ARENAS", "class_name": "ArenaRoom" },
       { "name": "MATCHMAKER", "class_name": "ArenaMatchmaker" },
       { "name": "PROFILES", "class_name": "PlayerProfile" },
+      { "name": "COMMUNITY", "class_name": "CommunityHub" },
     ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ArenaRoom"] },
     { "tag": "v2", "new_sqlite_classes": ["ArenaMatchmaker"] },
     { "tag": "v3", "new_sqlite_classes": ["PlayerProfile"] },
+    { "tag": "v4", "new_sqlite_classes": ["CommunityHub"] },
   ],
 }

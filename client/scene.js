@@ -8,6 +8,8 @@ import { POWERUPS, POWERUP_RULES } from "../shared/powerups.js";
 import { TEAMS } from "../shared/modes.js";
 import { CATALOG } from "../shared/profile.js";
 import { REGIONS } from "../shared/regions.js";
+import { CombatFeedback } from "./combat-feedback.js";
+import { LootView } from "./loot-view.js";
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const COSMETICS = new Map(CATALOG.map((item) => [item.id, item]));
 const COSMETIC_SLOTS = [...new Set(CATALOG.map((item) => item.slot))];
@@ -158,6 +160,8 @@ export class ArenaScene {
     this.batch(this.staticGroup);
     this.avatarBatches = new AvatarBatches(this.scene);
     this.arrows = new ArrowBatches(this.scene, RULES.maxArrows);
+    this.feedback = new CombatFeedback(this.scene);
+    this.lootView = new LootView(this.scene);
     this.gems = new THREE.InstancedMesh(
       new THREE.OctahedronGeometry(0.24),
       this.materials.gem,
@@ -826,6 +830,8 @@ export class ArenaScene {
           (p.level > v.level || (guarded && !v.guardActive))
         )
           this.burst(p.x, p.z, 0xffe49b, 18);
+        if (playing && p.alive && p.level > v.level)
+          this.feedback.show(p.id, `SEVİYE ${p.level}`, "level");
         v.level = p.level;
         v.guardActive = guarded;
         if (!p.alive) continue;
@@ -1080,6 +1086,9 @@ export class ArenaScene {
         e.mesh.visible = e.life > 0;
         e.mesh.rotation.x += dt * 4;
       }
+    this.lootView.update(state, dt);
+    this.camera.updateMatrixWorld();
+    this.feedback.update(this.camera, this.players, dt, playing);
     // Publish animated world transforms to the shared GPU instance buffers.
     this.scene.updateMatrixWorld();
     this.avatarBatches.update();

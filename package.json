@@ -20,6 +20,9 @@
     "test:interaction": "node tests/interaction.smoke.js",
     "test:motion": "node tests/motion.browser.js",
     "test:projectiles": "node tests/projectiles.browser.js",
+    "test:forest": "node tests/forest.browser.js",
+    "test:community": "node tests/community.browser.js",
+    "test:community:runtime": "node tests/community.smoke.js",
     "test:network": "node tests/network.smoke.js",
     "test:live": "node tests/live.smoke.js",
     "test:hud": "node tests/hud.smoke.js",
@@ -33,6 +36,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
+    "jose": "^6.2.13",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "three": "^0.180.0"

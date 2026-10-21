@@ -19,6 +19,7 @@ import "./style.css";
 import "./hud.css";
 import "./lobby.css";
 import "./expansion.css";
+import "./social.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -101,6 +102,21 @@ const progression = setupProgression({
     );
   },
 });
+bindAction($("friends-open"), () => progression.open("friends"));
+bindAction($("leaderboard-open"), () => progression.open("leaderboard"));
+const authResult = query.get("auth");
+if (authResult) {
+  const clean = new URL(location.href);
+  clean.searchParams.delete("auth");
+  history.replaceState(null, "", clean);
+  setTimeout(() => {
+    progression.open("profile");
+    document.querySelector(".collection-status").textContent =
+      authResult === "connected"
+        ? "Hesabın bağlandı. Profilin cihazlar arasında kullanılabilir."
+        : "Hesap bağlantısı tamamlanamadı. Misafir profilinle devam edebilirsin.";
+  }, 100);
+}
 progression.refresh();
 $("match-format").value = format;
 function updateFormat() {
@@ -119,6 +135,10 @@ function updateFormat() {
 }
 $("match-format").addEventListener("change", () => {
   updateFormat();
+  if (format === "ranked" && cloudflare) {
+    mode = "online";
+    setRoomAccess(false);
+  }
   setMode(mode);
 });
 updateFormat();
@@ -172,7 +192,7 @@ function setMode(next) {
 }
 let privateRoom = !!query.get("room") && query.get("match") !== "quick";
 function setRoomAccess(privateMatch) {
-  privateRoom = privateMatch;
+  privateRoom = format === "ranked" ? false : privateMatch;
   show("room-field", cloudflare && privateRoom);
   $("quick-match").setAttribute("aria-pressed", String(!privateRoom));
   $("friend-room").setAttribute("aria-pressed", String(privateRoom));
@@ -327,14 +347,27 @@ function consume(next) {
       b.textContent = e.killer;
       row.append(b, document.createTextNode("  ↗  " + e.name));
       $("kill-feed").replaceChildren(row);
+      if (e.owner) {
+        scene.feedback.kill(e.owner, e.x, e.z);
+        if (Number.isFinite(e.x) && Number.isFinite(e.z))
+          scene.burst(e.x, e.z, 0xff9970, 12);
+      }
       setTimeout(() => row.remove(), 5500);
     } else if (e.type === "hit" && e.kind !== "poison") {
       scene.burst(e.x, e.z, 0xf4c98b, 7);
+      if (e.critical) scene.feedback.show(e.owner, "HeadShot", "critical");
       if (e.owner === myId || e.target === myId) {
         audio.play("hit");
         if (e.target === myId && preferences.get("wildbow-haptics") !== "false")
           navigator.vibrate?.(18);
       }
+    } else if (e.type === "leech") {
+      scene.feedback.show(e.owner, `+${e.amount.toFixed(1)}`, "heal");
+    } else if (e.type === "lootDrop") {
+      toast("↓ İkmal paraşütü · Haritada işaretli");
+    } else if (e.type === "lootClaim") {
+      scene.burst(e.x, e.z, 0x91dce7, 14);
+      if (e.owner === myId) toast("↓ İkmal alındı · +1 seviye");
     } else if (e.type === "shot") {
       if (e.owner === myId) {
         audio.play("shot");
@@ -388,6 +421,10 @@ function consume(next) {
 }
 async function join() {
   if (joining) return;
+  if (format === "ranked" && (!cloudflare || mode !== "online")) {
+    toast("Ranked için online Cloudflare modunu seç.");
+    return;
+  }
   joining = true;
   $("play").disabled = true;
   audio.unlock();
@@ -419,7 +456,7 @@ async function join() {
           throw new Error("Oda kodu 3–24 harf, rakam veya tire içermeli.");
         candidate = new WebSocketTransport(url, consume, onDisconnect, {
           room,
-          matchmake: !privateRoom,
+          matchmake: format === "ranked" || !privateRoom,
           viewRadius: scene.networkRadius(),
           format,
         });
@@ -853,6 +890,16 @@ function updateHud(current) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  }
+  for (const drop of current.objective?.drops || []) {
+    ctx.fillStyle = "#a9eafa";
+    ctx.font = "bold 13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      drop.landed ? "▣" : "↓",
+      (drop.x + 42) * scale,
+      (drop.z + 42) * scale + 4,
+    );
   }
   for (const site of current.powerups || []) {
     const spec = POWERUPS[site.key];

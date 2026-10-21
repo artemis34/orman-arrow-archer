@@ -126,7 +126,9 @@ export class WebSocketTransport extends NetworkTransport {
               fail(
                 packet.type === "full"
                   ? "Arena dolu. Başka bir oda koduyla katılabilirsin."
-                  : "Arenaya bağlanılamadı. Tekrar dene.",
+                  : typeof packet.data?.message === "string"
+                    ? packet.data.message.slice(0, 140)
+                    : "Arenaya bağlanılamadı. Tekrar dene.",
               );
           }
         });

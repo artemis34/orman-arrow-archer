@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
@@ -57,6 +58,7 @@ async function open(mobile, name) {
     lastInputAt: 0,
   };
   probes.set(page, probe);
+  installFloatingGestures(page);
   page.on("pageerror", (e) => errors.push(e.message));
   // Observe actual browser WebSocket traffic; the app exposes no debug world.
   page.on("websocket", (socket) => {

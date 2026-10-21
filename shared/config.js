@@ -20,6 +20,11 @@ export const RULES = Object.freeze({
   longshotBonus: 0.2,
   botDamageScale: 0.75,
   arrowDamage: 15,
+  criticalChance: 0.05,
+  criticalBonus: 0.1,
+  lifestealRatio: 0.05,
+  lifestealHitCap: 1.5,
+  lifestealSecondCap: 3,
   shotCooldown: 0.55,
   sideArrowScale: 0.3,
   rearArrowScale: 0.5,
@@ -44,6 +49,13 @@ export const RULES = Object.freeze({
   maxOrbs: 140,
 });
 export const UPGRADES = Object.freeze({
+  lifesteal: {
+    name: "Can emen ok",
+    icon: "♥",
+    max: 1,
+    description:
+      "Doğrudan ok hasarının %5'i kadar can yeniler. Vuruş başına en fazla 1,5; saniyede 3 can. Zehir ve patlama işlemez.",
+  },
   returning: {
     name: "Geri dönen ok",
     icon: "↶",

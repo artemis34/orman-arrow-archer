@@ -7,8 +7,47 @@ export function applyArrowImpact(world, arrow, target, distance = 0) {
     (arrow.longshot && distance >= RULES.longshotRange
       ? 1 + RULES.longshotBonus
       : 1);
-  const dealt = world.damage(target, damage, arrow.owner);
+  const critical =
+    target.alive &&
+    target.spawnShield <= 0 &&
+    target.levelGuard <= 0 &&
+    world.combatRandom() < RULES.criticalChance;
+  const dealt = world.damage(
+    target,
+    damage * (critical ? 1 + RULES.criticalBonus : 1),
+    arrow.owner,
+    "impact",
+    critical,
+  );
   if (!dealt) return false;
+  const leechOwner = world.players.get(arrow.owner);
+  if (leechOwner?.alive && leechOwner.upgrades.lifesteal) {
+    let window = world.leech.get(leechOwner);
+    if (!window || world.time - window.at >= 1) {
+      window = { at: world.time, healed: 0 };
+      world.leech.set(leechOwner, window);
+    }
+    const healed = Math.max(
+      0,
+      Math.min(
+        leechOwner.maxHp - leechOwner.hp,
+        dealt * RULES.lifestealRatio,
+        RULES.lifestealHitCap,
+        RULES.lifestealSecondCap - window.healed,
+      ),
+    );
+    if (healed > 0) {
+      leechOwner.hp += healed;
+      window.healed += healed;
+      world.events.push({
+        type: "leech",
+        owner: arrow.owner,
+        x: leechOwner.x,
+        z: leechOwner.z,
+        amount: healed,
+      });
+    }
+  }
   target.hidden = false;
   // Level-up protection cancels existing attacks as well as new shots.
   if (arrow.cancelled || world.players.get(arrow.owner)?.levelGuard > 0)

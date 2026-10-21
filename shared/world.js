@@ -6,6 +6,7 @@ import { clearShot } from "./aim.js";
 import { ForestShrine } from "./objective.js";
 import { REGIONS } from "./regions.js";
 import { BotNavigation } from "./bot-navigation.js";
+import { LootDrops } from "./loot.js";
 import {
   RULES,
   UPGRADES,
@@ -29,6 +30,9 @@ export class World {
   constructor({ bots = 7, seed = 7821, mode = new FreeForAll() } = {}) {
     this.mode = mode;
     this.seed = seed;
+    this.combatSeed = seed ^ 0x5f3759df;
+    this.leech = new WeakMap();
+    this.loot = new LootDrops(seed);
     this.time = 0;
     this.objective = new ForestShrine();
     this.players = new Map();
@@ -94,6 +98,10 @@ export class World {
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  combatRandom() {
+    this.combatSeed = (Math.imul(this.combatSeed, 1664525) + 1013904223) >>> 0;
+    return this.combatSeed / 4294967296;
   }
   /** Online rooms fill empty seats; practice retains its fixed bot population. */
   setBotCount(count) {
@@ -326,6 +334,8 @@ export class World {
     return true;
   }
   resetRound() {
+    this.loot.drops.length = 0;
+    this.loot.nextAt = this.time + 45;
     while (this.arrows.active.length) this.arrows.release(0);
     while (this.orbs.active.length) this.orbs.release(0);
     this.objective.reset(this.time);
@@ -381,7 +391,7 @@ export class World {
         }
     }
   }
-  damage(p, amount, owner, kind = "impact") {
+  damage(p, amount, owner, kind = "impact", critical = false) {
     if (
       !this.mode.combat ||
       !Number.isFinite(amount) ||
@@ -409,6 +419,7 @@ export class World {
       target: p.id,
       owner,
       amount: Math.round(amount),
+      ...(critical ? { critical: true } : {}),
     });
     const attacker = this.players.get(owner);
     if (attacker && attacker !== p) {
@@ -439,6 +450,9 @@ export class World {
         type: "kill",
         name: p.name,
         killer: attacker?.name || "Orman",
+        owner: attacker?.id || null,
+        x: p.x,
+        z: p.z,
         target: p.id,
       });
       p.lastDeath = {
@@ -467,6 +481,7 @@ export class World {
       return false;
     p.contributors.clear();
     this.botNavigation.reset(p);
+    this.leech.delete(p);
     Object.assign(p, this.spawnPoint(p.bot ? 5 : 10, p.team), {
       hp:
         p.bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
@@ -756,6 +771,7 @@ export class World {
     this.mode.step(this, dt);
     if (!this.mode.combat) return;
     this.objective.step(this, dt);
+    this.loot.tick(this);
     this.grid.clear();
     this.orbGrid.clear();
     const starts = new Map();
@@ -1058,7 +1074,10 @@ export class World {
       match: this.mode.snapshot?.(this) || null,
       objective: this.mode.rules?.duel
         ? null
-        : this.objective.snapshot(this.time),
+        : {
+            ...this.objective.snapshot(this.time),
+            drops: this.loot.snapshot(),
+          },
       roster: [...this.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
@@ -1153,11 +1172,22 @@ export class World {
           rare: o.rare,
         })),
       powerups: this.mode.rules?.duel ? [] : this.powerups.snapshot(),
-      events: events.filter((e) => {
-        if (e.type === "kill") return true; // Kill feed has names, no coordinates.
-        const subject = this.players.get(e.target || e.owner);
-        return !subject || visible(subject);
-      }),
+      events: events
+        .filter((e) => {
+          if (e.type === "kill") return true;
+          const subject = this.players.get(e.target || e.owner);
+          return !subject || visible(subject);
+        })
+        .map((e) => {
+          if (
+            e.type !== "kill" ||
+            !this.players.get(e.target) ||
+            visible(this.players.get(e.target))
+          )
+            return e;
+          const { x, z, ...publicEvent } = e;
+          return publicEvent;
+        }),
     };
   }
 }

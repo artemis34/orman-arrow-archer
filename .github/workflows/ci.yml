@@ -1,7 +1,7 @@
 name: Validate and publish
 on:
   push:
-    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery]
+    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -53,6 +53,8 @@ jobs:
           npm run test:interaction
           npm run test:motion
           npm run test:lobby
+          npm run test:forest
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
           npm run test:expansion
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:expansion
@@ -74,6 +76,8 @@ jobs:
           npm run test:cloudflare
           npm run test:multimode
           npm run test:profile
+          npm run test:community
+          npm run test:community:runtime
           npm run test:cloudflare:browser
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
       - uses: actions/upload-artifact@v4
@@ -147,7 +151,7 @@ jobs:
           grep -q 'Wildbow' /tmp/live-index.html
           asset_path=$(sed -n 's/.*src="\.\/\([^"]*\.js\)".*/\1/p' /tmp/live-index.html | head -1)
           test -n "$asset_path"
-          curl --fail --location --retry 4 --retry-delay 3 "${site_url%index.html}${asset_path}" -o /tmp/live-entry.js
+          curl --fail --location --retry 8 --retry-delay 5 --retry-all-errors --retry-max-time 120 "${site_url%index.html}${asset_path}" -o /tmp/live-entry.js
           test -s /tmp/live-entry.js
           echo "### Live practice edition" >> "$GITHUB_STEP_SUMMARY"
           echo "$site_url" >> "$GITHUB_STEP_SUMMARY"

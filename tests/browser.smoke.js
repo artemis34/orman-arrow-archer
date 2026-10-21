@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
@@ -87,6 +88,7 @@ try {
     deviceScaleFactor: 1,
   });
   const m = await mobile.newPage();
+  installFloatingGestures(m);
   m.on("pageerror", (e) => errors.push(e.message));
   await m.goto(baseUrl);
   await m.locator("#lobby").waitFor({ state: "visible" });

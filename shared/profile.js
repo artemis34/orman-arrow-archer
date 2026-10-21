@@ -1,3 +1,4 @@
+import { updateRank } from "./ranking.js";
 /** Cosmetic currency is earned through completed, authoritative online rounds. */
 export const CATALOG = Object.freeze([
   { id: "bow-oak", slot: "bow", name: "Meşe yayı", color: "#e7bf79", price: 0 },
@@ -115,6 +116,13 @@ export const starter = () =>
 export function newProfile() {
   return {
     version: 1,
+    socialCode: crypto
+      .randomUUID()
+      .replaceAll("-", "")
+      .slice(0, 12)
+      .toUpperCase(),
+    displayName: "Gezgin",
+    ranked: { points: 0, matches: 0, wins: 0 },
     coins: 0,
     owned: CATALOG.filter((p) => !p.price).map((p) => p.id),
     equipped: starter(),
@@ -195,10 +203,12 @@ export function award(profile, result) {
   profile.receipts.push(result.receipt);
   profile.receipts = profile.receipts.slice(-64);
   profile.stats.matches++;
-  for (const key of ["kills", "assists", "hits", "objectives"])
-    profile.stats[key] += safe(result[key]);
+  if (!result.statsRecorded)
+    for (const key of ["kills", "assists", "hits", "objectives"])
+      profile.stats[key] += safe(result[key]);
   profile.stats.wins += result.win ? 1 : 0;
   profile.stats.best = Math.max(profile.stats.best, safe(result.points));
+  updateRank(profile, result);
   profile.coins +=
     20 + Math.min(20, safe(result.kills) * 2) + (result.win ? 10 : 0);
   for (const a of ACHIEVEMENTS) {
@@ -208,6 +218,21 @@ export function award(profile, result) {
     if (a.coins) profile.coins += a.coins;
     if (a.item && !profile.owned.includes(a.item)) profile.owned.push(a.item);
   }
+  return true;
+}
+export function recordActivity(profile, result) {
+  if (
+    typeof result.receipt !== "string" ||
+    profile.receipts.includes(result.receipt)
+  )
+    return false;
+  profile.receipts.push(result.receipt);
+  profile.receipts = profile.receipts.slice(-64);
+  for (const key of ["kills", "assists", "hits", "objectives"])
+    profile.stats[key] += Math.max(
+      0,
+      Math.min(1000, Math.floor(Number(result[key]) || 0)),
+    );
   return true;
 }
 export function publicProfile(profile) {

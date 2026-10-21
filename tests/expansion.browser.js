@@ -66,7 +66,7 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
-  assert.equal(await page.locator("#match-format option").count(), 8);
+  assert.equal(await page.locator("#match-format option").count(), 9);
   for (const [width, height] of [
     [390, 844],
     [375, 667],

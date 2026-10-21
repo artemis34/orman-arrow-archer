@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
@@ -33,6 +34,7 @@ try {
       hasTouch: mobile,
     });
     let page = (activePage = await context.newPage());
+    installFloatingGestures(page);
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("requestfailed", (req) => {
       if (

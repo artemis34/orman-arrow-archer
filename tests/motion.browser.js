@@ -1,3 +1,4 @@
+import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "node:http";
@@ -118,6 +119,7 @@ try {
         true,
       );
   });
+  installFloatingGestures(page);
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(process.env.TEST_SERVER_URL || "http://127.0.0.1:3000");
   await page.locator("#online-mode").click();

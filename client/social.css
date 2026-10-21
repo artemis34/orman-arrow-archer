@@ -1,0 +1,140 @@
+.combat-feedback {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  overflow: hidden;
+}
+.combat-word {
+  position: absolute;
+  white-space: nowrap;
+  font:
+    800 13px "Manrope",
+    sans-serif;
+  text-shadow:
+    0 2px 5px #10271f,
+    0 0 3px #10271f;
+  letter-spacing: 0.04em;
+  color: #ffe49b;
+}
+.word-kill {
+  color: #ffbc86;
+  font-size: 14px;
+}
+.word-critical {
+  color: #ff514f;
+  font-size: 15px;
+}
+.word-heal {
+  color: #a8efa1;
+  font-size: 12px;
+}
+.social-row,
+.rank-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #bce09322;
+  border-radius: 12px;
+  margin: 8px 0;
+  background: #102b2233;
+}
+.social-row small,
+.rank-summary small {
+  display: block;
+  opacity: 0.7;
+  font-size: 11px;
+}
+.social-row button {
+  flex-shrink: 0;
+}
+.social-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.social-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #bce09344;
+  background: #15362c;
+  color: #e8f2da;
+}
+.auth-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.auth-buttons button {
+  flex: 1;
+}
+.rank-progress {
+  height: 5px;
+  background: #9ec28233;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rank-progress i {
+  display: block;
+  height: 100%;
+  background: #c1e992;
+}
+.collection-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+}
+.collection-tabs button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.joystick.floating-origin {
+  position: fixed !important;
+  left: var(--floating-x) !important;
+  top: var(--floating-y) !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  opacity: 0.75;
+  z-index: 13;
+}
+.lobby-social {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lobby-social button {
+  flex: 1;
+  border: 1px solid #adc98733;
+  background: #173c2c;
+  color: #d9edc4;
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 12px;
+}
+.lobby-accounts .auth-buttons {
+  margin-top: 8px;
+}
+.lobby-accounts button {
+  flex: 1;
+  border: 1px solid #adc98733;
+  background: transparent;
+  color: #d9edc4;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.auth-buttons button:disabled {
+  opacity: 0.5;
+}
+.account-note {
+  display: block;
+  font-size: 10px;
+  text-align: center;
+  opacity: 0.6;
+  margin-top: 5px;
+}

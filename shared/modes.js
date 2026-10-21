@@ -9,6 +9,14 @@ export const FORMATS = Object.freeze({
     duration: 120,
     duel: true,
   },
+  ranked: {
+    name: "Ranked · Orman düellosu",
+    capacity: 2,
+    teams: 0,
+    duration: 120,
+    duel: true,
+    ranked: true,
+  },
   t2: { name: "Takım · 2v2", capacity: 4, teams: 2, duration: 240 },
   t4: { name: "Takım · 4v4", capacity: 8, teams: 2, duration: 240 },
   t8: { name: "Takım · 8v8", capacity: 16, teams: 2, duration: 240 },
@@ -161,6 +169,7 @@ export class RoundMode extends GameMode {
       this.round++;
       this.votes.clear();
       this.results = null;
+      this.forfeit = null;
       this.teamScores.fill(0);
       this.phase = "waiting";
       world.resetRound();
