@@ -137,11 +137,13 @@ try {
     ((1 - point.y) * 844) / 2,
   );
   await expect.poll(() => actor.lockedTargetId).toBe("chosen");
-  assert.equal(
-    actor.autoTargetId,
-    "chosen",
-    "manual lock wins over the weaker opponent",
-  );
+  // setInput records the lock immediately; autoTarget is resolved by the next
+  // 30 Hz world tick. Observe that outcome instead of racing the tick timer.
+  await expect
+    .poll(() => actor.autoTargetId, {
+      message: "manual lock wins over the weaker opponent",
+    })
+    .toBe("chosen");
   await page.touchscreen.tap(190, 280);
   await expect.poll(() => actor.lockedTargetId).toBe(null);
   await expect.poll(() => actor.autoTargetId).toBe("weak");
