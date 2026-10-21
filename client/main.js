@@ -1,6 +1,7 @@
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
 import { KillStreakBadge } from "./kill-streak.js";
+import { usesCloudflare } from "./network-mode.js";
 import { selectTarget } from "../shared/aim.js";
 import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
@@ -50,8 +51,11 @@ const panels = setupPanels();
 const killStreak = new KillStreakBadge($("kill-streak"));
 scene.setMap(atHome.obstacles);
 const query = new URLSearchParams(location.search);
-const cloudflare =
-  import.meta.env.MODE === "cloudflare" || query.get("network") === "websocket";
+const cloudflare = usesCloudflare(
+  import.meta.env.MODE,
+  query.get("network"),
+  location.hostname,
+);
 let format = formatKey(
   query.get("format") || preferences.get("wildbow-format"),
 );

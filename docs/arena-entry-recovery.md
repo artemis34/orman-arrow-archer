@@ -18,6 +18,9 @@ Bulunan bağlantı eksikleri giderildi:
 - Oyun modu/oda seçimini değiştirmek de eski bekleyen bağlantıyı durdurur.
 - Geçersiz welcome yanıtı zaman aşımını kapatıp giriş akışını yarım bırakamaz.
 - Tek kullanımlık eşleştirme yanıtı istemcide de `cache: no-store` kullanır.
+- `workers.dev` adresleri build modu yanlışlıkla genel `production` olsa da
+  doğal WebSocket adaptörünü seçer; Socket.IO sunucusu arayarak beklemez.
+- İptal mevcut Node/Socket.IO geliştirme adaptöründe de bekleyen girişi bitirir.
 
 Google/Apple girişi zorunlu yapılmadı. Sunucu, fizik, hasar, snapshot/girdi
 protokolü, ranked kimlik kuralları ve oyuncunun kayıtlı profili değişmedi.

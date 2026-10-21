@@ -22,45 +22,49 @@ const browser = await (engine === "webkit" ? webkit : chromium).launch({
       }
     : {}),
 });
-const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  }),
-  page = await context.newPage(),
-  errors = [],
+const mobile = {
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+};
+let context = await browser.newContext(mobile),
+  page = await context.newPage();
+const errors = [],
   network = [];
-page.on("pageerror", (e) => errors.push(e.message));
-page.on("response", (response) => {
-  const path = new URL(response.url()).pathname;
-  if (path.startsWith("/api/"))
-    network.push({ path, status: response.status(), at: Date.now() });
-});
-page.on("requestfailed", (request) => {
-  const path = new URL(request.url()).pathname;
-  if (path.startsWith("/api/"))
-    network.push({ path, failure: request.failure()?.errorText });
-});
-page.on("websocket", (ws) => {
-  const path = new URL(ws.url()).pathname;
-  network.push({ websocket: path, at: Date.now() });
-  ws.on("framereceived", ({ payload }) => {
-    if (typeof payload !== "string") return;
-    try {
-      const p = JSON.parse(payload);
-      if (["welcome", "error", "full"].includes(p.type))
-        network.push({
-          type: p.type,
-          message: p.data?.message,
-          at: Date.now(),
-        });
-    } catch {}
+function observe(page) {
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("response", (response) => {
+    const path = new URL(response.url()).pathname;
+    if (path.startsWith("/api/"))
+      network.push({ path, status: response.status(), at: Date.now() });
   });
-  ws.on("socketerror", (error) =>
-    network.push({ websocketError: String(error) }),
-  );
-  ws.on("close", () => network.push({ closed: path, at: Date.now() }));
-});
+  page.on("requestfailed", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/"))
+      network.push({ path, failure: request.failure()?.errorText });
+  });
+  page.on("websocket", (ws) => {
+    const path = new URL(ws.url()).pathname;
+    network.push({ websocket: path, at: Date.now() });
+    ws.on("framereceived", ({ payload }) => {
+      if (typeof payload !== "string") return;
+      try {
+        const p = JSON.parse(payload);
+        if (["welcome", "error", "full"].includes(p.type))
+          network.push({
+            type: p.type,
+            message: p.data?.message,
+            at: Date.now(),
+          });
+      } catch {}
+    });
+    ws.on("socketerror", (error) =>
+      network.push({ websocketError: String(error) }),
+    );
+    ws.on("close", () => network.push({ closed: path, at: Date.now() }));
+  });
+}
+observe(page);
 mkdirSync("/tmp/archer-validation", { recursive: true });
 async function leave() {
   if (await page.locator("#death").isVisible())
@@ -98,6 +102,19 @@ try {
   await join("returning profile, service worker, saved invitation URL");
   await leave();
   if (process.env.JOIN_RECOVERY_TESTS === "1") {
+    // Keep the real returning/SW path above. Fault injection needs a separate
+    // context because WebKit service workers can bypass Playwright routes.
+    const storageState = await context.storageState();
+    await context.close();
+    context = await browser.newContext({
+      ...mobile,
+      storageState,
+      serviceWorkers: "block",
+    });
+    page = await context.newPage();
+    observe(page);
+    await page.goto(base);
+    await expect(page.locator("#lobby")).toBeVisible();
     let requests = 0;
     await page.route("**/api/matchmake", async (route) => {
       if (++requests === 1)

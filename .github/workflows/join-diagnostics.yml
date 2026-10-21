@@ -2,7 +2,7 @@ name: Validate public mobile connection
 on:
   push:
     branches: [fix/arena-join-recovery, main]
-    paths: [client/main.js, client/websocket.js, tests/join.browser.js, .github/workflows/join-diagnostics.yml]
+    paths: [client/main.js, client/websocket.js, client/transport.js, client/network-mode.js, tests/join.browser.js, .github/workflows/join-diagnostics.yml]
   workflow_dispatch:
 permissions:
   contents: read

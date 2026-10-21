@@ -405,3 +405,19 @@ test("disconnect before welcome rejects promptly instead of leaving the join but
   await assert.rejects(connecting, /bağlantıyı kapattı/);
   t.close();
 });
+test("explicit cancellation also settles a pending Socket.IO join", async () => {
+  const socket = new EventEmitter();
+  socket.disconnect = () => {};
+  const transport = new SocketTransport(
+    "http://example.test",
+    () => {},
+    () => {},
+    {
+      createSocket: () => socket,
+    },
+  );
+  const connecting = transport.connect("Cancel", 0);
+  transport.close();
+  await assert.rejects(connecting, /Bağlantı durduruldu/);
+  assert.equal(socket.listenerCount("welcome"), 0);
+});

@@ -257,6 +257,7 @@ export class SocketTransport extends NetworkTransport {
   connect(name, skin, options = {}) {
     return new Promise((resolve, reject) => {
       let ready = false;
+      this.rejectConnect = reject;
       this.socket = this.createSocket(this.url, {
         transports: ["websocket", "polling"],
         timeout: 60000,
@@ -264,8 +265,7 @@ export class SocketTransport extends NetworkTransport {
         reconnection: false,
       });
       const timer = (this.connectTimer = setTimeout(() => {
-        this.close();
-        reject(
+        this.close(
           new Error(
             "Sunucu yanıt vermedi. Ücretsiz sunucunun uyanması zaman alabilir.",
           ),
@@ -277,6 +277,7 @@ export class SocketTransport extends NetworkTransport {
       this.socket.on("welcome", (data) => {
         clearTimeout(timer);
         ready = true;
+        this.rejectConnect = null;
         this.id = data.id;
         this.obstacles = data.obstacles;
         resolve(data);
@@ -290,14 +291,12 @@ export class SocketTransport extends NetworkTransport {
       this.socket.on("state", (state) => this.acceptState(state));
       this.socket.on("full", () => {
         clearTimeout(timer);
-        this.close();
-        reject(new Error("Arena dolu. Biraz sonra tekrar dene."));
+        this.close(new Error("Arena dolu. Biraz sonra tekrar dene."));
       });
       this.socket.on("connect_error", () => {
         if (!ready) {
           clearTimeout(timer);
-          this.close();
-          reject(
+          this.close(
             new Error(
               "Sunucuya bağlanılamadı. Adresi kontrol et veya antrenmanı seç.",
             ),
@@ -308,8 +307,7 @@ export class SocketTransport extends NetworkTransport {
         if (ready) this.onDisconnect();
         else {
           clearTimeout(timer);
-          this.close();
-          reject(
+          this.close(
             new Error("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin."),
           );
         }
@@ -319,7 +317,10 @@ export class SocketTransport extends NetworkTransport {
   send(type, data) {
     this.socket.emit(type, data);
   }
-  close() {
+  close(error = new Error("Bağlantı durduruldu. Tekrar oynayabilirsin.")) {
+    const reject = this.rejectConnect;
+    this.rejectConnect = null;
+    reject?.(error);
     clearTimeout(this.connectTimer);
     clearInterval(this.pingTimer);
     this.socket?.removeAllListeners();
