@@ -174,9 +174,12 @@ sürüm/yetenek anlaşması tasarlanmalı.
   atış, sahte input reddi, oda izolasyonu, stale input, 16 insan sınırı ve boş oda
   kapanmasını denetler. Gecikmeli mobil hareket/çift joystick/tek el testi
   130–210 ms RTT ve 600 ms render stall içerir.
-- Final Chromium/Safari-WebKit ve oda formatı doğrulamalarının CI sonucu,
-  bu dalın GitHub Actions kaydında takip edilir; üretim yayın işleri bu dalda
-  `main` koşulunu sağlamadığı için çalışmaz.
+- [Final GitHub Actions doğrulaması](https://github.com/artemis34/orman-arrow-archer/actions/runs/39550012320)
+  başarılı: 157 test, Chromium ve Safari/WebKit, tam kalite renderer bütçeleri,
+  gerçek Node/Socket.IO ve workerd multiplayer, bütün takım formatları ve
+  profil/offline kontrolleri geçti. `cloudflare`, `static`, `pages` ve
+  `cloudflare-live` üretim işleri bu dalda `main` koşulunu sağlamadığı için
+  atlandı; canlıya yayın yapılmadı.
 
 Benchmarklar Node **v24.19.0**, Linux x64, AMD EPYC 9V74 ortamında çalıştırıldı.
 Her senaryoda ayrı süreç, **2 ısınma + 7 ölçüm** kullanıldı; ilk üç kaynak
