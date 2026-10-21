@@ -13,6 +13,9 @@ import {
 const fixture = JSON.parse(
   readFileSync(new URL("./fixtures/protocol-v2-7397e49.json", import.meta.url)),
 );
+const manifest = JSON.parse(
+  readFileSync(new URL("../protocol/wildbow-v2.json", import.meta.url)),
+);
 const plain = (value) => JSON.parse(JSON.stringify(value));
 test("production v2 golden packets remain byte-identical and decode at nonzero buffer offsets", () => {
   assert.equal(PROTOCOL, fixture.protocol);
@@ -73,6 +76,35 @@ test("production malformed-packet rejection is preserved", () => {
       (error) => error.message === vector.error,
       vector.id,
     );
+});
+test("the language-neutral manifest pins every player field and input flag to production bytes", () => {
+  assert.equal(manifest.version, PROTOCOL);
+  assert.equal(manifest.sourceCommit, fixture.source);
+  assert.equal(manifest.playerFields.length, 42);
+  assert.equal(manifest.stateTuple.length, 14);
+  const full = fixture.snapshots[0],
+    packet = decodePacket(Buffer.from(full.base64, "base64"));
+  for (const [id, ...values] of packet[3]) {
+    const player = full.state.players.find((p) => p.id === id);
+    for (const { index, name, scale } of manifest.playerFields) {
+      const expected = scale
+        ? Math.round((player[name] || 0) * scale)
+        : (player[name] ?? null);
+      assert.deepEqual(plain(values[index]), plain(expected), name);
+    }
+  }
+  for (const vector of fixture.inputs) {
+    const rows = decodePacket(Buffer.from(vector.base64, "base64"))[1];
+    vector.inputs.forEach((input, i) =>
+      assert.equal(
+        rows[i][4],
+        manifest.inputFlags.reduce(
+          (n, { bit, name }) => n | (input[name] ? 1 << bit : 0),
+          0,
+        ),
+      ),
+    );
+  }
 });
 test("encoded packets own their bytes across repeated floating-point encodes and reentrant getters", () => {
   const first = encodePacket([1.1, 2.2, 3.3]),

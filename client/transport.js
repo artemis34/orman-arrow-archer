@@ -8,6 +8,11 @@ import {
   cleanInput,
   RULES,
 } from "../shared/config.js";
+function indexById(entities) {
+  const index = new Map();
+  for (const entity of entities) index.set(entity.id, entity);
+  return index;
+}
 /** Transport adapters isolate rendering from the authority implementation. */
 export class LocalTransport {
   constructor(format = "arena") {
@@ -161,9 +166,12 @@ export class NetworkTransport {
         break;
       }
     const t = Math.max(0, Math.min(1, (now - a.at) / (b.at - a.at || 1)));
-    const old = new Map(a.state.players.map((p) => [p.id, p]));
-    const buffered = new Map(b.state.players.map((p) => [p.id, p]));
-    const oldArrows = new Map(a.state.arrows.map((p) => [p.id, p]));
+    // Accepted snapshots keep stable entity membership. Cache only lookups on
+    // their existing eight-entry buffer; timing, prediction and transforms stay
+    // unchanged, and shifting a snapshot also releases its index references.
+    const old = (a.playerIndex ||= indexById(a.state.players));
+    const buffered = (b.playerIndex ||= indexById(b.state.players));
+    const oldArrows = (a.arrowIndex ||= indexById(a.state.arrows));
     return {
       ...last.state,
       // Only transforms use the interpolation buffer. Life, protection, HP,

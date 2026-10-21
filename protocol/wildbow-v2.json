@@ -1,0 +1,337 @@
+{
+  "version": 2,
+  "sourceCommit": "7397e490c49bc3d06e0cc98875d2fb8662ac0472",
+  "sourceSha256": "7c8d0074d8d2d0baf432f1bfc44ce5bf07206ffbd67b63cab711e2afcd7c8a29",
+  "magic": [
+    87,
+    66
+  ],
+  "header": [
+    87,
+    66,
+    2
+  ],
+  "byteOrder": "little-endian",
+  "tags": {
+    "null": 0,
+    "false": 1,
+    "true": 2,
+    "zigzagInteger": 3,
+    "float64": 4,
+    "utf8": 5,
+    "array": 6,
+    "object": 7
+  },
+  "limits": {
+    "packetBytes": 262144,
+    "collectionElements": 16384,
+    "nestingDepth": 12,
+    "unsignedVarintBytes": 6,
+    "inputBatchFrames": 4,
+    "clientMessageBytes": 4096
+  },
+  "quantization": {
+    "rule": "Math.round((value || 0) * scale); ties toward positive infinity",
+    "coordinates": 100,
+    "playerAngle": 1000,
+    "inputAxesAndAngle": 10000,
+    "timeAndCooldowns": 1000
+  },
+  "stateTuple": [
+    "state",
+    "reset",
+    "timeMilliseconds",
+    "addedPlayers",
+    "changedPlayers",
+    "removedPlayerIds",
+    "arrows",
+    "addedOrbs",
+    "removedOrbIds",
+    "powerups",
+    "events",
+    "rosterOrNull",
+    "matchOrNull",
+    "objectiveOrNull"
+  ],
+  "playerFields": [
+    {
+      "index": 0,
+      "name": "name",
+      "scale": null
+    },
+    {
+      "index": 1,
+      "name": "skin",
+      "scale": null
+    },
+    {
+      "index": 2,
+      "name": "x",
+      "scale": 100
+    },
+    {
+      "index": 3,
+      "name": "z",
+      "scale": 100
+    },
+    {
+      "index": 4,
+      "name": "vx",
+      "scale": 100
+    },
+    {
+      "index": 5,
+      "name": "vz",
+      "scale": 100
+    },
+    {
+      "index": 6,
+      "name": "angle",
+      "scale": 1000
+    },
+    {
+      "index": 7,
+      "name": "hp",
+      "scale": 100
+    },
+    {
+      "index": 8,
+      "name": "maxHp",
+      "scale": null
+    },
+    {
+      "index": 9,
+      "name": "level",
+      "scale": null
+    },
+    {
+      "index": 10,
+      "name": "xp",
+      "scale": null
+    },
+    {
+      "index": 11,
+      "name": "kills",
+      "scale": null
+    },
+    {
+      "index": 12,
+      "name": "score",
+      "scale": null
+    },
+    {
+      "index": 13,
+      "name": "alive",
+      "scale": null
+    },
+    {
+      "index": 14,
+      "name": "charge",
+      "scale": 1000
+    },
+    {
+      "index": 15,
+      "name": "levelGuard",
+      "scale": 1000
+    },
+    {
+      "index": 16,
+      "name": "buffType",
+      "scale": null
+    },
+    {
+      "index": 17,
+      "name": "buffTime",
+      "scale": 1000
+    },
+    {
+      "index": 18,
+      "name": "autoTargetId",
+      "scale": null
+    },
+    {
+      "index": 19,
+      "name": "slowTime",
+      "scale": 1000
+    },
+    {
+      "index": 20,
+      "name": "slowImmunity",
+      "scale": 1000
+    },
+    {
+      "index": 21,
+      "name": "shotCd",
+      "scale": 1000
+    },
+    {
+      "index": 22,
+      "name": "dashCd",
+      "scale": 1000
+    },
+    {
+      "index": 23,
+      "name": "healCd",
+      "scale": 1000
+    },
+    {
+      "index": 24,
+      "name": "dashTime",
+      "scale": 1000
+    },
+    {
+      "index": 25,
+      "name": "dashX",
+      "scale": 1000
+    },
+    {
+      "index": 26,
+      "name": "dashZ",
+      "scale": 1000
+    },
+    {
+      "index": 27,
+      "name": "upgrades",
+      "scale": null
+    },
+    {
+      "index": 28,
+      "name": "choices",
+      "scale": null
+    },
+    {
+      "index": 29,
+      "name": "pending",
+      "scale": null
+    },
+    {
+      "index": 30,
+      "name": "hidden",
+      "scale": null
+    },
+    {
+      "index": 31,
+      "name": "spawnShield",
+      "scale": 1000
+    },
+    {
+      "index": 32,
+      "name": "seq",
+      "scale": null
+    },
+    {
+      "index": 33,
+      "name": "respawnIn",
+      "scale": 1000
+    },
+    {
+      "index": 34,
+      "name": "bot",
+      "scale": null
+    },
+    {
+      "index": 35,
+      "name": "lockedTargetId",
+      "scale": null
+    },
+    {
+      "index": 36,
+      "name": "team",
+      "scale": null
+    },
+    {
+      "index": 37,
+      "name": "cosmetics",
+      "scale": null
+    },
+    {
+      "index": 38,
+      "name": "assists",
+      "scale": null
+    },
+    {
+      "index": 39,
+      "name": "matchPoints",
+      "scale": null
+    },
+    {
+      "index": 40,
+      "name": "rerolled",
+      "scale": null
+    },
+    {
+      "index": 41,
+      "name": "lastDeath",
+      "scale": null
+    }
+  ],
+  "arrowTuple": [
+    "id",
+    "xCentimeters",
+    "zCentimeters",
+    "angleMilliradians",
+    "poison",
+    "effect",
+    "trail"
+  ],
+  "orbTuple": [
+    "id",
+    "xCentimeters",
+    "zCentimeters",
+    "value",
+    "rare"
+  ],
+  "inputTuple": [
+    "seq",
+    "xScaled10000",
+    "zScaled10000",
+    "angleScaled10000",
+    "flags",
+    "lockTarget"
+  ],
+  "inputFlags": [
+    {
+      "bit": 0,
+      "name": "charge"
+    },
+    {
+      "bit": 1,
+      "name": "dash"
+    },
+    {
+      "bit": 2,
+      "name": "heal"
+    },
+    {
+      "bit": 3,
+      "name": "quickShot"
+    },
+    {
+      "bit": 4,
+      "name": "cancelShot"
+    },
+    {
+      "bit": 5,
+      "name": "autoFire"
+    }
+  ],
+  "lockTarget": {
+    "false": "unchanged",
+    "null": "unlock",
+    "string": "explicit target ID"
+  },
+  "cadence": {
+    "simulationHz": 30,
+    "snapshotHz": 15,
+    "keyframeSnapshots": 75,
+    "inputNominalHz": 30,
+    "inputBatchNominalPacketsPerSecond": 15,
+    "pingSeconds": 10
+  },
+  "capabilities": {
+    "nativeWebSocket": true,
+    "socketIoIsSeparateAdapter": true,
+    "jsonFallback": true
+  },
+  "fixtures": "../tests/fixtures/protocol-v2-7397e49.json"
+}
