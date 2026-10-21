@@ -53,7 +53,10 @@ export class Controls {
       };
       canvas.setPointerCapture(e.pointerId);
     });
-    canvas.addEventListener("pointerup", (e) => {
+    // The floating pad appears beneath the finger after pointerdown. On touch
+    // browsers its release can target that pad; finish the original gesture
+    // globally, still accepting only its captured pointer ID.
+    addEventListener("pointerup", (e) => {
       if (canvasTouch?.id !== e.pointerId) return;
       if (
         this.active &&
@@ -72,7 +75,9 @@ export class Controls {
       }
       canvasTouch = null;
     });
-    canvas.addEventListener("pointercancel", () => (canvasTouch = null));
+    addEventListener("pointercancel", (e) => {
+      if (canvasTouch?.id === e.pointerId) canvasTouch = null;
+    });
     this.stickResets.push(() => {
       if (canvasTouch) {
         const id = canvasTouch.id;

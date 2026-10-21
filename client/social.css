@@ -47,6 +47,14 @@
   opacity: 0.7;
   font-size: 11px;
 }
+.social-row {
+  flex-wrap: wrap;
+}
+.social-row > div {
+  flex: 1 1 110px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .social-row button {
   flex-shrink: 0;
 }

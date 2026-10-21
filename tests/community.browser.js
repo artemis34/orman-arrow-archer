@@ -50,7 +50,7 @@ try {
     await fetch(`${base}/api/profile/name`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ name: "Dost Test" }),
+      body: JSON.stringify({ name: "WWWWWWWWWWWWWWWW" }),
     })
   ).json();
   await page
@@ -78,10 +78,18 @@ try {
   await expect(page.locator(".rank-summary")).toContainText("Tohum");
   await expect(page.locator(".rank-summary")).toContainText("0 RP");
   await page.locator('[data-tab="friends"]').tap();
-  await expect(page.locator(".collection-content")).toContainText("Dost Test");
+  await expect(page.locator(".collection-content")).toContainText(
+    "WWWWWWWWWWWWWWWW",
+  );
   await expect(
     page.getByRole("button", { name: "Davet", exact: true }),
   ).toBeVisible();
+  assert.ok(
+    await page
+      .locator(".collection-content")
+      .evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
+    "friend rows fit a phone even with long names",
+  );
   await page.locator('[data-tab="leaderboard"]').tap();
   await expect(page.locator(".collection-content")).toContainText(
     "Herkes Tohum",

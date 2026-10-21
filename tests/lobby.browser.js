@@ -66,7 +66,8 @@ const browser = await (engine === "webkit" ? webkit : chromium).launch({
       }
     : {}),
 });
-const errors = [];
+const errors = [],
+  gestures = [];
 mkdirSync("/tmp/archer-validation", { recursive: true });
 try {
   const context = await browser.newContext({
@@ -76,6 +77,25 @@ try {
     }),
     page = await context.newPage();
   installFloatingGestures(page);
+  await page.exposeFunction("recordGesture", (event) => {
+    gestures.push(event);
+    if (gestures.length > 20) gestures.shift();
+  });
+  await page.addInitScript(() => {
+    for (const type of ["pointerdown", "pointerup", "pointercancel"])
+      addEventListener(
+        type,
+        (e) =>
+          window.recordGesture({
+            type,
+            x: e.clientX,
+            y: e.clientY,
+            time: e.timeStamp,
+            target: e.target.id || e.target.tagName,
+          }),
+        true,
+      );
+  });
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
@@ -230,6 +250,7 @@ try {
     `LOBBY_ONEHAND_OK ${engine}: short/landscape menus, saved controls, centered joystick, automatic fire, real enemy tap lock/unlock, independent movement and classic fallback.`,
   );
 } catch (error) {
+  error.message += `\nRecent gestures: ${JSON.stringify(gestures)}`;
   error.message += `\nEngine: ${engine}; actor: ${JSON.stringify(actor && { x: actor.x, z: actor.z, alive: actor.alive, level: actor.level, guard: actor.levelGuard, pending: actor.pending, target: actor.autoTargetId, locked: actor.lockedTargetId })}`;
   annotateFailure(error, "Lobby and one-handed controls");
   throw error;
