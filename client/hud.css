@@ -443,6 +443,10 @@
   border: 1px solid #d8edc426;
   border-radius: 10px;
   padding: 5px;
+  max-height: calc(50dvh - 68px);
+  overflow-y: auto;
+  pointer-events: auto;
+  touch-action: pan-y;
 }
 .guarded .upgrade-dock {
   border-color: #a1dbe16e;
@@ -613,6 +617,7 @@ body.playing #arena {
   .upgrade-dock {
     bottom: calc(193px + env(safe-area-inset-bottom));
     max-width: 560px;
+    max-height: calc(50dvh - 205px - env(safe-area-inset-bottom));
   }
   #upgrade-options button {
     min-height: 92px;
@@ -643,6 +648,9 @@ body.playing #arena {
   .upgrade-dock,
   .upgrade-reminder {
     bottom: calc(174px + env(safe-area-inset-bottom));
+  }
+  .upgrade-dock {
+    max-height: calc(50dvh - 186px - env(safe-area-inset-bottom));
   }
   #upgrade-options button {
     min-height: 88px;
