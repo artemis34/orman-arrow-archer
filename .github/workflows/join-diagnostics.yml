@@ -1,14 +1,15 @@
-name: Diagnose public mobile connection
+name: Validate public mobile connection
 on:
   push:
-    branches: [fix/arena-join-recovery]
+    branches: [fix/arena-join-recovery, main]
+    paths: [client/main.js, client/websocket.js, tests/join.browser.js, .github/workflows/join-diagnostics.yml]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     env:
       CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
     steps:
@@ -18,7 +19,40 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm test
+      - run: npm run check
       - run: npx playwright install --with-deps chromium webkit
+      - name: Verify stalled requests, cancellation and fresh-seat recovery in the real Worker runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRANGLER_SEND_METRICS=false npm run dev:cloudflare > /tmp/join-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:8787/health; then break; fi
+            sleep 1
+          done
+          JOIN_RECOVERY_TESTS=1 CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 node tests/join.browser.js
+          JOIN_RECOVERY_TESTS=1 CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/join.browser.js
+      - name: Verify this client version is deployed
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:cloudflare
+          read_asset='const fs=require("node:fs");const html=fs.readFileSync(process.argv[1],"utf8");const src=html.match(/<script[^>]*src="([^"]+\.js)"/);if(!src)process.exit(1);console.log(src[1].split("/").at(-1));'
+          expected=$(node -e "$read_asset" dist-cloudflare/index.html)
+          matched=false
+          for attempt in {1..36}; do
+            if curl --fail --silent "$CLOUDFLARE_TEST_URL/" -o /tmp/join-live.html; then
+              actual=$(node -e "$read_asset" /tmp/join-live.html || true)
+              if test "$actual" = "$expected"; then matched=true; break; fi
+            fi
+            sleep 5
+          done
+          test "$matched" = true
+          echo "JOIN_RECOVERY_TESTS=1" >> "$GITHUB_ENV"
       - name: Check current public quick join and returning mobile sessions
         run: |
           node tests/join.browser.js

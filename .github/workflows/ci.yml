@@ -82,6 +82,8 @@ jobs:
           npm run test:profile
           npm run test:community
           npm run test:community:runtime
+          JOIN_RECOVERY_TESTS=1 npm run test:join
+          JOIN_RECOVERY_TESTS=1 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:join
           npm run test:cloudflare:browser
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
       - uses: actions/upload-artifact@v4

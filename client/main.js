@@ -75,6 +75,7 @@ let playing = false,
   lastLevel = 1,
   toastTimer,
   joining = false,
+  joiningTransport = null,
   guardWasActive = false;
 const initialServer =
   (cloudflare ? query.get("server") || location.origin : null) ||
@@ -166,6 +167,7 @@ for (const [i, s] of SKINS.entries()) {
   $("skins").append(b);
 }
 function setMode(next) {
+  if (joining) joiningTransport?.close();
   mode = next;
   $("practice-mode").classList.toggle("selected", mode === "practice");
   $("online-mode").classList.toggle("selected", mode === "online");
@@ -429,11 +431,15 @@ async function join() {
     return;
   }
   joining = true;
-  $("play").disabled = true;
+  $("play").setAttribute("aria-busy", "true");
+  $("play").querySelector("b").textContent = "İPTAL ET";
+  $("play").querySelector("span").textContent = "×";
   audio.unlock();
   const name = $("player-name").value.trim() || "Gezgin";
   preferences.set("wildbow-name", name);
-  let candidate;
+  let candidate,
+    retryCandidate,
+    connectionAttempt = 1;
   try {
     if (mode === "online") {
       let url = $("server-url").value.trim();
@@ -457,22 +463,49 @@ async function join() {
         const room = roomCode($("room-code").value);
         if (!room)
           throw new Error("Oda kodu 3–24 harf, rakam veya tire içermeli.");
-        candidate = new WebSocketTransport(url, consume, onDisconnect, {
-          room,
-          matchmake: format === "ranked" || !privateRoom,
-          viewRadius: scene.networkRadius(),
-          format,
-        });
+        retryCandidate = () =>
+          new WebSocketTransport(url, consume, onDisconnect, {
+            room,
+            matchmake: format === "ranked" || !privateRoom,
+            viewRadius: scene.networkRadius(),
+            format,
+            onProgress: (stage) => {
+              const label = {
+                matchmaking: "Uygun arena aranıyor",
+                connecting: "Arena bağlantısı kuruluyor",
+                joining: "Oyuncu hazırlanıyor",
+              }[stage];
+              text(
+                "join-status",
+                `${label}${connectionAttempt > 1 ? " · 2. deneme" : ""}…`,
+              );
+            },
+          });
+        candidate = retryCandidate();
       } else candidate = new SocketTransport(url, consume, onDisconnect);
     } else candidate = new LocalTransport(format);
-    candidate.onProfile = (next) => progression.apply(next);
-    const welcome = await candidate.connect(name, skin, {
+    const connectOptions = {
       format,
       room: privateRoom ? roomCode($("room-code").value) : undefined,
       profileToken:
         cloudflare && mode === "online" ? progression.token : undefined,
       cosmetics: progression.equipped,
-    });
+    };
+    let welcome;
+    for (;;) {
+      joiningTransport = candidate;
+      candidate.onProfile = (next) => progression.apply(next);
+      try {
+        welcome = await candidate.connect(name, skin, connectOptions);
+        break;
+      } catch (error) {
+        candidate.close();
+        if (!retryCandidate || connectionAttempt >= 2 || !error.retryable)
+          throw error;
+        connectionAttempt++;
+        candidate = retryCandidate();
+      }
+    }
     scene.setMap(welcome.obstacles);
     if (cloudflare && candidate.online) {
       const invite = new URL(location.href);
@@ -507,10 +540,16 @@ async function join() {
     text("join-status", error.message);
   } finally {
     joining = false;
-    $("play").disabled = false;
+    joiningTransport = null;
+    $("play").removeAttribute("aria-busy");
+    $("play").querySelector("b").textContent = "OYNA";
+    $("play").querySelector("span").textContent = "↗";
   }
 }
-$("play").onclick = join;
+$("play").onclick = () => {
+  if (joining) joiningTransport?.close();
+  else join();
+};
 $("player-name").addEventListener("keydown", (e) => {
   if (e.key === "Enter") join();
 });

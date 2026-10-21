@@ -34,7 +34,8 @@
     "bench:safe": "node --expose-gc benchmarks/safe-optimizations.js",
     "test:multimode": "node tests/multimode.smoke.js",
     "test:profile": "node tests/profile.browser.js",
-    "test:kill-streak": "node tests/kill-streak.browser.js"
+    "test:kill-streak": "node tests/kill-streak.browser.js",
+    "test:join": "node tests/join.browser.js"
   },
   "dependencies": {
     "express": "^5.1.0",

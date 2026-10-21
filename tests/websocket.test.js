@@ -205,3 +205,77 @@ test("invalid rooms never open a connection", async () => {
   await assert.rejects(transport.connect("Archer", 0), /Oda kodu/);
   assert.equal(address(), undefined);
 });
+test("cancelling a pending allocation settles connect immediately and late responses cannot open a socket", async () => {
+  let allocation;
+  const f = fixture({
+    matchmake: true,
+    fetcher: () =>
+      new Promise((resolve) => {
+        allocation = resolve;
+      }),
+  });
+  const connecting = f.transport.connect("Cancel", 0);
+  f.transport.close();
+  await assert.rejects(connecting, /Bağlantı durduruldu/);
+  allocation(Response.json({ room: "wildbow-3", ticket: "late-seat" }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(f.address(), undefined);
+});
+test("progress reports allocation, socket opening and player handshake without caching a seat", async () => {
+  const progress = [];
+  let cache;
+  const f = fixture({
+    matchmake: true,
+    onProgress: (stage) => progress.push(stage),
+    fetcher: async (_url, options) => {
+      cache = options.cache;
+      return Response.json({ room: "wildbow-1", ticket: "seat" });
+    },
+  });
+  try {
+    const connecting = f.transport.connect("Stages", 0);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    welcome(f.ws);
+    await connecting;
+    assert.deepEqual(progress, ["matchmaking", "connecting", "joining"]);
+    assert.equal(cache, "no-store");
+  } finally {
+    f.transport.close();
+  }
+});
+test("timeouts and interrupted public seats are retryable; private capacity and identity errors are not", async () => {
+  const cases = [
+    { options: { connectTimeout: 10 }, event: null, retry: true },
+    {
+      options: {
+        matchmake: true,
+        fetcher: async () =>
+          Response.json({ room: "wildbow-1", ticket: "seat" }),
+      },
+      event: "full",
+      retry: true,
+    },
+    { options: {}, event: "full", retry: false },
+    { options: {}, event: "error", retry: false },
+  ];
+  for (const { options, event, retry } of cases) {
+    const f = fixture(options);
+    const connecting = f.transport.connect("Retry", 0);
+    const rejected = assert.rejects(
+      connecting,
+      (error) => error.retryable === retry,
+    );
+    if (event) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      f.ws.message({ type: event, data: { message: "Identity required" } });
+    }
+    await rejected;
+  }
+});
+test("malformed welcome fails visibly instead of clearing the only connection deadline", async () => {
+  const f = fixture();
+  const connecting = f.transport.connect("Bad welcome", 0);
+  f.ws.message({ type: "welcome" });
+  await assert.rejects(connecting, /geçerli bir oyuncu yanıtı/);
+  assert.equal(f.transport.closed, true);
+});

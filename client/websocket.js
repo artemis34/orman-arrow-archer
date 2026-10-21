@@ -16,6 +16,7 @@ export class WebSocketTransport extends NetworkTransport {
       fetcher = (...args) => fetch(...args),
       viewRadius = 34,
       format = "arena",
+      onProgress = () => {},
     } = {},
   ) {
     super(onState, onDisconnect);
@@ -27,6 +28,7 @@ export class WebSocketTransport extends NetworkTransport {
     this.fetcher = fetcher;
     this.viewRadius = viewRadius;
     this.format = format;
+    this.onProgress = onProgress;
     this.decoder = new SnapshotDecoder();
     this.inputBatch = [];
   }
@@ -38,15 +40,16 @@ export class WebSocketTransport extends NetworkTransport {
           new Error("Oda kodu 3–24 harf, rakam veya tire içermeli."),
         );
       let ready = false;
-      const fail = (message) => {
-        this.close();
-        reject(new Error(message));
+      this.rejectConnect = reject;
+      const fail = (message, retryable = false) => {
+        this.close(Object.assign(new Error(message), { retryable }));
       };
       this.abort = new AbortController();
       this.connectTimer = setTimeout(
         () =>
           fail(
             "Arenaya bağlanılamadı. Tekrar deneyebilir veya antrenmanı seçebilirsin.",
+            true,
           ),
         this.connectTimeout,
       );
@@ -54,22 +57,29 @@ export class WebSocketTransport extends NetworkTransport {
         let selectedRoom = room,
           ticket = null;
         if (this.matchmake) {
+          this.onProgress("matchmaking");
           const response = await this.fetcher(
             new URL(
               `/api/matchmake${this.format !== "arena" ? `?format=${encodeURIComponent(this.format)}` : ""}`,
               this.url,
             ),
-            { signal: this.abort.signal },
+            { signal: this.abort.signal, cache: "no-store" },
           );
           if (!response.ok)
-            throw new Error("Uygun arena bulunamadı. Biraz sonra tekrar dene.");
+            throw Object.assign(
+              new Error("Uygun arena bulunamadı. Biraz sonra tekrar dene."),
+              { retryable: response.status >= 500 || response.status === 429 },
+            );
           const allocation = await response.json();
           selectedRoom = roomCode(allocation.room);
           ticket = allocation.ticket;
           if (!selectedRoom || typeof ticket !== "string")
-            throw new Error("Arena yanıtı geçersiz.");
+            throw Object.assign(new Error("Arena yanıtı geçersiz."), {
+              retryable: false,
+            });
         }
         if (this.closed) return;
+        this.onProgress("connecting");
         const address = new URL(`/api/rooms/${selectedRoom}`, this.url);
         if (this.format !== "arena")
           address.searchParams.set("format", this.format);
@@ -77,7 +87,9 @@ export class WebSocketTransport extends NetworkTransport {
         address.protocol = address.protocol === "https:" ? "wss:" : "ws:";
         this.ws = this.createWebSocket(address.href);
         this.ws.binaryType = "arraybuffer";
-        this.ws.addEventListener("open", () =>
+        this.ws.addEventListener("open", () => {
+          if (this.closed) return;
+          this.onProgress("joining");
           this.send("join", {
             name,
             skin,
@@ -85,9 +97,10 @@ export class WebSocketTransport extends NetworkTransport {
             viewRadius: this.viewRadius,
             ...(this.format !== "arena" ? { format: this.format } : {}),
             ...options,
-          }),
-        );
+          });
+        });
         this.ws.addEventListener("message", (event) => {
+          if (this.closed) return;
           if (typeof event.data !== "string") {
             if (!ready) return;
             try {
@@ -105,8 +118,16 @@ export class WebSocketTransport extends NetworkTransport {
           }
           if (!packet || typeof packet !== "object") return;
           if (packet.type === "welcome" && !ready) {
+            if (
+              typeof packet.data?.id !== "string" ||
+              !Array.isArray(packet.data.obstacles)
+            ) {
+              fail("Sunucudan geçerli bir oyuncu yanıtı alınamadı.", true);
+              return;
+            }
             ready = true;
             clearTimeout(this.connectTimer);
+            this.rejectConnect = null;
             this.id = packet.data.id;
             this.obstacles = packet.data.obstacles;
             this.room = packet.data.room;
@@ -129,6 +150,7 @@ export class WebSocketTransport extends NetworkTransport {
                   : typeof packet.data?.message === "string"
                     ? packet.data.message.slice(0, 140)
                     : "Arenaya bağlanılamadı. Tekrar dene.",
+                packet.type === "full" && this.matchmake,
               );
           }
         });
@@ -136,6 +158,7 @@ export class WebSocketTransport extends NetworkTransport {
           if (!ready && !this.closed)
             fail(
               "Sunucuya bağlanılamadı. Tekrar deneyebilir veya antrenmanı seçebilirsin.",
+              true,
             );
         });
         this.ws.addEventListener("close", () => {
@@ -143,11 +166,12 @@ export class WebSocketTransport extends NetworkTransport {
           if (ready) {
             this.close();
             this.onDisconnect();
-          } else fail("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin.");
+          } else
+            fail("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin.", true);
         });
       };
       open().catch((error) => {
-        if (!this.closed) fail(error.message);
+        if (!this.closed) fail(error.message, error.retryable !== false);
       });
     });
   }
@@ -184,12 +208,21 @@ export class WebSocketTransport extends NetworkTransport {
     this.viewRadius = radius;
     this.send("view", radius);
   }
-  close() {
+  close(error = new Error("Bağlantı durduruldu. Tekrar oynayabilirsin.")) {
     this.closed = true;
+    const reject = this.rejectConnect;
+    this.rejectConnect = null;
+    reject?.(error);
     clearTimeout(this.connectTimer);
     clearInterval(this.pingTimer);
     this.abort?.abort();
     this.inputBatch.length = 0;
-    if (this.ws && this.ws.readyState < 2) this.ws.close(1000, "leaving arena");
+    if (this.ws && this.ws.readyState < 2) {
+      try {
+        this.ws.close(1000, "leaving arena");
+      } catch {
+        // Some mobile browsers reject closing an interrupted handshake.
+      }
+    }
   }
 }

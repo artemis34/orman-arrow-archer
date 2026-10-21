@@ -97,6 +97,84 @@ try {
   await expect(page.locator("#lobby")).toBeVisible();
   await join("returning profile, service worker, saved invitation URL");
   await leave();
+  if (process.env.JOIN_RECOVERY_TESTS === "1") {
+    let requests = 0;
+    await page.route("**/api/matchmake", async (route) => {
+      if (++requests === 1)
+        await route.fulfill({ status: 503, body: "Temporarily unavailable" });
+      else await route.continue();
+    });
+    await join("automatic recovery from a transient matchmaking failure");
+    assert.equal(requests, 2);
+    await leave();
+    await page.unroute("**/api/matchmake");
+
+    requests = 0;
+    await page.route("**/api/matchmake", async (route) => {
+      if (++requests === 1) {
+        const response = await route.fetch();
+        const allocation = await response.json();
+        await route.fulfill({
+          response,
+          json: { ...allocation, ticket: "expired-seat" },
+        });
+      } else await route.continue();
+    });
+    await join(
+      "a rejected/expired public seat is replaced by a fresh reservation",
+    );
+    assert.equal(requests, 2);
+    await leave();
+    await page.unroute("**/api/matchmake");
+
+    requests = 0;
+    await page.route("**/api/matchmake", async (route) => {
+      requests++;
+      await route.fulfill({ status: 503, body: "Temporarily unavailable" });
+    });
+    await page.locator("#play").tap();
+    await expect(page.locator("#play b")).toHaveText("OYNA");
+    await expect(page.locator("#join-status")).toContainText(
+      "Uygun arena bulunamadı",
+    );
+    assert.equal(
+      requests,
+      2,
+      "failure retries are bounded; the join button remains usable",
+    );
+    await page.unroute("**/api/matchmake");
+
+    let release;
+    const held = new Promise((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/matchmake", async (route) => {
+      await held;
+      await route.abort().catch(() => {});
+    });
+    const sockets = network.filter((entry) => entry.websocket).length;
+    await page.locator("#play").tap();
+    await expect(page.locator("#join-status")).toContainText(
+      "Uygun arena aranıyor",
+    );
+    await expect(page.locator("#play b")).toHaveText("İPTAL ET");
+    await page.locator("#play").tap();
+    await expect(page.locator("#play b")).toHaveText("OYNA");
+    await expect(page.locator("#join-status")).toContainText(
+      "Bağlantı durduruldu",
+    );
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+    assert.equal(network.filter((entry) => entry.websocket).length, sockets);
+    await expect(page.locator("#hud")).toBeHidden();
+    await join("new join after cancellation");
+    await leave();
+    await page.locator("#practice-mode").tap();
+    await page.locator("#play").tap();
+    await expect(page.locator("#hud")).toBeVisible();
+    await expect(page.locator("#connection")).toHaveText("YEREL");
+    await leave();
+  }
   assert.deepEqual(errors, []);
   console.log(
     `::notice title=Public quick join ${engine}::${JSON.stringify(network)}`,
