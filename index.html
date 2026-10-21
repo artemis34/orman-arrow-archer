@@ -16,10 +16,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-DogPhLSr.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-B7NWd0Df.js">
+    <script type="module" crossorigin src="./assets/index-ouZuXCzV.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-Cl49K6qR.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-e7nz7WT-.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-NoEx75Tx.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -102,6 +102,7 @@
               <option value="arena">Serbest arena · Süresiz</option>
               <option value="round">Süreli arena · 4 dakika</option>
               <option value="duel">Düello · 1v1 · 2 dakika</option>
+              <option value="ranked">Ranked · Orman düellosu · 1v1</option>
               <option value="t2">Takım · 2v2</option>
               <option value="t4">Takım · 4v4</option>
               <option value="t8">Takım · 8v8</option>
@@ -179,6 +180,14 @@
           <p id="join-status" class="join-status" aria-live="polite">
             Botlarla anında oyna · Hesap gerekmez
           </p>
+          <div class="lobby-social">
+            <button id="friends-open" type="button">♧ Arkadaşlar</button
+            ><button id="leaderboard-open" type="button">♛ Sıralama</button>
+          </div>
+          <div id="lobby-accounts" class="lobby-accounts"></div>
+          <small class="account-note"
+            >Google / Apple bağlantıları hazırlanıyor.</small
+          >
           <div class="card-footer">
             <span class="live-dot"></span>
             <span id="server-label">Yerel arena • 7 bot rakip</span>
@@ -364,6 +373,8 @@
         >
           <button data-tab="looks" role="tab">Görünüşler</button>
           <button data-tab="profile" role="tab">Profil</button>
+          <button data-tab="friends" role="tab">Arkadaşlar</button>
+          <button data-tab="leaderboard" role="tab">Sıralama</button>
           <button data-tab="skills" role="tab">Yetenekler</button>
           <button data-tab="settings" role="tab">Ayarlar</button>
         </div>
