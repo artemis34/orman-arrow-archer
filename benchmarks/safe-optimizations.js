@@ -2,6 +2,8 @@ import { performance } from "node:perf_hooks";
 import { cpuUsage, memoryUsage, version, platform, arch } from "node:process";
 import { cpus } from "node:os";
 import { writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { SCENARIOS, modules, makeRoom, advance, publish } from "./workload.js";
 
@@ -17,7 +19,8 @@ const api = await modules(root),
   results = [];
 const wallNow = performance.now.bind(performance);
 function measure(id, run, units) {
-  run(() => {}); // Warm JIT before measuring; each run creates a fresh component.
+  if (args.only && args.only !== id) return;
+  for (let warm = 0; warm < Number(args.warmups || 1); warm++) run(() => {});
   const samples = [];
   for (let n = 0; n < repeats; n++) {
     global.gc();
@@ -119,57 +122,59 @@ measure(
   },
 );
 
-const room = makeRoom(api, SCENARIOS[1]),
-  clientStates = [];
-for (let tick = 0; tick < 240; tick++) {
-  advance(room, tick);
-  if (tick % 2 === 1)
-    publish(api, room, (state, packet, i) => {
-      if (i === 0) clientStates.push(structuredClone(state));
-    });
-}
-const actualNow = performance.now;
-let clock = 0;
-Object.defineProperty(performance, "now", {
-  configurable: true,
-  value: () => clock,
-});
-try {
-  measure(
-    "client-view",
-    (sample) => {
-      const transport = new api.NetworkTransport(
-        () => {},
-        () => {},
-      );
-      transport.id = "player-0";
-      transport.obstacles = [];
-      let views = 0,
-        positionSum = 0;
-      for (let cycle = 0; cycle < 8; cycle++)
-        for (let i = 0; i < clientStates.length; i++) {
-          clock = cycle * 8000 + (i * 1000) / 15;
-          transport.acceptState(clientStates[i]);
-          for (let frame = 0; frame < 8; frame++) {
-            clock += 1000 / 120;
-            const view = transport.view();
-            positionSum += view.players[0].x;
-            views++;
-          }
-          if (i % 30 === 0) sample();
-        }
-      return {
-        metrics: { views, positionSum, bytes: 0, messages: 0 },
-        retained: transport,
-      };
-    },
-    { displayHz: 120, snapshotHz: 15, players: 16, views: 7680 },
-  );
-} finally {
+if (!args.only || args.only === "client-view") {
+  const room = makeRoom(api, SCENARIOS[1]),
+    clientStates = [];
+  for (let tick = 0; tick < 240; tick++) {
+    advance(room, tick);
+    if (tick % 2 === 1)
+      publish(api, room, (state, packet, i) => {
+        if (i === 0) clientStates.push(structuredClone(state));
+      });
+  }
+  const actualNow = performance.now;
+  let clock = 0;
   Object.defineProperty(performance, "now", {
     configurable: true,
-    value: actualNow,
+    value: () => clock,
   });
+  try {
+    measure(
+      "client-view",
+      (sample) => {
+        const transport = new api.NetworkTransport(
+          () => {},
+          () => {},
+        );
+        transport.id = "player-0";
+        transport.obstacles = [];
+        let views = 0,
+          positionSum = 0;
+        for (let cycle = 0; cycle < 8; cycle++)
+          for (let i = 0; i < clientStates.length; i++) {
+            clock = cycle * 8000 + (i * 1000) / 15;
+            transport.acceptState(clientStates[i]);
+            for (let frame = 0; frame < 8; frame++) {
+              clock += 1000 / 120;
+              const view = transport.view();
+              positionSum += view.players[0].x;
+              views++;
+            }
+            if (i % 30 === 0) sample();
+          }
+        return {
+          metrics: { views, positionSum, bytes: 0, messages: 0 },
+          retained: transport,
+        };
+      },
+      { displayHz: 120, snapshotHz: 15, players: 16, views: 7680 },
+    );
+  } finally {
+    Object.defineProperty(performance, "now", {
+      configurable: true,
+      value: actualNow,
+    });
+  }
 }
 const report = {
   label,
@@ -180,7 +185,26 @@ const report = {
     arch,
     cpu: cpus()[0]?.model,
     repeats,
+    warmups: Number(args.warmups || 1),
   },
+  runtimeSha256: Object.fromEntries(
+    [
+      "shared/world.js",
+      "shared/config.js",
+      "shared/skills.js",
+      "shared/spatial.js",
+      "shared/protocol.js",
+      "client/transport.js",
+      "client/websocket.js",
+      "cloudflare/worker.js",
+      "server/index.js",
+    ].map((path) => [
+      path,
+      createHash("sha256")
+        .update(readFileSync(resolve(root, path)))
+        .digest("hex"),
+    ]),
+  ),
   results,
 };
 if (args.out) writeFileSync(args.out, JSON.stringify(report, null, 2) + "\n");

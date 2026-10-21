@@ -2,6 +2,20 @@
 export const PROTOCOL = 2;
 const text = new TextEncoder(),
   utf8 = new TextDecoder();
+// Repeated field names/IDs are immutable UTF-8 values. Keep a small FIFO cache,
+// bounded in both entry count and string length; packet outputs still copy bytes.
+const encodedStrings = new Map();
+function stringBytes(value) {
+  let bytes = encodedStrings.get(value);
+  if (bytes) return bytes;
+  bytes = text.encode(value);
+  if (value.length <= 128) {
+    if (encodedStrings.size >= 256)
+      encodedStrings.delete(encodedStrings.keys().next().value);
+    encodedStrings.set(value, bytes);
+  }
+  return bytes;
+}
 export function encodePacket(value) {
   const bytes = [87, 66, PROTOCOL];
   // Packet-local scratch: outputs still own their bytes and nested encodes
@@ -31,7 +45,7 @@ export function encodePacket(value) {
         bytes.push(...floatBytes);
       }
     } else if (typeof v === "string") {
-      const b = text.encode(v);
+      const b = stringBytes(v);
       bytes.push(5);
       uint(b.length);
       for (const n of b) bytes.push(n);

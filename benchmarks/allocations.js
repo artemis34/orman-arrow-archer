@@ -15,6 +15,17 @@ const value = [
 ];
 const raw = api.encodePacket(value),
   OriginalDataView = globalThis.DataView;
+const encodeUtf8 = TextEncoder.prototype.encode;
+let utf8Calls = 0;
+TextEncoder.prototype.encode = function (...args) {
+  utf8Calls++;
+  return encodeUtf8.apply(this, args);
+};
+try {
+  api.encodePacket(value);
+} finally {
+  TextEncoder.prototype.encode = encodeUtf8;
+}
 let count = 0;
 globalThis.DataView = class extends OriginalDataView {
   constructor(...args) {
@@ -100,5 +111,6 @@ console.log(
     clientMaps: maps,
     clientViews: 960,
     retainedIndexMaps: retainedMaps,
+    repeatedPacketUtf8Encodes: utf8Calls,
   }),
 );
