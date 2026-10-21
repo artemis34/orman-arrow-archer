@@ -1,7 +1,7 @@
 name: Validate and publish
 on:
   push:
-    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social]
+    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social, feature/bow-buff-effects]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -34,6 +34,8 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:performance
           npm run test:projectiles
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:projectiles
+          npm run test:bow-buffs
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:bow-buffs
       - name: Validate production server and desktop/mobile controls
         shell: bash
         run: |

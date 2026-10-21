@@ -17,6 +17,7 @@
     "test:browser": "node tests/browser.smoke.js",
     "test:audio": "node tests/audio.smoke.js",
     "test:powerups": "node tests/powerups.smoke.js",
+    "test:bow-buffs": "node tests/bow-buffs.browser.js",
     "test:interaction": "node tests/interaction.smoke.js",
     "test:motion": "node tests/motion.browser.js",
     "test:projectiles": "node tests/projectiles.browser.js",

@@ -10,6 +10,7 @@ import { CATALOG } from "../shared/profile.js";
 import { REGIONS } from "../shared/regions.js";
 import { CombatFeedback } from "./combat-feedback.js";
 import { LootView } from "./loot-view.js";
+import { BowBuffEffects } from "./bow-buff-effects.js";
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const COSMETICS = new Map(CATALOG.map((item) => [item.id, item]));
 const COSMETIC_SLOTS = [...new Set(CATALOG.map((item) => item.slot))];
@@ -162,6 +163,7 @@ export class ArenaScene {
     this.arrows = new ArrowBatches(this.scene, RULES.maxArrows);
     this.feedback = new CombatFeedback(this.scene);
     this.lootView = new LootView(this.scene);
+    this.bowBuffs = new BowBuffEffects(this.scene);
     this.gems = new THREE.InstancedMesh(
       new THREE.OctahedronGeometry(0.24),
       this.materials.gem,
@@ -884,6 +886,7 @@ export class ArenaScene {
               : 0xe1f3a8,
         );
         const buff = p.buffTime > 0 ? POWERUPS[p.buffType] : null;
+        v.buffType = buff ? p.buffType : null;
         v.buffRing.visible = !!buff;
         v.bowLine.material.color.set(buff ? buff.color : v.bowColor);
         const celebrating =
@@ -1091,6 +1094,7 @@ export class ArenaScene {
     this.feedback.update(this.camera, this.players, dt, playing);
     // Publish animated world transforms to the shared GPU instance buffers.
     this.scene.updateMatrixWorld();
+    this.bowBuffs.update(this.players, this.time);
     this.avatarBatches.update();
     this.camera.updateMatrixWorld();
     this.particles.update(this.camera);

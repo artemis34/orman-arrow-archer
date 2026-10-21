@@ -69,6 +69,8 @@ try {
         p.hp = 67 + i;
         p.maxHp = 150;
         p.charge = (i % 3) / 2;
+        p.buffType = i % 2 ? "haste" : "power";
+        p.buffTime = 15;
         i++;
       }
       const me = world.players.get("local");
@@ -132,6 +134,7 @@ try {
       scene.render(state, "local", 1 / 60, true);
       const after = { ...scene.renderer.info.memory };
       const animation = {
+        buffedBows: scene.bowBuffs.fire.count + scene.bowBuffs.lightning.count,
         labels: [...scene.players.values()].filter(
           (v) => v.root.visible && v.label.visible,
         ).length,
@@ -179,6 +182,7 @@ try {
     });
     assert.equal(result.players, 16);
     assert.equal(result.animation.labels, 16);
+    assert.equal(result.animation.buffedBows, 16);
     assert.equal(result.animation.arrows, 120);
     assert.equal(result.animation.heads, 120);
     assert.equal(result.animation.gems, 140);
