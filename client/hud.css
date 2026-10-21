@@ -485,6 +485,7 @@
 }
 #upgrade-options button {
   position: relative;
+  touch-action: pan-y;
   min-height: 94px;
   padding: 8px;
   background: #264333;
@@ -681,6 +682,10 @@ body.playing #arena {
   .upgrade-dock {
     width: min(400px, calc(100vw - 536px));
     bottom: max(12px, env(safe-area-inset-bottom));
+    max-height: calc(36dvh - 1px);
+    overflow-y: auto;
+    touch-action: pan-y;
+    pointer-events: auto;
   }
   .upgrade-reminder {
     bottom: max(12px, env(safe-area-inset-bottom));

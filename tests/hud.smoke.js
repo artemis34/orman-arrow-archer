@@ -81,13 +81,50 @@ try {
     // Start the three-second window after initial navigation and font loading,
     // so a slow CI browser doesn't consume it before any controls are usable.
     world.gain(world.players.get(id), 200);
+    // Always cover the longest new description instead of depending on which
+    // three random perks happen to be offered on this viewport.
+    world.players.get(id).choices = ["lifesteal", "returning", "ricochet"];
     world.players.get(id).hp = 35;
     await expect(page.locator("#upgrades")).toBeVisible();
     await expect(page.locator("#upgrade-options button")).toHaveCount(3);
     await expect(page.locator("#upgrade-count")).toContainText("2");
     const dock = await page.locator("#upgrades").boundingBox();
     assert.ok(dock.y > height / 2, `${label}: cards stay below the character`);
-    assert.ok(dock.height < height * 0.36, `${label}: compact cards`);
+    assert.ok(
+      dock.height < height * 0.36,
+      `${label}: compact cards (${dock.height}px)`,
+    );
+    if (label === "landscape") {
+      const tray = page.locator("#upgrades");
+      assert.ok(await tray.evaluate((e) => e.scrollHeight > e.clientHeight));
+      const cd = await context.newCDPSession(page);
+      const x = dock.x + dock.width / 2,
+        y = dock.y + dock.height - 15;
+      await cd.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ id: 19, x, y }],
+      });
+      for (let step = 1; step <= 4; step++)
+        await cd.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ id: 19, x, y: y - step * 12 }],
+        });
+      await cd.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      await expect
+        .poll(() => tray.evaluate((e) => e.scrollTop))
+        .toBeGreaterThan(0);
+      assert.equal(
+        world.players.get(id).pending,
+        2,
+        "reading a long card cannot select it",
+      );
+      await tray.evaluate((e) => {
+        e.scrollTop = 0;
+      });
+    }
     assert.equal(
       await page.evaluate(
         () => document.elementFromPoint(innerWidth / 2, innerHeight / 2).id,
