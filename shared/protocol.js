@@ -4,6 +4,9 @@ const text = new TextEncoder(),
   utf8 = new TextDecoder();
 export function encodePacket(value) {
   const bytes = [87, 66, PROTOCOL];
+  // Packet-local scratch: outputs still own their bytes and nested encodes
+  // cannot overwrite another packet. Integer-only packets allocate no scratch.
+  let floatBytes, floatView;
   const uint = (v) => {
     do {
       const b = v % 128;
@@ -20,9 +23,12 @@ export function encodePacket(value) {
         uint(v >= 0 ? v * 2 : -v * 2 - 1);
       } else {
         bytes.push(4);
-        const b = new Uint8Array(8);
-        new DataView(b.buffer).setFloat64(0, Number.isFinite(v) ? v : 0, true);
-        bytes.push(...b);
+        if (!floatBytes) {
+          floatBytes = new Uint8Array(8);
+          floatView = new DataView(floatBytes.buffer);
+        }
+        floatView.setFloat64(0, Number.isFinite(v) ? v : 0, true);
+        bytes.push(...floatBytes);
       }
     } else if (typeof v === "string") {
       const b = text.encode(v);
@@ -52,6 +58,7 @@ export function decodePacket(buffer) {
       ? new Uint8Array(buffer)
       : new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
   let at = 3;
+  let floatView;
   if (b.length > 262144 || b[0] !== 87 || b[1] !== 66 || b[2] !== PROTOCOL)
     throw new Error("Unsupported packet");
   const byte = () => {
@@ -80,10 +87,8 @@ export function decodePacket(buffer) {
     }
     if (tag === 4) {
       if (at + 8 > b.length) throw new Error("Truncated number");
-      const v = new DataView(b.buffer, b.byteOffset + at, 8).getFloat64(
-        0,
-        true,
-      );
+      floatView ||= new DataView(b.buffer, b.byteOffset, b.byteLength);
+      const v = floatView.getFloat64(at, true);
       at += 8;
       return v;
     }
