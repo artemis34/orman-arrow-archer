@@ -4,6 +4,8 @@ Planlama: [geliştirme taslağı ve deneysel tek el modu](docs/development-roadm
 
 Bu geliştirme: [Takımlar, süreli maçlar, yeni kartlar ve kozmetik koleksiyonu](docs/team-progression-release.md) · [Cloudflare ağ tasarımı](docs/network-design.md). 1v1, 2v2, 4v4, 8v8, 4×4 ve 8×2 formatları oynanabilir. Mağaza kazanılan yapraklarla çalışır; gerçek para ödemesi ve reklam bağlı değildir.
 
+Ayrı optimizasyon dalı: [güvenlik, CPU/RAM/ağ ölçümleri ve ertelenen öneriler](docs/safe-optimization-report.md) · [web/Swift v2 sözleşmesi](docs/protocol-v2.md) · [makine tarafından okunabilir manifest](protocol/wildbow-v2.json). Bu çalışma canlı sürüme birleştirilmemiştir.
+
 [Online arenayı oyna](https://orman-arrow-archer.cangunes1995.workers.dev) · [Botlu antrenman](https://rawcdn.githack.com/artemis34/orman-arrow-archer/df3c81bc134b13837842ead2279aae4dd033318b/index.html) · [Kendi Cloudflare hesabında kur](https://deploy.workers.cloudflare.com/?url=https://github.com/artemis34/orman-arrow-archer)
 
 Tarayıcı ve dokunmatik cihazlar için düşük poligonlu 3D okçuluk arenası. Three.js, Vite, Express ve Socket.io; Node.js 24 LTS. Ücretsiz antrenman modu hesap veya sürekli açık sunucu gerektirmez. Çevrimiçi mod gerçek sunucuya bağlanır; botları gerçek oyuncu gibi göstermez.

@@ -1,0 +1,118 @@
+{
+  "label": "candidate",
+  "root": "source:66c9da6",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "repeats": 7,
+    "warmups": 2
+  },
+  "runtimeSha256": {
+    "shared/world.js": "b033ee39d074b73f5ad8a1bf579ed8bf43c3c594dbb1f5f9a3b29d76b1729bfa",
+    "shared/config.js": "7f94012b786e525f662e932759604b0424d34896807ee5a58fffaa47ea460b2a",
+    "shared/skills.js": "a312f6b73cd48420b3d6996241b49bb244cf945d26632a3d66167509cee5e99a",
+    "shared/spatial.js": "a2d6d35110b427c414cf189067ef75543274afcd26545ac026e48a394382d10e",
+    "shared/protocol.js": "8d9cf7839af451a0d8367d98d63b397a532e1dcce3faae6585f509296cfc5027",
+    "client/transport.js": "e01f1b39b77f00a85d0eb5e807bf335d4c3c975ae6f0fdbf34ee2822893d0546",
+    "client/websocket.js": "4b5e4181e8bdb03a3acf6877a860e3dedd844bbd8f216eb47fca6df14cafde26",
+    "cloudflare/worker.js": "a592f164a9f1619014e45b211d480c671b29093d97d03c1c349b06c8d59ba203",
+    "server/index.js": "217f8c26dfb49c82b4aa86104a4dd9d68e65d1c39cdf20511b32408a556d9160"
+  },
+  "results": [
+    {
+      "id": "arena-8",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 8,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 818.5270149999997,
+        "cpuMs": 1065.93,
+        "heapPeakKiB": 33528.0078125,
+        "heapRetainedKiB": 282.78125,
+        "rssMiB": 126.60546875,
+        "externalKiB": 4037.5537109375,
+        "bytes": 4217526,
+        "messages": 3600
+      },
+      "samples": [
+        {
+          "wallMs": 1002.087587,
+          "cpuMs": 1169.424,
+          "heapPeakKiB": 17786.9375,
+          "heapRetainedKiB": 361.984375,
+          "rssMiB": 94.35546875,
+          "externalKiB": 4068.21875,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 810.9167360000001,
+          "cpuMs": 1008.738,
+          "heapPeakKiB": 17379.2265625,
+          "heapRetainedKiB": 282.515625,
+          "rssMiB": 94.73046875,
+          "externalKiB": 4031.4111328125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 818.5270149999997,
+          "cpuMs": 1065.93,
+          "heapPeakKiB": 33528.0078125,
+          "heapRetainedKiB": 282.859375,
+          "rssMiB": 126.60546875,
+          "externalKiB": 4167.7587890625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 1031.0574119999992,
+          "cpuMs": 1315.759,
+          "heapPeakKiB": 33511.7109375,
+          "heapRetainedKiB": 282.78125,
+          "rssMiB": 131.00390625,
+          "externalKiB": 4030.814453125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 782.8604539999997,
+          "cpuMs": 990.128,
+          "heapPeakKiB": 34358.046875,
+          "heapRetainedKiB": 282.34375,
+          "rssMiB": 126.546875,
+          "externalKiB": 4037.5537109375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 871.4719070000001,
+          "cpuMs": 1136.688,
+          "heapPeakKiB": 34400.4140625,
+          "heapRetainedKiB": 283.2578125,
+          "rssMiB": 127.4765625,
+          "externalKiB": 4036.3818359375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 756.6896629999992,
+          "cpuMs": 943.389,
+          "heapPeakKiB": 34169.453125,
+          "heapRetainedKiB": 282.546875,
+          "rssMiB": 131.2265625,
+          "externalKiB": 4037.5537109375,
+          "bytes": 4217526,
+          "messages": 3600
+        }
+      ]
+    }
+  ],
+  "sourceCommit": "66c9da6"
+}

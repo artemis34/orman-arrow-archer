@@ -1,0 +1,88 @@
+{
+  "sourceCommit": "7397e49",
+  "simulatedSeconds": 60,
+  "sampledMs": 8628.35,
+  "kind": "Node inspector self samples; not inclusive times",
+  "hotspots": [
+    {
+      "location": "encode shared/protocol.js",
+      "selfMs": 1198.045,
+      "share": 0.13884983803392306
+    },
+    {
+      "location": "encode node:internal/encoding",
+      "selfMs": 1123.633,
+      "share": 0.1302257094345964
+    },
+    {
+      "location": "structuredClone node:internal/worker/js_transferable",
+      "selfMs": 1034.286,
+      "share": 0.1198706589324726
+    },
+    {
+      "location": "write shared/protocol.js",
+      "selfMs": 964.784,
+      "share": 0.11181558467146094
+    },
+    {
+      "location": " shared/protocol.js",
+      "selfMs": 615.986,
+      "share": 0.07139093801248211
+    },
+    {
+      "location": "(garbage collector) ",
+      "selfMs": 450.007,
+      "share": 0.05215446754014383
+    },
+    {
+      "location": "equal shared/protocol.js",
+      "selfMs": 351.958,
+      "share": 0.04079088122294529
+    },
+    {
+      "location": "structuredClone ",
+      "selfMs": 341.308,
+      "share": 0.03955657802476719
+    },
+    {
+      "location": " shared/world.js",
+      "selfMs": 329.138,
+      "share": 0.03814611136544067
+    },
+    {
+      "location": "selectTarget shared/aim.js",
+      "selfMs": 290.74,
+      "share": 0.033695897825192535
+    },
+    {
+      "location": "encodeUtf8String ",
+      "selfMs": 255.411,
+      "share": 0.029601372220644736
+    },
+    {
+      "location": "publish benchmarks/workload.js",
+      "selfMs": 194.72,
+      "share": 0.02256746654922436
+    },
+    {
+      "location": "snapshot shared/world.js",
+      "selfMs": 174.346,
+      "share": 0.020206180787752003
+    },
+    {
+      "location": "step shared/world.js",
+      "selfMs": 173.688,
+      "share": 0.020129920552596964
+    },
+    {
+      "location": "autoTarget shared/world.js",
+      "selfMs": 125.728,
+      "share": 0.014571499765308547
+    },
+    {
+      "location": "insert shared/spatial.js",
+      "selfMs": 113.872,
+      "share": 0.013197424768350844
+    }
+  ]
+}

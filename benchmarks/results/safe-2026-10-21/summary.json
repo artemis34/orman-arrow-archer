@@ -1,0 +1,2093 @@
+{
+  "method": "independent sequential processes; baseline/codec/indexes order rotated; bounded UTF8 cache follow-up; 2 warmups and 7 measured repeats",
+  "results": [
+    {
+      "sourceCommit": "7397e49",
+      "stage": "baseline",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "arena-8",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 8,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 799.3370669999995,
+        "cpuMs": 1039.626,
+        "heapPeakKiB": 32059.8828125,
+        "heapRetainedKiB": 282.75,
+        "rssMiB": 122.8125,
+        "externalKiB": 4049.0693359375,
+        "bytes": 4217526,
+        "messages": 3600
+      },
+      "samples": [
+        {
+          "wallMs": 729.869862,
+          "cpuMs": 862.761,
+          "heapPeakKiB": 17085.609375,
+          "heapRetainedKiB": 360.7109375,
+          "rssMiB": 95.30859375,
+          "externalKiB": 3919.556640625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 749.6683170000001,
+          "cpuMs": 954.599,
+          "heapPeakKiB": 18480.828125,
+          "heapRetainedKiB": 282.75,
+          "rssMiB": 91.578125,
+          "externalKiB": 4041.1455078125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 799.3370669999995,
+          "cpuMs": 1039.626,
+          "heapPeakKiB": 31439.8125,
+          "heapRetainedKiB": 282.90625,
+          "rssMiB": 123.79296875,
+          "externalKiB": 4188.6474609375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 894.4497380000003,
+          "cpuMs": 1166.137,
+          "heapPeakKiB": 32237.9921875,
+          "heapRetainedKiB": 283.5234375,
+          "rssMiB": 124.12109375,
+          "externalKiB": 4049.0693359375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 775.1129449999999,
+          "cpuMs": 963.057,
+          "heapPeakKiB": 33148.1640625,
+          "heapRetainedKiB": 282.5546875,
+          "rssMiB": 122.55859375,
+          "externalKiB": 4057.4912109375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 967.3015889999997,
+          "cpuMs": 1171.86,
+          "heapPeakKiB": 32896.2421875,
+          "heapRetainedKiB": 282.3515625,
+          "rssMiB": 122.8125,
+          "externalKiB": 4057.4912109375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 838.9760130000004,
+          "cpuMs": 1054.14,
+          "heapPeakKiB": 32059.8828125,
+          "heapRetainedKiB": 282.6640625,
+          "rssMiB": 123.61328125,
+          "externalKiB": 4046.359375,
+          "bytes": 4217526,
+          "messages": 3600
+        }
+      ]
+    },
+    {
+      "sourceCommit": "66c9da6",
+      "stage": "candidate",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "arena-8",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 8,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 818.5270149999997,
+        "cpuMs": 1065.93,
+        "heapPeakKiB": 33528.0078125,
+        "heapRetainedKiB": 282.78125,
+        "rssMiB": 126.60546875,
+        "externalKiB": 4037.5537109375,
+        "bytes": 4217526,
+        "messages": 3600
+      },
+      "samples": [
+        {
+          "wallMs": 1002.087587,
+          "cpuMs": 1169.424,
+          "heapPeakKiB": 17786.9375,
+          "heapRetainedKiB": 361.984375,
+          "rssMiB": 94.35546875,
+          "externalKiB": 4068.21875,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 810.9167360000001,
+          "cpuMs": 1008.738,
+          "heapPeakKiB": 17379.2265625,
+          "heapRetainedKiB": 282.515625,
+          "rssMiB": 94.73046875,
+          "externalKiB": 4031.4111328125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 818.5270149999997,
+          "cpuMs": 1065.93,
+          "heapPeakKiB": 33528.0078125,
+          "heapRetainedKiB": 282.859375,
+          "rssMiB": 126.60546875,
+          "externalKiB": 4167.7587890625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 1031.0574119999992,
+          "cpuMs": 1315.759,
+          "heapPeakKiB": 33511.7109375,
+          "heapRetainedKiB": 282.78125,
+          "rssMiB": 131.00390625,
+          "externalKiB": 4030.814453125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 782.8604539999997,
+          "cpuMs": 990.128,
+          "heapPeakKiB": 34358.046875,
+          "heapRetainedKiB": 282.34375,
+          "rssMiB": 126.546875,
+          "externalKiB": 4037.5537109375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 871.4719070000001,
+          "cpuMs": 1136.688,
+          "heapPeakKiB": 34400.4140625,
+          "heapRetainedKiB": 283.2578125,
+          "rssMiB": 127.4765625,
+          "externalKiB": 4036.3818359375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 756.6896629999992,
+          "cpuMs": 943.389,
+          "heapPeakKiB": 34169.453125,
+          "heapRetainedKiB": 282.546875,
+          "rssMiB": 131.2265625,
+          "externalKiB": 4037.5537109375,
+          "bytes": 4217526,
+          "messages": 3600
+        }
+      ]
+    },
+    {
+      "sourceCommit": "2f6c607",
+      "stage": "codec",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "arena-8",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 8,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 895.5262499999994,
+        "cpuMs": 1140.417,
+        "heapPeakKiB": 32978.984375,
+        "heapRetainedKiB": 282.7890625,
+        "rssMiB": 124.5078125,
+        "externalKiB": 4033.9052734375,
+        "bytes": 4217526,
+        "messages": 3600
+      },
+      "samples": [
+        {
+          "wallMs": 1057.6893400000004,
+          "cpuMs": 1140.417,
+          "heapPeakKiB": 17626.8828125,
+          "heapRetainedKiB": 361.5546875,
+          "rssMiB": 101.29296875,
+          "externalKiB": 4067.193359375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 895.5262499999994,
+          "cpuMs": 1151.029,
+          "heapPeakKiB": 17487.5078125,
+          "heapRetainedKiB": 283.40625,
+          "rssMiB": 96.16796875,
+          "externalKiB": 4030.814453125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 1054.0274990000007,
+          "cpuMs": 1293.396,
+          "heapPeakKiB": 33920.78125,
+          "heapRetainedKiB": 282.7890625,
+          "rssMiB": 127.4765625,
+          "externalKiB": 4034.05078125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 811.7638199999992,
+          "cpuMs": 1007.037,
+          "heapPeakKiB": 33756.9609375,
+          "heapRetainedKiB": 282.4453125,
+          "rssMiB": 124.26171875,
+          "externalKiB": 4033.9052734375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 775.8746149999997,
+          "cpuMs": 972.614,
+          "heapPeakKiB": 32104.7734375,
+          "heapRetainedKiB": 282.2734375,
+          "rssMiB": 124.51171875,
+          "externalKiB": 4040.23828125,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 967.368708,
+          "cpuMs": 1197.423,
+          "heapPeakKiB": 33619.03125,
+          "heapRetainedKiB": 283.1484375,
+          "rssMiB": 128.12890625,
+          "externalKiB": 4025.5234375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 793.7392519999994,
+          "cpuMs": 982.465,
+          "heapPeakKiB": 32978.984375,
+          "heapRetainedKiB": 282.203125,
+          "rssMiB": 124.5078125,
+          "externalKiB": 4020.5556640625,
+          "bytes": 4217526,
+          "messages": 3600
+        }
+      ]
+    },
+    {
+      "sourceCommit": "44877ae",
+      "stage": "strings",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "arena-8",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 8,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 742.8027420000003,
+        "cpuMs": 981.419,
+        "heapPeakKiB": 32411.9296875,
+        "heapRetainedKiB": 282.890625,
+        "rssMiB": 120.08984375,
+        "externalKiB": 4083.025390625,
+        "bytes": 4217526,
+        "messages": 3600
+      },
+      "samples": [
+        {
+          "wallMs": 675.7336909999999,
+          "cpuMs": 779.194,
+          "heapPeakKiB": 16582.5546875,
+          "heapRetainedKiB": 360.6484375,
+          "rssMiB": 94.98828125,
+          "externalKiB": 4004.3369140625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 742.8027420000003,
+          "cpuMs": 937.498,
+          "heapPeakKiB": 16593.4765625,
+          "heapRetainedKiB": 282.890625,
+          "rssMiB": 93.75390625,
+          "externalKiB": 3963.71484375,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 841.7665750000001,
+          "cpuMs": 1019.278,
+          "heapPeakKiB": 34371.4453125,
+          "heapRetainedKiB": 282.3125,
+          "rssMiB": 123.72265625,
+          "externalKiB": 3978.9013671875,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 849.7009330000001,
+          "cpuMs": 1038.015,
+          "heapPeakKiB": 33673.4765625,
+          "heapRetainedKiB": 283.2578125,
+          "rssMiB": 128.984375,
+          "externalKiB": 4090.515625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 740.2574209999993,
+          "cpuMs": 981.419,
+          "heapPeakKiB": 31983.265625,
+          "heapRetainedKiB": 283.234375,
+          "rssMiB": 120.08984375,
+          "externalKiB": 4083.025390625,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 695.9479810000003,
+          "cpuMs": 855.899,
+          "heapPeakKiB": 33983.484375,
+          "heapRetainedKiB": 282.328125,
+          "rssMiB": 119.93359375,
+          "externalKiB": 4095.0810546875,
+          "bytes": 4217526,
+          "messages": 3600
+        },
+        {
+          "wallMs": 840.5259590000005,
+          "cpuMs": 1040.667,
+          "heapPeakKiB": 32411.9296875,
+          "heapRetainedKiB": 282.6875,
+          "rssMiB": 120.33203125,
+          "externalKiB": 4086.775390625,
+          "bytes": 4217526,
+          "messages": 3600
+        }
+      ]
+    },
+    {
+      "sourceCommit": "7397e49",
+      "stage": "baseline",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "client-view",
+      "units": {
+        "displayHz": 120,
+        "snapshotHz": 15,
+        "players": 16,
+        "views": 7680
+      },
+      "medians": {
+        "wallMs": 65.97618000000011,
+        "cpuMs": 103.75,
+        "heapPeakKiB": 31194.671875,
+        "heapRetainedKiB": 3.5546875,
+        "rssMiB": 126.984375,
+        "externalKiB": 3913.48828125,
+        "views": 7680,
+        "positionSum": 8377.883765374881,
+        "bytes": 0,
+        "messages": 0
+      },
+      "samples": [
+        {
+          "wallMs": 69.21881000000008,
+          "cpuMs": 103.75,
+          "heapPeakKiB": 30024.7578125,
+          "heapRetainedKiB": 60.328125,
+          "rssMiB": 127.1875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 77.601541,
+          "cpuMs": 119.979,
+          "heapPeakKiB": 31578.8203125,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 126.8984375,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 65.97618000000011,
+          "cpuMs": 99.672,
+          "heapPeakKiB": 31370.5625,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 127.19140625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 61.86316499999998,
+          "cpuMs": 93.393,
+          "heapPeakKiB": 31113.9765625,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 126.84765625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 65.29764399999999,
+          "cpuMs": 101.196,
+          "heapPeakKiB": 31194.671875,
+          "heapRetainedKiB": 3.53125,
+          "rssMiB": 126.88671875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 65.68462599999998,
+          "cpuMs": 111.937,
+          "heapPeakKiB": 31088.9296875,
+          "heapRetainedKiB": 3.5703125,
+          "rssMiB": 127.01953125,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 70.78569600000014,
+          "cpuMs": 104.788,
+          "heapPeakKiB": 31629.21875,
+          "heapRetainedKiB": 3.53125,
+          "rssMiB": 126.984375,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        }
+      ]
+    },
+    {
+      "sourceCommit": "66c9da6",
+      "stage": "candidate",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "client-view",
+      "units": {
+        "displayHz": 120,
+        "snapshotHz": 15,
+        "players": 16,
+        "views": 7680
+      },
+      "medians": {
+        "wallMs": 50.50232699999992,
+        "cpuMs": 81.4,
+        "heapPeakKiB": 32284,
+        "heapRetainedKiB": 11.046875,
+        "rssMiB": 130.05078125,
+        "externalKiB": 3913.48828125,
+        "views": 7680,
+        "positionSum": 8377.883765374881,
+        "bytes": 0,
+        "messages": 0
+      },
+      "samples": [
+        {
+          "wallMs": 52.541743,
+          "cpuMs": 85.018,
+          "heapPeakKiB": 32118.453125,
+          "heapRetainedKiB": 68.421875,
+          "rssMiB": 129.47265625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 50.50232699999992,
+          "cpuMs": 81.4,
+          "heapPeakKiB": 32762.6015625,
+          "heapRetainedKiB": 11.046875,
+          "rssMiB": 130.05078125,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 49.65311399999996,
+          "cpuMs": 82.504,
+          "heapPeakKiB": 32745.078125,
+          "heapRetainedKiB": 43.75,
+          "rssMiB": 130.23828125,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 44.086586000000125,
+          "cpuMs": 59.357,
+          "heapPeakKiB": 32582.6484375,
+          "heapRetainedKiB": 11.15625,
+          "rssMiB": 129.89453125,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 46.70717500000001,
+          "cpuMs": 58.271,
+          "heapPeakKiB": 32284,
+          "heapRetainedKiB": 10.9609375,
+          "rssMiB": 130.23046875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 52.366633999999976,
+          "cpuMs": 63.448,
+          "heapPeakKiB": 32130.109375,
+          "heapRetainedKiB": 10.9609375,
+          "rssMiB": 130.22265625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 63.62603800000011,
+          "cpuMs": 83.753,
+          "heapPeakKiB": 32217.7265625,
+          "heapRetainedKiB": 10.9609375,
+          "rssMiB": 129.97265625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        }
+      ]
+    },
+    {
+      "sourceCommit": "2f6c607",
+      "stage": "codec",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "client-view",
+      "units": {
+        "displayHz": 120,
+        "snapshotHz": 15,
+        "players": 16,
+        "views": 7680
+      },
+      "medians": {
+        "wallMs": 59.12481300000013,
+        "cpuMs": 89.35,
+        "heapPeakKiB": 31101.671875,
+        "heapRetainedKiB": 3.5546875,
+        "rssMiB": 130.3515625,
+        "externalKiB": 3913.48828125,
+        "views": 7680,
+        "positionSum": 8377.883765374881,
+        "bytes": 0,
+        "messages": 0
+      },
+      "samples": [
+        {
+          "wallMs": 64.82826900000009,
+          "cpuMs": 95.815,
+          "heapPeakKiB": 31626.8984375,
+          "heapRetainedKiB": 60.328125,
+          "rssMiB": 129.96875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 57.994192999999996,
+          "cpuMs": 87.859,
+          "heapPeakKiB": 31296.5,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 130.21875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 54.97984999999994,
+          "cpuMs": 84.118,
+          "heapPeakKiB": 31101.671875,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 130.46484375,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 63.08282899999995,
+          "cpuMs": 93.261,
+          "heapPeakKiB": 31027.03125,
+          "heapRetainedKiB": 3.5546875,
+          "rssMiB": 130.3515625,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 59.12481300000013,
+          "cpuMs": 86.044,
+          "heapPeakKiB": 31038.234375,
+          "heapRetainedKiB": 3.53125,
+          "rssMiB": 130.35546875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 55.45532500000013,
+          "cpuMs": 94.855,
+          "heapPeakKiB": 30999.3359375,
+          "heapRetainedKiB": -26.2578125,
+          "rssMiB": 132.29296875,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 59.13601999999992,
+          "cpuMs": 89.35,
+          "heapPeakKiB": 31461.65625,
+          "heapRetainedKiB": 3.53125,
+          "rssMiB": 129.8125,
+          "externalKiB": 3913.48828125,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        }
+      ]
+    },
+    {
+      "sourceCommit": "44877ae",
+      "stage": "strings",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "client-view",
+      "units": {
+        "displayHz": 120,
+        "snapshotHz": 15,
+        "players": 16,
+        "views": 7680
+      },
+      "medians": {
+        "wallMs": 46.495211000000154,
+        "cpuMs": 78.291,
+        "heapPeakKiB": 32621.4140625,
+        "heapRetainedKiB": 11.0078125,
+        "rssMiB": 124.00390625,
+        "externalKiB": 3914.1787109375,
+        "views": 7680,
+        "positionSum": 8377.883765374881,
+        "bytes": 0,
+        "messages": 0
+      },
+      "samples": [
+        {
+          "wallMs": 40.01230099999998,
+          "cpuMs": 51.416,
+          "heapPeakKiB": 31197.125,
+          "heapRetainedKiB": 19.984375,
+          "rssMiB": 124.00390625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 54.4465889999999,
+          "cpuMs": 85.407,
+          "heapPeakKiB": 32527.4609375,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.36328125,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 46.495211000000154,
+          "cpuMs": 77.15,
+          "heapPeakKiB": 32567.921875,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 124.015625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 46.31370800000013,
+          "cpuMs": 82.349,
+          "heapPeakKiB": 32621.4140625,
+          "heapRetainedKiB": -9.8046875,
+          "rssMiB": 125.44140625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 42.17434400000002,
+          "cpuMs": 69.775,
+          "heapPeakKiB": 32624.4375,
+          "heapRetainedKiB": 11.3359375,
+          "rssMiB": 124.078125,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 49.877827000000025,
+          "cpuMs": 81.697,
+          "heapPeakKiB": 32781.2890625,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.87109375,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 51.26650500000005,
+          "cpuMs": 78.291,
+          "heapPeakKiB": 32628.6640625,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.875,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        }
+      ]
+    },
+    {
+      "sourceCommit": "7397e49",
+      "stage": "baseline",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "codec-floats",
+      "units": {
+        "packets": 1500,
+        "floatFieldsPerPacket": 176
+      },
+      "medians": {
+        "wallMs": 705.2083629999997,
+        "cpuMs": 818.35,
+        "heapPeakKiB": 8196.03125,
+        "heapRetainedKiB": -0.0390625,
+        "rssMiB": 66.1328125,
+        "externalKiB": 3956.171875,
+        "bytes": 5038500,
+        "messages": 1500
+      },
+      "samples": [
+        {
+          "wallMs": 622.520861,
+          "cpuMs": 730.132,
+          "heapPeakKiB": 7708.328125,
+          "heapRetainedKiB": -0.2578125,
+          "rssMiB": 66.1328125,
+          "externalKiB": 3956.171875,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 956.5309240000001,
+          "cpuMs": 1074.887,
+          "heapPeakKiB": 8196.03125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.5234375,
+          "externalKiB": 3951.98828125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 643.2944090000001,
+          "cpuMs": 762.685,
+          "heapPeakKiB": 7941.2421875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.7890625,
+          "externalKiB": 3963.1474609375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 1093.6940799999998,
+          "cpuMs": 1182.635,
+          "heapPeakKiB": 8226.1328125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.859375,
+          "externalKiB": 3952.3916015625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 705.2083629999997,
+          "cpuMs": 818.35,
+          "heapPeakKiB": 8012.4375,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 66.15625,
+          "externalKiB": 3963.8173828125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 684.0636010000007,
+          "cpuMs": 800.104,
+          "heapPeakKiB": 8260.09375,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 82.9375,
+          "externalKiB": 3952.375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 886.9060090000003,
+          "cpuMs": 1042.844,
+          "heapPeakKiB": 15788.03125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 83.6484375,
+          "externalKiB": 4091.048828125,
+          "bytes": 5038500,
+          "messages": 1500
+        }
+      ]
+    },
+    {
+      "sourceCommit": "66c9da6",
+      "stage": "candidate",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "codec-floats",
+      "units": {
+        "packets": 1500,
+        "floatFieldsPerPacket": 176
+      },
+      "medians": {
+        "wallMs": 505.24681699999996,
+        "cpuMs": 577.666,
+        "heapPeakKiB": 8281.9375,
+        "heapRetainedKiB": -0.0390625,
+        "rssMiB": 64.44921875,
+        "externalKiB": 3929.7783203125,
+        "bytes": 5038500,
+        "messages": 1500
+      },
+      "samples": [
+        {
+          "wallMs": 505.24681699999996,
+          "cpuMs": 577.666,
+          "heapPeakKiB": 4220.8515625,
+          "heapRetainedKiB": -0.2578125,
+          "rssMiB": 56.359375,
+          "externalKiB": 3920.818359375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 502.882513,
+          "cpuMs": 572.085,
+          "heapPeakKiB": 8281.9375,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.0625,
+          "externalKiB": 3917.076171875,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 473.08718499999986,
+          "cpuMs": 543.341,
+          "heapPeakKiB": 7985.96875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.3515625,
+          "externalKiB": 3921.3154296875,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 690.940521,
+          "cpuMs": 739.228,
+          "heapPeakKiB": 7978.3125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.44921875,
+          "externalKiB": 3929.7783203125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 470.48670600000014,
+          "cpuMs": 540.457,
+          "heapPeakKiB": 8307.265625,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.86328125,
+          "externalKiB": 3959.3984375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 538.249922,
+          "cpuMs": 613.29,
+          "heapPeakKiB": 8297.6015625,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.48828125,
+          "externalKiB": 3934.009765625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 672.1016339999996,
+          "cpuMs": 752.717,
+          "heapPeakKiB": 14500.8046875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 81.58203125,
+          "externalKiB": 3946.697265625,
+          "bytes": 5038500,
+          "messages": 1500
+        }
+      ]
+    },
+    {
+      "sourceCommit": "2f6c607",
+      "stage": "codec",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "codec-floats",
+      "units": {
+        "packets": 1500,
+        "floatFieldsPerPacket": 176
+      },
+      "medians": {
+        "wallMs": 536.001771,
+        "cpuMs": 599.395,
+        "heapPeakKiB": 8262.4140625,
+        "heapRetainedKiB": -0.0390625,
+        "rssMiB": 64.5625,
+        "externalKiB": 3942.59375,
+        "bytes": 5038500,
+        "messages": 1500
+      },
+      "samples": [
+        {
+          "wallMs": 785.8395950000001,
+          "cpuMs": 847.21,
+          "heapPeakKiB": 4220.875,
+          "heapRetainedKiB": -0.2578125,
+          "rssMiB": 57.16796875,
+          "externalKiB": 3963.0380859375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 536.001771,
+          "cpuMs": 599.395,
+          "heapPeakKiB": 7988.0078125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.203125,
+          "externalKiB": 3963.6298828125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 512.8011630000001,
+          "cpuMs": 591.086,
+          "heapPeakKiB": 8262.4140625,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.41015625,
+          "externalKiB": 4001.705078125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 498.29245900000024,
+          "cpuMs": 571.904,
+          "heapPeakKiB": 8288.4765625,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.2578125,
+          "externalKiB": 3942.47265625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 811.1020530000001,
+          "cpuMs": 900.373,
+          "heapPeakKiB": 8288.796875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 64.5625,
+          "externalKiB": 3942.59375,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 557.9564890000001,
+          "cpuMs": 650.533,
+          "heapPeakKiB": 8305.46875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.140625,
+          "externalKiB": 3925.546875,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 499.702499,
+          "cpuMs": 578.359,
+          "heapPeakKiB": 7950.46875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 65.15625,
+          "externalKiB": 3929.7705078125,
+          "bytes": 5038500,
+          "messages": 1500
+        }
+      ]
+    },
+    {
+      "sourceCommit": "44877ae",
+      "stage": "strings",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "codec-floats",
+      "units": {
+        "packets": 1500,
+        "floatFieldsPerPacket": 176
+      },
+      "medians": {
+        "wallMs": 296.78340100000014,
+        "cpuMs": 316.167,
+        "heapPeakKiB": 8010.6875,
+        "heapRetainedKiB": -0.0390625,
+        "rssMiB": 63.546875,
+        "externalKiB": 3969.40625,
+        "bytes": 5038500,
+        "messages": 1500
+      },
+      "samples": [
+        {
+          "wallMs": 317.1458580000001,
+          "cpuMs": 335.375,
+          "heapPeakKiB": 8077.1640625,
+          "heapRetainedKiB": -0.2578125,
+          "rssMiB": 63.41015625,
+          "externalKiB": 3975.982421875,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 650.7919999999999,
+          "cpuMs": 605.985,
+          "heapPeakKiB": 7627.84375,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.2890625,
+          "externalKiB": 3969.4140625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 310.21377399999983,
+          "cpuMs": 338.355,
+          "heapPeakKiB": 7862.9296875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.62109375,
+          "externalKiB": 3962.837890625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 296.78340100000014,
+          "cpuMs": 316.167,
+          "heapPeakKiB": 8307.3515625,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.58984375,
+          "externalKiB": 3969.40625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 286.47836899999993,
+          "cpuMs": 313.46,
+          "heapPeakKiB": 7702.828125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.546875,
+          "externalKiB": 3962.830078125,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 275.86893899999995,
+          "cpuMs": 302.38,
+          "heapPeakKiB": 8010.6875,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.38671875,
+          "externalKiB": 3966.1181640625,
+          "bytes": 5038500,
+          "messages": 1500
+        },
+        {
+          "wallMs": 279.54136700000026,
+          "cpuMs": 311.351,
+          "heapPeakKiB": 8236.3828125,
+          "heapRetainedKiB": -0.0390625,
+          "rssMiB": 63.578125,
+          "externalKiB": 3979.2705078125,
+          "bytes": 5038500,
+          "messages": 1500
+        }
+      ]
+    },
+    {
+      "sourceCommit": "7397e49",
+      "stage": "baseline",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-16",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 16,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 2756.894753999999,
+        "cpuMs": 3259.23,
+        "heapPeakKiB": 81414.0703125,
+        "heapRetainedKiB": 538.9140625,
+        "rssMiB": 242.85546875,
+        "externalKiB": 4447.845703125,
+        "bytes": 18485067,
+        "messages": 7200
+      },
+      "samples": [
+        {
+          "wallMs": 2469.003372,
+          "cpuMs": 2961.862,
+          "heapPeakKiB": 74968.8515625,
+          "heapRetainedKiB": 662.515625,
+          "rssMiB": 242.84765625,
+          "externalKiB": 4026.5927734375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2756.894753999999,
+          "cpuMs": 3259.23,
+          "heapPeakKiB": 81747.640625,
+          "heapRetainedKiB": 539.1875,
+          "rssMiB": 243.40234375,
+          "externalKiB": 4455.12890625,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2955.0683769999996,
+          "cpuMs": 3449.596,
+          "heapPeakKiB": 81414.0703125,
+          "heapRetainedKiB": 538.53125,
+          "rssMiB": 242.85546875,
+          "externalKiB": 4447.845703125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2668.8915480000014,
+          "cpuMs": 3201.066,
+          "heapPeakKiB": 82980.4765625,
+          "heapRetainedKiB": 538.828125,
+          "rssMiB": 243.21875,
+          "externalKiB": 4466.98046875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2630.2021889999996,
+          "cpuMs": 3079.325,
+          "heapPeakKiB": 81369.25,
+          "heapRetainedKiB": 538.9921875,
+          "rssMiB": 242.765625,
+          "externalKiB": 4447.845703125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2907.9638430000014,
+          "cpuMs": 3384.754,
+          "heapPeakKiB": 81458.0234375,
+          "heapRetainedKiB": 538.1484375,
+          "rssMiB": 243.2421875,
+          "externalKiB": 4447.845703125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2808.59274,
+          "cpuMs": 3289.611,
+          "heapPeakKiB": 81340.75,
+          "heapRetainedKiB": 538.9140625,
+          "rssMiB": 238.19921875,
+          "externalKiB": 4447.845703125,
+          "bytes": 18485067,
+          "messages": 7200
+        }
+      ]
+    },
+    {
+      "sourceCommit": "66c9da6",
+      "stage": "candidate",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-16",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 16,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 2942.0237860000016,
+        "cpuMs": 3436.601,
+        "heapPeakKiB": 74115.3046875,
+        "heapRetainedKiB": 538.9375,
+        "rssMiB": 241.53125,
+        "externalKiB": 4318.2216796875,
+        "bytes": 18485067,
+        "messages": 7200
+      },
+      "samples": [
+        {
+          "wallMs": 2802.0848109999997,
+          "cpuMs": 3123.898,
+          "heapPeakKiB": 75922.7265625,
+          "heapRetainedKiB": 660.65625,
+          "rssMiB": 240.95703125,
+          "externalKiB": 3939.181640625,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 3231.7348379999985,
+          "cpuMs": 3848.846,
+          "heapPeakKiB": 74115.3046875,
+          "heapRetainedKiB": 539.375,
+          "rssMiB": 241.53125,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2925.9431909999985,
+          "cpuMs": 3436.686,
+          "heapPeakKiB": 73698.65625,
+          "heapRetainedKiB": 538.4375,
+          "rssMiB": 241.16015625,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 3036.576515999999,
+          "cpuMs": 3539.61,
+          "heapPeakKiB": 74559.6015625,
+          "heapRetainedKiB": 539.1171875,
+          "rssMiB": 241.33984375,
+          "externalKiB": 4332.7724609375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2966.2480539999997,
+          "cpuMs": 3436.601,
+          "heapPeakKiB": 73992.5625,
+          "heapRetainedKiB": 538.9375,
+          "rssMiB": 245.34375,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2942.0237860000016,
+          "cpuMs": 3354.544,
+          "heapPeakKiB": 74220.9453125,
+          "heapRetainedKiB": 538.6484375,
+          "rssMiB": 246.35546875,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2939.4118110000018,
+          "cpuMs": 3423.279,
+          "heapPeakKiB": 73824.03125,
+          "heapRetainedKiB": 538.9375,
+          "rssMiB": 241.609375,
+          "externalKiB": 4318.0087890625,
+          "bytes": 18485067,
+          "messages": 7200
+        }
+      ]
+    },
+    {
+      "sourceCommit": "2f6c607",
+      "stage": "codec",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-16",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 16,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 2648.7402349999993,
+        "cpuMs": 3165.069,
+        "heapPeakKiB": 74013.3515625,
+        "heapRetainedKiB": 538.9453125,
+        "rssMiB": 222.44921875,
+        "externalKiB": 4318.2216796875,
+        "bytes": 18485067,
+        "messages": 7200
+      },
+      "samples": [
+        {
+          "wallMs": 2422.408923,
+          "cpuMs": 2788.923,
+          "heapPeakKiB": 71621.9375,
+          "heapRetainedKiB": 650.1484375,
+          "rssMiB": 222.7890625,
+          "externalKiB": 3947.0009765625,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2974.357489,
+          "cpuMs": 3564.024,
+          "heapPeakKiB": 74065.2734375,
+          "heapRetainedKiB": 539.6171875,
+          "rssMiB": 221.41015625,
+          "externalKiB": 4314.203125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2648.7402349999993,
+          "cpuMs": 3165.069,
+          "heapPeakKiB": 74840.265625,
+          "heapRetainedKiB": 538.3671875,
+          "rssMiB": 225.16796875,
+          "externalKiB": 4332.8564453125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2752.3027380000003,
+          "cpuMs": 3168.273,
+          "heapPeakKiB": 73403.1171875,
+          "heapRetainedKiB": 539.0234375,
+          "rssMiB": 225.328125,
+          "externalKiB": 4314.203125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2603.3710649999994,
+          "cpuMs": 3068.999,
+          "heapPeakKiB": 75090.9921875,
+          "heapRetainedKiB": 538.65625,
+          "rssMiB": 220.84765625,
+          "externalKiB": 4332.8564453125,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2383.222587,
+          "cpuMs": 2879.891,
+          "heapPeakKiB": 74013.3515625,
+          "heapRetainedKiB": 538.0234375,
+          "rssMiB": 222.44921875,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2655.547458000001,
+          "cpuMs": 3173.163,
+          "heapPeakKiB": 73994.46875,
+          "heapRetainedKiB": 538.9453125,
+          "rssMiB": 222.31640625,
+          "externalKiB": 4318.2216796875,
+          "bytes": 18485067,
+          "messages": 7200
+        }
+      ]
+    },
+    {
+      "sourceCommit": "44877ae",
+      "stage": "strings",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-16",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 16,
+        "bots": 0,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 2274.116924,
+        "cpuMs": 2663.491,
+        "heapPeakKiB": 74851.46875,
+        "heapRetainedKiB": 538.7578125,
+        "rssMiB": 241.9140625,
+        "externalKiB": 4347.3427734375,
+        "bytes": 18485067,
+        "messages": 7200
+      },
+      "samples": [
+        {
+          "wallMs": 2617.906081,
+          "cpuMs": 2852.069,
+          "heapPeakKiB": 71652.53125,
+          "heapRetainedKiB": 660.1640625,
+          "rssMiB": 240.98046875,
+          "externalKiB": 4011.4990234375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2274.116924,
+          "cpuMs": 2714.093,
+          "heapPeakKiB": 73661.3046875,
+          "heapRetainedKiB": 538.78125,
+          "rssMiB": 246.19140625,
+          "externalKiB": 4335.0390625,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2247.9270639999995,
+          "cpuMs": 2633.263,
+          "heapPeakKiB": 75791.3203125,
+          "heapRetainedKiB": 538.6640625,
+          "rssMiB": 241.87109375,
+          "externalKiB": 4347.3427734375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2522.187242,
+          "cpuMs": 2897.975,
+          "heapPeakKiB": 74851.46875,
+          "heapRetainedKiB": 538.7578125,
+          "rssMiB": 237.28125,
+          "externalKiB": 4347.3427734375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2347.8542309999993,
+          "cpuMs": 2663.491,
+          "heapPeakKiB": 75535.1171875,
+          "heapRetainedKiB": 538.859375,
+          "rssMiB": 242.4296875,
+          "externalKiB": 4347.3427734375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2095.5711039999987,
+          "cpuMs": 2440.752,
+          "heapPeakKiB": 75316.3359375,
+          "heapRetainedKiB": 538.515625,
+          "rssMiB": 241.9140625,
+          "externalKiB": 4347.3427734375,
+          "bytes": 18485067,
+          "messages": 7200
+        },
+        {
+          "wallMs": 2151.421546999998,
+          "cpuMs": 2486.933,
+          "heapPeakKiB": 74796.5,
+          "heapRetainedKiB": 529.4453125,
+          "rssMiB": 242.0703125,
+          "externalKiB": 4347.3427734375,
+          "bytes": 18485067,
+          "messages": 7200
+        }
+      ]
+    },
+    {
+      "sourceCommit": "7397e49",
+      "stage": "baseline",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-bots",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 1,
+        "bots": 15,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 419.5993400000002,
+        "cpuMs": 592.405,
+        "heapPeakKiB": 72664.7421875,
+        "heapRetainedKiB": 228.953125,
+        "rssMiB": 214.61328125,
+        "externalKiB": 4125.5625,
+        "bytes": 1003680,
+        "messages": 450
+      },
+      "samples": [
+        {
+          "wallMs": 318.1447270000001,
+          "cpuMs": 447.21,
+          "heapPeakKiB": 74386.140625,
+          "heapRetainedKiB": 238.8515625,
+          "rssMiB": 211.3125,
+          "externalKiB": 4328.4853515625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 436.972086,
+          "cpuMs": 592.405,
+          "heapPeakKiB": 65663.4609375,
+          "heapRetainedKiB": 228.4453125,
+          "rssMiB": 213.640625,
+          "externalKiB": 4135.697265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 559.7745640000003,
+          "cpuMs": 811.57,
+          "heapPeakKiB": 73628.4296875,
+          "heapRetainedKiB": 229.9140625,
+          "rssMiB": 213.88671875,
+          "externalKiB": 4129.3525390625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 445.8130379999998,
+          "cpuMs": 717.013,
+          "heapPeakKiB": 72664.7421875,
+          "heapRetainedKiB": 228.953125,
+          "rssMiB": 215.30078125,
+          "externalKiB": 4125.083984375,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 419.5993400000002,
+          "cpuMs": 636.063,
+          "heapPeakKiB": 73110.1015625,
+          "heapRetainedKiB": 226.0859375,
+          "rssMiB": 215.046875,
+          "externalKiB": 4125.5625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 398.9356379999999,
+          "cpuMs": 591.81,
+          "heapPeakKiB": 63397.40625,
+          "heapRetainedKiB": 292.390625,
+          "rssMiB": 214.61328125,
+          "externalKiB": 4027.8955078125,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 391.5779090000001,
+          "cpuMs": 556.416,
+          "heapPeakKiB": 70810.2734375,
+          "heapRetainedKiB": 227.7421875,
+          "rssMiB": 214.765625,
+          "externalKiB": 4115.08984375,
+          "bytes": 1003680,
+          "messages": 450
+        }
+      ]
+    },
+    {
+      "sourceCommit": "66c9da6",
+      "stage": "candidate",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-bots",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 1,
+        "bots": 15,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 351.6338310000001,
+        "cpuMs": 493.056,
+        "heapPeakKiB": 31911.578125,
+        "heapRetainedKiB": 231.4140625,
+        "rssMiB": 142.15234375,
+        "externalKiB": 4044.33203125,
+        "bytes": 1003680,
+        "messages": 450
+      },
+      "samples": [
+        {
+          "wallMs": 274.10241400000007,
+          "cpuMs": 398.636,
+          "heapPeakKiB": 26392,
+          "heapRetainedKiB": 238.671875,
+          "rssMiB": 139.7890625,
+          "externalKiB": 4044.33203125,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 620.018703,
+          "cpuMs": 799.477,
+          "heapPeakKiB": 31911.578125,
+          "heapRetainedKiB": 228.09375,
+          "rssMiB": 144.65234375,
+          "externalKiB": 3912.3984375,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 376.4020559999999,
+          "cpuMs": 574.182,
+          "heapPeakKiB": 33952.4921875,
+          "heapRetainedKiB": 229.53125,
+          "rssMiB": 141.6796875,
+          "externalKiB": 4084.2822265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 351.6338310000001,
+          "cpuMs": 536.962,
+          "heapPeakKiB": 32778.625,
+          "heapRetainedKiB": 231.4140625,
+          "rssMiB": 142.5390625,
+          "externalKiB": 4084.2822265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 308.5392280000001,
+          "cpuMs": 421.485,
+          "heapPeakKiB": 30540.7578125,
+          "heapRetainedKiB": 233.0078125,
+          "rssMiB": 142.15234375,
+          "externalKiB": 3969.2451171875,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 371.6606590000001,
+          "cpuMs": 493.056,
+          "heapPeakKiB": 30907.9140625,
+          "heapRetainedKiB": 219.5625,
+          "rssMiB": 142.33984375,
+          "externalKiB": 4055.421875,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 304.86090000000013,
+          "cpuMs": 407.176,
+          "heapPeakKiB": 33522.3125,
+          "heapRetainedKiB": 252.4609375,
+          "rssMiB": 142.04296875,
+          "externalKiB": 3917.6162109375,
+          "bytes": 1003680,
+          "messages": 450
+        }
+      ]
+    },
+    {
+      "sourceCommit": "2f6c607",
+      "stage": "codec",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-bots",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 1,
+        "bots": 15,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 400.2777850000002,
+        "cpuMs": 590.526,
+        "heapPeakKiB": 32556.359375,
+        "heapRetainedKiB": 229.1640625,
+        "rssMiB": 147.4296875,
+        "externalKiB": 4082.8115234375,
+        "bytes": 1003680,
+        "messages": 450
+      },
+      "samples": [
+        {
+          "wallMs": 305.1567399999999,
+          "cpuMs": 432.271,
+          "heapPeakKiB": 27062.640625,
+          "heapRetainedKiB": 238.5,
+          "rssMiB": 145.08984375,
+          "externalKiB": 4047.59375,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 416.03573200000005,
+          "cpuMs": 590.526,
+          "heapPeakKiB": 31552.5546875,
+          "heapRetainedKiB": 229.1640625,
+          "rssMiB": 147.21484375,
+          "externalKiB": 3919.572265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 652.8743850000001,
+          "cpuMs": 834.141,
+          "heapPeakKiB": 33610.8984375,
+          "heapRetainedKiB": 228.6171875,
+          "rssMiB": 147.41796875,
+          "externalKiB": 4084.2822265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 400.2777850000002,
+          "cpuMs": 609.425,
+          "heapPeakKiB": 32556.359375,
+          "heapRetainedKiB": 229.515625,
+          "rssMiB": 147.4296875,
+          "externalKiB": 4082.8115234375,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 437.5994089999999,
+          "cpuMs": 633.228,
+          "heapPeakKiB": 32798.5078125,
+          "heapRetainedKiB": 229.203125,
+          "rssMiB": 147.640625,
+          "externalKiB": 4083.439453125,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 372.7283560000001,
+          "cpuMs": 552.049,
+          "heapPeakKiB": 33165.40625,
+          "heapRetainedKiB": 227.8984375,
+          "rssMiB": 147.5078125,
+          "externalKiB": 4084.2822265625,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 321.78362500000003,
+          "cpuMs": 437.199,
+          "heapPeakKiB": 29927.03125,
+          "heapRetainedKiB": 226.0390625,
+          "rssMiB": 147.70703125,
+          "externalKiB": 3964.7294921875,
+          "bytes": 1003680,
+          "messages": 450
+        }
+      ]
+    },
+    {
+      "sourceCommit": "44877ae",
+      "stage": "strings",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpu": "AMD EPYC 9V74 80-Core Processor",
+        "repeats": 7,
+        "warmups": 2
+      },
+      "id": "team-bots",
+      "units": {
+        "simulatedSeconds": 30,
+        "humans": 1,
+        "bots": 15,
+        "tickHz": 30,
+        "snapshotHz": 15
+      },
+      "medians": {
+        "wallMs": 350.40569000000005,
+        "cpuMs": 544.973,
+        "heapPeakKiB": 63958.1953125,
+        "heapRetainedKiB": 228.25,
+        "rssMiB": 207.4609375,
+        "externalKiB": 3993.673828125,
+        "bytes": 1003680,
+        "messages": 450
+      },
+      "samples": [
+        {
+          "wallMs": 309.3036900000002,
+          "cpuMs": 455.642,
+          "heapPeakKiB": 67990.2578125,
+          "heapRetainedKiB": 238.90625,
+          "rssMiB": 205.74609375,
+          "externalKiB": 4120.646484375,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 389.63051300000006,
+          "cpuMs": 560.174,
+          "heapPeakKiB": 66136.109375,
+          "heapRetainedKiB": 228.1171875,
+          "rssMiB": 206.50390625,
+          "externalKiB": 4005.4423828125,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 417.52073500000006,
+          "cpuMs": 629.695,
+          "heapPeakKiB": 63958.1953125,
+          "heapRetainedKiB": 229.5859375,
+          "rssMiB": 208.21875,
+          "externalKiB": 3990.326171875,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 347.81852400000025,
+          "cpuMs": 582.05,
+          "heapPeakKiB": 63034.4921875,
+          "heapRetainedKiB": 229.53125,
+          "rssMiB": 208.71875,
+          "externalKiB": 3993.673828125,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 350.40569000000005,
+          "cpuMs": 544.973,
+          "heapPeakKiB": 62902.9375,
+          "heapRetainedKiB": 228.25,
+          "rssMiB": 207.4609375,
+          "externalKiB": 3990.326171875,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 349.55492600000025,
+          "cpuMs": 472.726,
+          "heapPeakKiB": 72154.78125,
+          "heapRetainedKiB": 225.96875,
+          "rssMiB": 206.5078125,
+          "externalKiB": 4194.25,
+          "bytes": 1003680,
+          "messages": 450
+        },
+        {
+          "wallMs": 388.23281399999996,
+          "cpuMs": 535.466,
+          "heapPeakKiB": 63784.75,
+          "heapRetainedKiB": 227.515625,
+          "rssMiB": 207.46875,
+          "externalKiB": 3990.326171875,
+          "bytes": 1003680,
+          "messages": 450
+        }
+      ]
+    }
+  ]
+}

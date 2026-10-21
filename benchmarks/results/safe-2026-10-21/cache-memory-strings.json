@@ -1,0 +1,34 @@
+{
+  "retainedKiB": 101.59375,
+  "additionalKiB": 9.203125,
+  "samples": [
+    {
+      "retainedKiB": 100.515625,
+      "additionalKiB": 0.8515625
+    },
+    {
+      "retainedKiB": 101.9296875,
+      "additionalKiB": 6.78125
+    },
+    {
+      "retainedKiB": 101.59375,
+      "additionalKiB": 11.9140625
+    },
+    {
+      "retainedKiB": 101.390625,
+      "additionalKiB": 12.1328125
+    },
+    {
+      "retainedKiB": 101.046875,
+      "additionalKiB": 11.671875
+    },
+    {
+      "retainedKiB": 107.234375,
+      "additionalKiB": 9.203125
+    },
+    {
+      "retainedKiB": 107.546875,
+      "additionalKiB": 5.2734375
+    }
+  ]
+}

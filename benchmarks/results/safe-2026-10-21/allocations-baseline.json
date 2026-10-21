@@ -1,0 +1,9 @@
+{
+  "encodeFloatDataViews": 176,
+  "decodeFloatDataViews": 176,
+  "quantizedInputDataViews": 0,
+  "clientMaps": 2880,
+  "clientViews": 960,
+  "retainedIndexMaps": 0,
+  "repeatedPacketUtf8Encodes": 321
+}

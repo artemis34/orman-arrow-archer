@@ -1,0 +1,34 @@
+{
+  "retainedKiB": -0.4765625,
+  "additionalKiB": 0.4765625,
+  "samples": [
+    {
+      "retainedKiB": -3.3125,
+      "additionalKiB": 0.5546875
+    },
+    {
+      "retainedKiB": -0.34375,
+      "additionalKiB": 0.4765625
+    },
+    {
+      "retainedKiB": -0.4453125,
+      "additionalKiB": 0.140625
+    },
+    {
+      "retainedKiB": -0.4765625,
+      "additionalKiB": 0.65625
+    },
+    {
+      "retainedKiB": -0.5390625,
+      "additionalKiB": 0
+    },
+    {
+      "retainedKiB": -0.1953125,
+      "additionalKiB": 3.796875
+    },
+    {
+      "retainedKiB": -0.4765625,
+      "additionalKiB": 0
+    }
+  ]
+}

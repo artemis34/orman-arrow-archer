@@ -1,0 +1,133 @@
+{
+  "label": "strings",
+  "root": "source:44877ae",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "repeats": 7,
+    "warmups": 2
+  },
+  "runtimeSha256": {
+    "shared/world.js": "b033ee39d074b73f5ad8a1bf579ed8bf43c3c594dbb1f5f9a3b29d76b1729bfa",
+    "shared/config.js": "7f94012b786e525f662e932759604b0424d34896807ee5a58fffaa47ea460b2a",
+    "shared/skills.js": "a312f6b73cd48420b3d6996241b49bb244cf945d26632a3d66167509cee5e99a",
+    "shared/spatial.js": "a2d6d35110b427c414cf189067ef75543274afcd26545ac026e48a394382d10e",
+    "shared/protocol.js": "c50d3b791d33244a3099d0eafaf4336325c844be8a694da2e09c00102d74c502",
+    "client/transport.js": "e01f1b39b77f00a85d0eb5e807bf335d4c3c975ae6f0fdbf34ee2822893d0546",
+    "client/websocket.js": "4b5e4181e8bdb03a3acf6877a860e3dedd844bbd8f216eb47fca6df14cafde26",
+    "cloudflare/worker.js": "a592f164a9f1619014e45b211d480c671b29093d97d03c1c349b06c8d59ba203",
+    "server/index.js": "217f8c26dfb49c82b4aa86104a4dd9d68e65d1c39cdf20511b32408a556d9160"
+  },
+  "results": [
+    {
+      "id": "client-view",
+      "units": {
+        "displayHz": 120,
+        "snapshotHz": 15,
+        "players": 16,
+        "views": 7680
+      },
+      "medians": {
+        "wallMs": 46.495211000000154,
+        "cpuMs": 78.291,
+        "heapPeakKiB": 32621.4140625,
+        "heapRetainedKiB": 11.0078125,
+        "rssMiB": 124.00390625,
+        "externalKiB": 3914.1787109375,
+        "views": 7680,
+        "positionSum": 8377.883765374881,
+        "bytes": 0,
+        "messages": 0
+      },
+      "samples": [
+        {
+          "wallMs": 40.01230099999998,
+          "cpuMs": 51.416,
+          "heapPeakKiB": 31197.125,
+          "heapRetainedKiB": 19.984375,
+          "rssMiB": 124.00390625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 54.4465889999999,
+          "cpuMs": 85.407,
+          "heapPeakKiB": 32527.4609375,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.36328125,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 46.495211000000154,
+          "cpuMs": 77.15,
+          "heapPeakKiB": 32567.921875,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 124.015625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 46.31370800000013,
+          "cpuMs": 82.349,
+          "heapPeakKiB": 32621.4140625,
+          "heapRetainedKiB": -9.8046875,
+          "rssMiB": 125.44140625,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 42.17434400000002,
+          "cpuMs": 69.775,
+          "heapPeakKiB": 32624.4375,
+          "heapRetainedKiB": 11.3359375,
+          "rssMiB": 124.078125,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 49.877827000000025,
+          "cpuMs": 81.697,
+          "heapPeakKiB": 32781.2890625,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.87109375,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        },
+        {
+          "wallMs": 51.26650500000005,
+          "cpuMs": 78.291,
+          "heapPeakKiB": 32628.6640625,
+          "heapRetainedKiB": 11.0078125,
+          "rssMiB": 123.875,
+          "externalKiB": 3914.1787109375,
+          "views": 7680,
+          "positionSum": 8377.883765374881,
+          "bytes": 0,
+          "messages": 0
+        }
+      ]
+    }
+  ],
+  "sourceCommit": "44877ae"
+}
