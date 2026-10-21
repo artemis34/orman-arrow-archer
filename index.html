@@ -16,10 +16,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-C7DqVFih.js"></script>
+    <script type="module" crossorigin src="./assets/index-CcYIAKM-.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-DZAa9NSF.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-NoEx75Tx.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-Cgztcujz.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -201,6 +201,19 @@
       </footer>
     </div>
     <div id="hud" class="arena-hud hidden">
+      <div
+        id="kill-streak"
+        class="kill-streak hidden"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="streak-fire" aria-hidden="true"
+          ><i style="--i: 0"></i><i style="--i: 1"></i><i style="--i: 2"></i
+          ><i style="--i: 3"></i><i style="--i: 4"></i><i style="--i: 5"></i
+        ></span>
+        <strong>2</strong><span aria-hidden="true">KILL STREAK</span>
+      </div>
       <aside class="arena-map">
         <button
           id="map-toggle"
