@@ -33,7 +33,8 @@
     "test:conformance": "node --test tests/protocol-conformance.test.js tests/safe-traces.test.js",
     "bench:safe": "node --expose-gc benchmarks/safe-optimizations.js",
     "test:multimode": "node tests/multimode.smoke.js",
-    "test:profile": "node tests/profile.browser.js"
+    "test:profile": "node tests/profile.browser.js",
+    "test:kill-streak": "node tests/kill-streak.browser.js"
   },
   "dependencies": {
     "express": "^5.1.0",

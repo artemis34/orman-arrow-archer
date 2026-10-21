@@ -1,7 +1,7 @@
 name: Validate and publish
 on:
   push:
-    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social, feature/bow-buff-effects]
+    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social, feature/bow-buff-effects, feature/kill-streak]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -57,6 +57,8 @@ jobs:
           npm run test:lobby
           npm run test:forest
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
+          npm run test:kill-streak
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:kill-streak
           npm run test:expansion
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:expansion

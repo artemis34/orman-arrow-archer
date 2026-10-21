@@ -1,5 +1,6 @@
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
+import { KillStreakBadge } from "./kill-streak.js";
 import { selectTarget } from "../shared/aim.js";
 import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
@@ -20,6 +21,7 @@ import "./hud.css";
 import "./lobby.css";
 import "./expansion.css";
 import "./social.css";
+import "./kill-streak.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -45,6 +47,7 @@ const audio = new AudioEngine(),
   controls = new Controls($("arena"), scene, audio),
   atHome = new World({ bots: 7 });
 const panels = setupPanels();
+const killStreak = new KillStreakBadge($("kill-streak"));
 scene.setMap(atHome.obstacles);
 const query = new URLSearchParams(location.search);
 const cloudflare =
@@ -534,6 +537,7 @@ function leave() {
   show("lobby", true);
   document.body.classList.remove("playing");
   $("kill-feed").replaceChildren();
+  killStreak.update(0, false);
   text(
     "join-status",
     mode === "practice"
@@ -552,7 +556,14 @@ bindAction($("respawn"), () => {
 });
 function updateHud(current) {
   const me = current?.players.find((p) => p.id === myId);
-  if (!me) return;
+  if (!me) {
+    killStreak.update(0, false);
+    return;
+  }
+  killStreak.update(
+    current.roster?.find((p) => p.id === myId)?.killStreak || 0,
+    me.alive,
+  );
   const match = current.match;
   const finished = match?.phase === "results";
   show("match-status", !!match);

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { SCENARIOS, modules, makeRoom, advance, publish } from "./workload.js";
 
-export async function traces(root) {
+export async function traces(root, { legacyRoster = false } = {}) {
   const api = await modules(root),
     results = [];
   for (const scenario of SCENARIOS) {
@@ -11,6 +11,17 @@ export async function traces(root) {
       wire = createHash("sha256"),
       decoded = createHash("sha256");
     const decoders = room.ids.map(() => new api.SnapshotDecoder());
+    // Compare the captured pre-streak view without its new optional HUD-only
+    // roster key. Physics, input bytes and every existing snapshot field stay
+    // in the original trace; dedicated streak tests cover the new metadata.
+    if (legacyRoster) {
+      const snapshot = room.world.snapshot.bind(room.world);
+      room.world.snapshot = (...args) => {
+        const state = snapshot(...args);
+        for (const p of state.roster) delete p.killStreak;
+        return state;
+      };
+    }
     let bytes = 0,
       messages = 0,
       hits = 0,

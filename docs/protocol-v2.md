@@ -10,6 +10,11 @@ Güncel geriye uyumlu kritik/ikmal metadata'sı, ranked ve profil/topluluk HTTP 
 [orman ilerlemesi notlarında](forest-ranked-social.md) açıklanır. Tuple sırası ve
 protokol numarası değişmez; istemci bilinmeyen isteğe bağlı alanları yok sayar.
 
+`roster[].killStreak` sunucunun doğruladığı, mevcut hayattaki öldürme sayısıdır.
+Alan yoksa sıfır kabul edilir; ölümde, yeniden doğuşta ve yeni turda temizlenir.
+İsteğe bağlı roster metadata'sıdır; oyuncu tuple alanları veya girdi mesajları
+değişmez. Ayrıntılar [kill streak notlarında](kill-streak.md).
+
 ## Sunucu ve taşıma
 
 Üretimde Cloudflare Worker HTTP yönlendirmesi, `ArenaRoom` Durable Object ise

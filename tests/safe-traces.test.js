@@ -13,7 +13,9 @@ const presentationBaseline = JSON.parse(
   ),
 );
 test("authority, JSON, v2 bytes and presentation retain reviewed motion regression traces", async () => {
-  const actual = await traces(new URL("..", import.meta.url).pathname);
+  const actual = await traces(new URL("..", import.meta.url).pathname, {
+    legacyRoster: true,
+  });
   assert.deepEqual(actual, {
     scenarios: expected.scenarios,
     clientViews: expected.clientViews,

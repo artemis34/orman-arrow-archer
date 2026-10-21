@@ -32,6 +32,7 @@ export class World {
     this.seed = seed;
     this.combatSeed = seed ^ 0x5f3759df;
     this.leech = new WeakMap();
+    this.killStreaks = new WeakMap();
     this.loot = new LootDrops(seed);
     this.time = 0;
     this.objective = new ForestShrine();
@@ -437,12 +438,18 @@ export class World {
     if (p.hp <= 0) {
       p.hp = 0;
       p.alive = false;
+      this.killStreaks.delete(p);
       p.buffType = null;
       p.buffTime = 0;
       p.charge = 0;
       p.respawnAt = this.time + 3;
       if (attacker && attacker !== p) {
         attacker.kills++;
+        if (attacker.alive)
+          this.killStreaks.set(
+            attacker,
+            (this.killStreaks.get(attacker) || 0) + 1,
+          );
         this.gain(attacker, 65);
       }
       this.mode.onElimination(this, attacker, p);
@@ -482,6 +489,7 @@ export class World {
     p.contributors.clear();
     this.botNavigation.reset(p);
     this.leech.delete(p);
+    this.killStreaks.delete(p);
     Object.assign(p, this.spawnPoint(p.bot ? 5 : 10, p.team), {
       hp:
         p.bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
@@ -1089,6 +1097,9 @@ export class World {
         kills: p.kills,
         assists: p.assists,
         matchPoints: p.matchPoints,
+        ...(p.alive && this.killStreaks.has(p)
+          ? { killStreak: this.killStreaks.get(p) }
+          : {}),
       })),
       players: [...this.players.values()]
         .filter(
