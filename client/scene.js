@@ -1,5 +1,6 @@
 import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
+import { AvatarBatches, ArrowBatches, ParticleBatch } from "./render-pools.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
@@ -8,6 +9,13 @@ import { TEAMS } from "../shared/modes.js";
 import { CATALOG } from "../shared/profile.js";
 import { REGIONS } from "../shared/regions.js";
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const COSMETICS = new Map(CATALOG.map((item) => [item.id, item]));
+const COSMETIC_SLOTS = [...new Set(CATALOG.map((item) => item.slot))];
+function sameCosmetics(saved, next) {
+  for (const slot of COSMETIC_SLOTS)
+    if (saved[slot] !== next?.[slot]) return false;
+  return true;
+}
 /** All dynamic meshes are created once and reused across snapshots. */
 export class ArenaScene {
   constructor(canvas) {
@@ -24,13 +32,16 @@ export class ArenaScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x547d5a);
     this.scene = new THREE.Scene();
+    // This scene stays at the origin. Update its children once before uploading
+    // instance transforms instead of repeating that traversal inside render().
+    this.scene.matrixAutoUpdate = false;
+    this.scene.matrixWorldAutoUpdate = false;
     this.scene.fog = new THREE.FogExp2(0x607f60, 0.008);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
     this.camera.position.set(0, 34, 28);
     this.camera.lookAt(0, 0, 0);
     this.target = new THREE.Vector3();
     this.players = new Map();
-    this.arrowMeshes = [];
     this.orbMeshes = [];
     this.effects = [];
     this.ray = new THREE.Raycaster();
@@ -145,38 +156,8 @@ export class ArenaScene {
       this.staticGroup.add(t);
     }
     this.batch(this.staticGroup);
-    const arrowGeo = new THREE.CylinderGeometry(0.045, 0.045, 1.1, 5);
-    arrowGeo.rotateZ(Math.PI / 2);
-    const headGeo = new THREE.ConeGeometry(0.14, 0.35, 3);
-    headGeo.rotateZ(-Math.PI / 2);
-    headGeo.translate(0.68, 0, 0);
-    const arrowMat = new THREE.MeshStandardMaterial({ color: 0xf9e1ab });
-    this.arrowHeadMaterials = Object.fromEntries(
-      Object.entries({
-        normal: 0xe7f1c5,
-        frost: 0x8cdfff,
-        blast: 0xffae67,
-        poison: 0xc1a0ed,
-      }).map(([key, color]) => [
-        key,
-        new THREE.MeshStandardMaterial({
-          color,
-          emissive: color,
-          emissiveIntensity: 0.15,
-        }),
-      ]),
-    );
-    const headMat = this.arrowHeadMaterials.normal;
-    for (let i = 0; i < RULES.maxArrows; i++) {
-      const g = new THREE.Group();
-      g.add(
-        new THREE.Mesh(arrowGeo, arrowMat),
-        new THREE.Mesh(headGeo, headMat),
-      );
-      g.visible = false;
-      this.scene.add(g);
-      this.arrowMeshes.push(g);
-    }
+    this.avatarBatches = new AvatarBatches(this.scene);
+    this.arrows = new ArrowBatches(this.scene, RULES.maxArrows);
     this.gems = new THREE.InstancedMesh(
       new THREE.OctahedronGeometry(0.24),
       this.materials.gem,
@@ -251,9 +232,9 @@ export class ArenaScene {
         new THREE.MeshBasicMaterial({ color: 0xd8f5a3, transparent: true }),
       );
       mesh.visible = false;
-      this.scene.add(mesh);
       this.effects.push({ mesh, life: 0, vx: 0, vz: 0, vy: 0 });
     }
+    this.particles = new ParticleBatch(this.scene, this.effects, effectGeo);
     this.lockRing = new THREE.Mesh(
       new THREE.RingGeometry(0.85, 0.93, 36),
       new THREE.MeshBasicMaterial({
@@ -307,6 +288,13 @@ export class ArenaScene {
       }),
     );
     this.scene.add(this.aimLine);
+    this.aimLine.geometry.setAttribute(
+      "lineDistance",
+      new THREE.Float32BufferAttribute([0, 0], 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    this.aimLine.frustumCulled = false;
     this.aimLine.visible = false;
     this.resize();
     this.shrine = new THREE.Mesh(
@@ -369,6 +357,10 @@ export class ArenaScene {
       for (const g of entry.geometries) g.dispose();
     }
     for (const g of new Set(originals)) g.dispose();
+    group.traverse((object) => {
+      object.updateMatrix();
+      object.matrixAutoUpdate = false;
+    });
   }
   resize() {
     this.renderer.setSize(innerWidth, innerHeight);
@@ -434,8 +426,9 @@ export class ArenaScene {
   disposePlayer(v) {
     const geometries = new Set(),
       materials = new Set();
+    this.avatarBatches.remove(v.root);
     v.root.traverse((o) => {
-      if (o.geometry) geometries.add(o.geometry);
+      if (o.geometry && !o.userData.batched) geometries.add(o.geometry);
       if (o.material) materials.add(o.material);
     });
     for (const g of geometries) g.dispose();
@@ -459,6 +452,7 @@ export class ArenaScene {
     );
     contact.rotation.x = -Math.PI / 2;
     contact.position.y = 0.028;
+    contact.userData.instanceGround = true;
     root.add(contact);
     const skin = SKINS[p.skin] || SKINS[0],
       cosmetic = (slot) =>
@@ -562,6 +556,7 @@ export class ArenaScene {
     );
     base.rotation.x = -Math.PI / 2;
     base.position.y = 0.035;
+    base.userData.instanceGround = true;
     root.add(base);
     const buffRing = new THREE.Mesh(
       new THREE.RingGeometry(0.84, 0.91, 32),
@@ -646,6 +641,7 @@ export class ArenaScene {
     label.scale.set(3.8, 1.2, 1);
     label.position.y = local ? 2.35 : 2.6;
     root.add(label);
+    this.avatarBatches.add(root);
     this.scene.add(root);
     return {
       root,
@@ -673,7 +669,7 @@ export class ArenaScene {
       hp: p.hp,
       maxHp: p.maxHp,
       skin: p.skin,
-      cosmeticKey: JSON.stringify(p.cosmetics || {}),
+      cosmetics: { ...p.cosmetics },
       bowColor: cosmetic("bow")?.color || 0xe7bf79,
       spawnColor: cosmetic("spawn")?.color || 0xbde08d,
       wasAlive: p.alive,
@@ -808,7 +804,7 @@ export class ArenaScene {
           v &&
           (v.skin !== p.skin ||
             v.name !== p.name ||
-            v.cosmeticKey !== JSON.stringify(p.cosmetics || {}))
+            !sameCosmetics(v.cosmetics, p.cosmetics))
         ) {
           this.disposePlayer(v);
           this.players.delete(p.id);
@@ -917,14 +913,18 @@ export class ArenaScene {
         }
         v.label.visible = playing;
 
-        v.string.geometry.attributes.position.setXYZ(
-          1,
-          -0.05 - p.charge * 0.4,
-          1,
-          0,
-        );
-        v.string.geometry.attributes.position.needsUpdate = true;
+        if (v.drawCharge !== p.charge) {
+          v.drawCharge = p.charge;
+          v.string.geometry.attributes.position.setXYZ(
+            1,
+            -0.05 - p.charge * 0.4,
+            1,
+            0,
+          );
+          v.string.geometry.attributes.position.needsUpdate = true;
+        }
         if (v.hp !== p.hp || v.maxHp !== p.maxHp || v.team !== p.team) {
+          const teamChanged = v.team !== p.team;
           v.team = p.team;
           v.hp = p.hp;
           v.maxHp = p.maxHp;
@@ -940,16 +940,24 @@ export class ArenaScene {
                 : "#bde08d";
           ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
           v.tex.needsUpdate = true;
-          if (p.team != null) {
+          if (teamChanged) {
             ctx.clearRect(0, 0, 256, 38);
             ctx.textAlign = "center";
             ctx.font = "600 22px sans-serif";
-            ctx.fillStyle = TEAMS[p.team].color;
-            ctx.fillText(
-              `${TEAMS[p.team].symbol} ${p.id === myId ? "Sen" : p.name}`,
-              128,
-              27,
-            );
+            if (p.team != null) {
+              ctx.fillStyle = TEAMS[p.team].color;
+              ctx.fillText(
+                `${TEAMS[p.team].symbol} ${p.id === myId ? "Sen" : p.name}`,
+                128,
+                27,
+              );
+            } else if (p.id !== myId) {
+              ctx.fillStyle = "#eef3dc";
+              ctx.shadowColor = "#142c20";
+              ctx.shadowBlur = 7;
+              ctx.fillText(p.name, 128, 27);
+              ctx.shadowBlur = 0;
+            }
           }
         }
       }
@@ -977,23 +985,14 @@ export class ArenaScene {
         view.ring.material.opacity =
           site.cooldown > 0 ? 0.18 : 0.65 + Math.sin(this.time * 3) * 0.15;
       }
-      for (let i = 0; i < this.arrowMeshes.length; i++) {
-        const m = this.arrowMeshes[i],
-          a = state.arrows[i];
-        m.visible = !!a;
-        if (a) {
-          m.position.set(a.x, 1, a.z);
-          m.rotation.y = -a.angle;
-          m.children[1].material =
-            this.arrowHeadMaterials[a.effect] || this.arrowHeadMaterials.normal;
-          if (
-            this.quality !== "low" &&
-            (i + Math.floor(this.time * 30)) % 8 === 0
-          ) {
-            const item = CATALOG.find((p) => p.id === a.trail);
-            if (item && item.id !== "trail-leaf")
-              this.burst(a.x, a.z, item.color, 1);
-          }
+      this.arrows.update(state.arrows);
+      if (this.quality !== "low") {
+        for (let i = 0; i < state.arrows.length; i++) {
+          if ((i + Math.floor(this.time * 30)) % 8 !== 0) continue;
+          const a = state.arrows[i];
+          const item = COSMETICS.get(a.trail);
+          if (item && item.id !== "trail-leaf")
+            this.burst(a.x, a.z, item.color, 1);
         }
       }
       this.gems.count = state.orbs.length;
@@ -1058,7 +1057,16 @@ export class ArenaScene {
       pos.setXYZ(0, origin.x, 0.1, origin.z);
       pos.setXYZ(1, tx, 0.1, tz);
       pos.needsUpdate = true;
-      this.aimLine.computeLineDistances();
+      const lengths = this.aimLine.geometry.attributes.lineDistance;
+      lengths.setX(
+        1,
+        Math.hypot(
+          pos.getX(1) - pos.getX(0),
+          pos.getY(1) - pos.getY(0),
+          pos.getZ(1) - pos.getZ(0),
+        ),
+      );
+      lengths.needsUpdate = true;
       this.aimLine.material.opacity = 0.17 + me.charge * 0.5;
     }
     for (const e of this.effects)
@@ -1072,6 +1080,11 @@ export class ArenaScene {
         e.mesh.visible = e.life > 0;
         e.mesh.rotation.x += dt * 4;
       }
+    // Publish animated world transforms to the shared GPU instance buffers.
+    this.scene.updateMatrixWorld();
+    this.avatarBatches.update();
+    this.camera.updateMatrixWorld();
+    this.particles.update(this.camera);
     this.renderer.render(this.scene, this.camera);
   }
 }

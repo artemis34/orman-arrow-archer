@@ -24,6 +24,7 @@
     "test:hud": "node tests/hud.smoke.js",
     "test:lobby": "node tests/lobby.browser.js",
     "test:expansion": "node tests/expansion.browser.js",
+    "test:performance": "node tests/performance.browser.js",
     "test:multimode": "node tests/multimode.smoke.js",
     "test:profile": "node tests/profile.browser.js"
   },

@@ -52,6 +52,8 @@ let format = formatKey(
   query.get("format") || preferences.get("wildbow-format"),
 );
 let resultKey = "";
+let minimapBackground = null,
+  minimapMapKey = null;
 let playing = false,
   transport = null,
   state = atHome.snapshot(),
@@ -689,32 +691,47 @@ function updateHud(current) {
   const sorted = teams
     ? teams.map((t) => ({ ...t, team: t.id, matchPoints: t.score }))
     : ranking.slice(0, 3);
-  $("leaders").replaceChildren(
-    ...sorted.map((p, i) => {
-      const row = document.createElement("div");
-      const self = teams ? p.id === me.team : p.id === myId;
-      row.className = "arena-leader-row" + (self ? " me" : "");
-      const rank = document.createElement("span");
-      rank.className = "rank";
-      rank.textContent = String(i + 1).padStart(2, "0");
-      const dot = document.createElement("span");
-      dot.className = "swatch";
-      dot.style.background =
-        p.team != null
-          ? TEAMS[p.team].color
-          : "#" + SKINS[p.skin].body.toString(16);
-      const name = document.createElement("span");
-      name.textContent =
-        (p.team != null ? TEAMS[p.team].symbol + " " : "") +
-        p.name +
-        (self ? (teams ? " · biz" : " · sen") : "");
-      const score = document.createElement("span");
-      score.className = "score";
-      score.textContent = match ? p.matchPoints || 0 : p.score;
-      row.append(rank, dot, name, score);
-      return row;
-    }),
-  );
+  const leadersKey = JSON.stringify([
+    !!match,
+    myId,
+    me.team,
+    sorted.map((p) => [
+      p.id,
+      p.name,
+      p.team,
+      p.skin,
+      match ? p.matchPoints : p.score,
+    ]),
+  ]);
+  if ($("leaders").dataset.key !== leadersKey) {
+    $("leaders").dataset.key = leadersKey;
+    $("leaders").replaceChildren(
+      ...sorted.map((p, i) => {
+        const row = document.createElement("div");
+        const self = teams ? p.id === me.team : p.id === myId;
+        row.className = "arena-leader-row" + (self ? " me" : "");
+        const rank = document.createElement("span");
+        rank.className = "rank";
+        rank.textContent = String(i + 1).padStart(2, "0");
+        const dot = document.createElement("span");
+        dot.className = "swatch";
+        dot.style.background =
+          p.team != null
+            ? TEAMS[p.team].color
+            : "#" + SKINS[p.skin].body.toString(16);
+        const name = document.createElement("span");
+        name.textContent =
+          (p.team != null ? TEAMS[p.team].symbol + " " : "") +
+          p.name +
+          (self ? (teams ? " · biz" : " · sen") : "");
+        const score = document.createElement("span");
+        score.className = "score";
+        score.textContent = match ? p.matchPoints || 0 : p.score;
+        row.append(rank, dot, name, score);
+        return row;
+      }),
+    );
+  }
   const humans = ranking.filter((p) => !p.bot).length,
     bots = ranking.length - humans;
   text("population", `${humans} OYUNCU${bots ? ` · ${bots} BOT` : ""}`);
@@ -785,30 +802,38 @@ function updateHud(current) {
   const ctx = $("minimap").getContext("2d"),
     size = 160,
     scale = size / RULES.size;
-  ctx.fillStyle = "#203e2b";
-  ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = "#8fb26a22";
+  if (minimapMapKey !== scene.mapKey) {
+    minimapMapKey = scene.mapKey;
+    minimapBackground = document.createElement("canvas");
+    minimapBackground.width = minimapBackground.height = size;
+    const background = minimapBackground.getContext("2d");
+    background.fillStyle = "#203e2b";
+    background.fillRect(0, 0, size, size);
+    background.strokeStyle = "#8fb26a22";
+    background.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      background.beginPath();
+      background.moveTo(i * 40, 0);
+      background.lineTo(i * 40, size);
+      background.moveTo(0, i * 40);
+      background.lineTo(size, i * 40);
+      background.stroke();
+    }
+    background.fillStyle = "#8fab6b77";
+    for (const o of scene.obstacles || []) {
+      background.beginPath();
+      background.arc(
+        (o.x + 42) * scale,
+        (o.z + 42) * scale,
+        o.r * scale,
+        0,
+        Math.PI * 2,
+      );
+      background.fill();
+    }
+  }
+  ctx.drawImage(minimapBackground, 0, 0);
   ctx.lineWidth = 1;
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * 40, 0);
-    ctx.lineTo(i * 40, size);
-    ctx.moveTo(0, i * 40);
-    ctx.lineTo(size, i * 40);
-    ctx.stroke();
-  }
-  ctx.fillStyle = "#8fab6b77";
-  for (const o of scene.obstacles || []) {
-    ctx.beginPath();
-    ctx.arc(
-      (o.x + 42) * scale,
-      (o.z + 42) * scale,
-      o.r * scale,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
   for (const orb of current.orbs) {
     if (!orb.rare) continue;
     const x = (orb.x + 42) * scale,
