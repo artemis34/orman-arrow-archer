@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import { World } from "../shared/world.js";
 import { createMode, formatKey } from "../shared/modes.js";
 import { practiceBots } from "../shared/online.js";
+import { ProjectilePresentation, localProjectiles } from "./projectiles.js";
 import {
   advanceMovement,
   moveBody,
@@ -31,7 +32,20 @@ export class LocalTransport {
   step(input) {
     this.world.setInput(this.id, input);
     this.world.step();
-    return this.world.snapshot(this.id);
+    this.previousState = this.currentState;
+    this.currentState = { state: this.world.snapshot(this.id) };
+    return this.currentState.state;
+  }
+  view(fraction = 1) {
+    if (!this.currentState) return null;
+    return {
+      ...this.currentState.state,
+      arrows: localProjectiles(
+        this.previousState,
+        this.currentState.state,
+        fraction,
+      ),
+    };
   }
   choose(k) {
     this.world.choose(this.id, k);
@@ -62,6 +76,7 @@ export class NetworkTransport {
     this.lastInput = null;
     this.inputAt = 0;
     this.correction = { x: 0, z: 0, at: 0 };
+    this.projectiles = new ProjectilePresentation();
   }
   acceptState(state) {
     const previousMatch = this.snapshots.at(-1)?.state.match;
@@ -171,7 +186,6 @@ export class NetworkTransport {
     // unchanged, and shifting a snapshot also releases its index references.
     const old = (a.playerIndex ||= indexById(a.state.players));
     const buffered = (b.playerIndex ||= indexById(b.state.players));
-    const oldArrows = (a.arrowIndex ||= indexById(a.state.arrows));
     return {
       ...last.state,
       // Only transforms use the interpolation buffer. Life, protection, HP,
@@ -208,16 +222,11 @@ export class NetworkTransport {
           angle: prev.angle + da * t,
         };
       }),
-      arrows: b.state.arrows.map((p) => {
-        const prev = oldArrows.get(p.id);
-        return prev
-          ? {
-              ...p,
-              x: prev.x + (p.x - prev.x) * t,
-              z: prev.z + (p.z - prev.z) * t,
-            }
-          : p;
-      }),
+      arrows: this.projectiles.view(
+        this.snapshots,
+        performance.now(),
+        this.obstacles,
+      ),
     };
   }
   choose(key) {

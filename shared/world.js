@@ -5,6 +5,7 @@ import { FreeForAll } from "./modes.js";
 import { clearShot } from "./aim.js";
 import { ForestShrine } from "./objective.js";
 import { REGIONS } from "./regions.js";
+import { BotNavigation } from "./bot-navigation.js";
 import {
   RULES,
   UPGRADES,
@@ -31,6 +32,7 @@ export class World {
     this.time = 0;
     this.objective = new ForestShrine();
     this.players = new Map();
+    this.botNavigation = new BotNavigation();
     this.events = [];
     this.nextId = 0;
     this.grid = new SpatialGrid();
@@ -464,6 +466,7 @@ export class World {
     )
       return false;
     p.contributors.clear();
+    this.botNavigation.reset(p);
     Object.assign(p, this.spawnPoint(p.bot ? 5 : 10, p.team), {
       hp:
         p.bot && !this.mode.rules?.duel ? RULES.botHealth : RULES.playerHealth,
@@ -709,6 +712,7 @@ export class World {
         heal: p.hp < 60,
         dash: p.hp < 40 && this.random() < 0.15,
       });
+      this.botNavigation.steer(p, goal, nearby, this.time);
       // Bots only dodge a nearby visible arrow already heading toward them.
       const threat = this.arrows.active.find((a) => {
         const source = this.players.get(a.owner);

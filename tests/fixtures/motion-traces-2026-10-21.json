@@ -1,0 +1,55 @@
+{
+  "baseline": "3284564c4d1a2a76e0cf77545832329fe9549ae8",
+  "purpose": "Reviewed bot steering recovery and display-only arrow interpolation; human-only authority and v2 bytes remain identical.",
+  "scenarios": [
+    {
+      "id": "arena-8",
+      "physics": "554a457861212e2f97f69075c78175aeacd26f9f457a178b158c11cda19e7de9",
+      "json": "ada8e33ab845c5b74789abe51d07a28f4398536c89dc8ffbb20feee614969d8e",
+      "wire": "2b625189c031031e5a690febe9c47ba2e4da7f9fad38247719c5342f53557c03",
+      "decoded": "9345016b1d5e1d1527f570382bf6ec53b117334d583a72a90b620b4e8381d7c2",
+      "inputWire": "07ffd07e1062546b740118c99611964a1192775184f7cf65d1d3e6e3a66ec3f7",
+      "bytes": 4217526,
+      "messages": 3600,
+      "legacyBytes": 54821338,
+      "inputBytes": 186088,
+      "inputMessages": 3688,
+      "hits": 129,
+      "kills": 8,
+      "shots": 295
+    },
+    {
+      "id": "team-16",
+      "physics": "165ec68a9db16cb9f219c15cfba3c88d82a04cf3ec834d6bce5800f8f12ae046",
+      "json": "e7950e2e7b37982a5f1882736175eb18bffba817f057f1e57592b66b4fa91f2c",
+      "wire": "f6ec078780a4ead6a6bd773f529bd94d09c1c57c3f2a3e608df94c9acd40a317",
+      "decoded": "9216e4a7dbad93b1c81aa0d6ccff1b9e4394fab0afbcafca71bf07235062918a",
+      "inputWire": "e75f8aa30c7bebf1f6fb73423b0a32f14424ecd71b93dbedfa6779866cbc809f",
+      "bytes": 18485067,
+      "messages": 7200,
+      "legacyBytes": 164931673,
+      "inputBytes": 372796,
+      "inputMessages": 7375,
+      "hits": 434,
+      "kills": 15,
+      "shots": 580
+    },
+    {
+      "id": "team-bots",
+      "physics": "0d5bb61da0502bc03b3f0f6e3aa60ff7aef27d1c52c42ec9d7f3da05449ea930",
+      "json": "a77cd19a506e51535c7c6feae3a244c7413d06b6c29ed5bc7580665270e1ea38",
+      "wire": "2504f153d6f03a3c85dde701066986ae820cf29991f429b6e0a4beb927b7778d",
+      "decoded": "026192cb0064fbda6497ebad987ce97a5ab8f59ddc170d2cc4b5aa19897a4200",
+      "inputWire": "b9f748a5ef67813827ca7b8a4d07fd46c712d52f3c622d5db108f3be56dbe258",
+      "bytes": 946906,
+      "messages": 450,
+      "legacyBytes": 8672451,
+      "inputBytes": 23220,
+      "inputMessages": 460,
+      "hits": 162,
+      "kills": 3,
+      "shots": 234
+    }
+  ],
+  "clientViews": "ab0d073e6cde2bea4f93ceb71ffbdb3d414b08eb867fa34efa05c1cd294f1edd"
+}

@@ -36,6 +36,7 @@ test("presentation indexes reuse lookups without mutating received state or exte
   const first = frozenState(0),
     original = JSON.stringify(first);
   transport.acceptState(first);
+  now = 120;
   transport.view();
   const record = transport.snapshots[0],
     players = record.playerIndex,

@@ -19,6 +19,7 @@
     "test:powerups": "node tests/powerups.smoke.js",
     "test:interaction": "node tests/interaction.smoke.js",
     "test:motion": "node tests/motion.browser.js",
+    "test:projectiles": "node tests/projectiles.browser.js",
     "test:network": "node tests/network.smoke.js",
     "test:live": "node tests/live.smoke.js",
     "test:hud": "node tests/hud.smoke.js",

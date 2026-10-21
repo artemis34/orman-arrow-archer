@@ -923,7 +923,10 @@ function frame(now) {
     }
     accumulator -= 1 / RULES.tick;
   }
-  const view = playing && transport?.online ? transport.view() : state;
+  const view =
+    playing && transport
+      ? transport.view(accumulator * RULES.tick) || state
+      : state;
   const me = view?.players.find((p) => p.id === myId);
   const target =
     playing && (controls.isTouch || controls.autoFire) && me?.alive
