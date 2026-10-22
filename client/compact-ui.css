@@ -1,0 +1,211 @@
+/* A short join flow; persistent identity and account controls live in settings. */
+#lobby .mode-switch button {
+  font-size: 13px;
+  color: #e4eddc;
+}
+#lobby #match-format {
+  font-size: 14px;
+  color: #f0f4e9;
+}
+#lobby .lobby-details summary,
+#lobby .lobby-shortcuts button {
+  color: #dde9d1;
+  font-size: 12px;
+}
+#lobby .control-switch small {
+  color: #c8d9bb;
+  font-size: 11px;
+}
+#lobby .join-status {
+  color: #cadbbd;
+  font-size: 11px;
+}
+#lobby .lobby-shortcuts #collection-balance {
+  display: none;
+}
+#identity-settings {
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid #d4edb733;
+  border-radius: 12px;
+  background: #0e291e;
+}
+#identity-settings .identity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+}
+#identity-settings label {
+  display: block;
+  color: #dce9cc;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+#identity-settings input {
+  width: 100%;
+  height: 44px;
+  padding: 10px;
+  font-size: 16px;
+  color: #f6f9ef;
+  background: #18372a;
+  border: 1px solid #d4edb755;
+  border-radius: 8px;
+}
+#identity-settings .skins {
+  display: flex;
+  height: 44px;
+  gap: 7px;
+}
+#identity-settings .skins button {
+  min-width: 34px;
+  height: 44px;
+}
+#identity-settings details {
+  margin-top: 16px;
+}
+#identity-settings summary {
+  color: #dce9cc;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 36px;
+}
+#identity-settings summary small {
+  color: #bed0b2;
+}
+#identity-settings .account-note {
+  color: #bed0b2;
+  font-size: 12px;
+}
+.collection-card .collection-content,
+.collection-card .collection-status {
+  color: #d4e3c7;
+}
+/* Each card has an icon, a name and one primary number. Full descriptions remain
+   in accessibility labels, tooltips and the Yetenekler tab. */
+#upgrade-options button {
+  min-height: 100px;
+  padding: 8px;
+  color: #f2f6e9;
+  background: #234630;
+  border-color: #c5e39980;
+}
+.perk-icon {
+  display: inline;
+  font-size: 21px;
+  line-height: 22px;
+}
+.perk-name {
+  font-size: 12px;
+  line-height: 1.2;
+  margin: 5px 0;
+}
+.perk-value {
+  display: block;
+  color: #d4f394;
+  font-size: 15px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+.perk-note {
+  display: block;
+  color: #d0dfc2;
+  font-size: 10px;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+.upgrade-dock-heading {
+  font-size: 10px;
+  color: #e3efcf;
+}
+.match-status.storm-warning {
+  border-color: #ff9b8e;
+  background: #592d2be8;
+  color: #fff0e8;
+}
+@media (max-width: 420px) {
+  #identity-settings .identity-row {
+    grid-template-columns: 1fr;
+  }
+  .perk-name {
+    font-size: 11px;
+  }
+  .perk-value {
+    font-size: 13px;
+  }
+  .perk-note {
+    font-size: 9px;
+  }
+}
+@media (max-height: 500px) and (min-width: 501px) {
+  #lobby .play-card {
+    grid-template-columns: 1fr 1fr;
+  }
+  #lobby .card-topline {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #lobby .mode-switch {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  #lobby .format-entry {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  #lobby .control-switch {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  #lobby #lobby-network {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  #lobby #play {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  #lobby .lobby-shortcuts {
+    grid-column: 2;
+    grid-row: 4;
+  }
+  #lobby #join-status {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+  .upgrade-dock,
+  body.onehand .upgrade-dock {
+    top: auto;
+    bottom: max(66px, env(safe-area-inset-bottom));
+    width: min(440px, calc(100vw - 200px));
+    max-height: 120px;
+    overflow: visible;
+  }
+  #upgrade-options button {
+    min-height: 68px;
+    padding: 6px;
+  }
+  .perk-icon {
+    display: none;
+  }
+  .perk-name {
+    font-size: 11px;
+    margin: 2px 0 4px;
+  }
+  .perk-value {
+    font-size: 13px;
+  }
+  .perk-note {
+    font-size: 9px;
+  }
+  .upgrade-dock-heading {
+    gap: 5px;
+    font-size: 8px;
+  }
+}
+@media (max-height: 350px) and (min-width: 501px) {
+  .upgrade-dock,
+  body.onehand .upgrade-dock {
+    top: 8px;
+    bottom: auto;
+  }
+}

@@ -109,6 +109,8 @@
   transform: translate(-50%, -50%) !important;
   opacity: 0.75;
   z-index: 13;
+  /* The active finger is captured already; let other fingers reach buttons. */
+  pointer-events: none;
 }
 .lobby-social {
   display: flex;

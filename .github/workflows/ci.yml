@@ -50,6 +50,8 @@ jobs:
           npm run test:network
           npm run test:browser
           npm run test:hud
+          npm run test:battle-royale
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:battle-royale
           npm run test:audio
           npm run test:powerups
           npm run test:interaction
@@ -79,6 +81,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:8787/health
           npm run test:cloudflare
           npm run test:multimode
+          npm run test:battle-royale:runtime
           npm run test:profile
           npm run test:community
           npm run test:community:runtime
@@ -273,6 +276,7 @@ jobs:
           npm run test:cloudflare
           npm run test:cloudflare:browser
           npm run test:multimode
+          npm run test:battle-royale:runtime
           npm run test:profile
       - uses: actions/upload-artifact@v4
         if: always()

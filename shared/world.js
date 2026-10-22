@@ -106,6 +106,7 @@ export class World {
   }
   /** Online rooms fill empty seats; practice retains its fixed bot population. */
   setBotCount(count) {
+    if (this.mode.acceptsPlayers === false) return;
     const bots = [...this.players.values()].filter((p) => p.bot);
     const humans = [...this.players.values()].filter((p) => !p.bot && p.alive);
     const distance = (p) =>
@@ -196,6 +197,7 @@ export class World {
   addPlayer(id, name = "Gezgin", skin = 0, bot = false, options = {}) {
     if (
       this.players.has(id) ||
+      this.mode.acceptsPlayers === false ||
       this.players.size >= (this.mode.rules?.capacity || RULES.maxPlayers)
     )
       return null;
@@ -483,6 +485,7 @@ export class World {
       !p ||
       p.alive ||
       this.time < p.respawnAt ||
+      this.mode.canRespawn === false ||
       this.mode.phase === "results"
     )
       return false;
@@ -711,6 +714,21 @@ export class World {
           goal = { x: 0, z: 0 };
       }
       if (!goal) goal = { x: 0, z: 0 };
+      // Keep BR bots in the safe circle, using the same obstacle navigation.
+      const zone = this.mode.zone;
+      if (zone && this.mode.combat) {
+        const margin = Math.max(0, zone.radius - 3);
+        if (Math.hypot(p.x - zone.x, p.z - zone.z) > margin) {
+          goal = { x: zone.x, z: zone.z };
+          p.brain = "safe-zone";
+        } else if (Math.hypot(goal.x - zone.x, goal.z - zone.z) > margin) {
+          const distance = Math.hypot(goal.x - zone.x, goal.z - zone.z) || 1;
+          goal = {
+            x: zone.x + ((goal.x - zone.x) / distance) * margin,
+            z: zone.z + ((goal.z - zone.z) / distance) * margin,
+          };
+        }
+      }
       let dx = goal.x - p.x,
         dz = goal.z - p.z,
         l = Math.hypot(dx, dz) || 1;

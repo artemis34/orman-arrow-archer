@@ -1,15 +1,29 @@
 name: Validate public mobile connection
 on:
   push:
-    branches: [fix/arena-join-recovery, main]
-    paths: [client/main.js, client/websocket.js, client/transport.js, client/network-mode.js, tests/join.browser.js, .github/workflows/join-diagnostics.yml]
+    branches: [fix/arena-join-recovery, feature/compact-lobby-touch-zone, main]
+    paths:
+      [
+        client/main.js,
+        client/websocket.js,
+        client/transport.js,
+        client/network-mode.js,
+        client/controls.js,
+        client/lobby.css,
+        client/expansion.css,
+        index.html,
+        tests/join.browser.js,
+        tests/lobby.browser.js,
+        tests/forest.browser.js,
+        .github/workflows/join-diagnostics.yml,
+      ]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     env:
       CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
     steps:
@@ -22,6 +36,25 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npx playwright install --with-deps chromium webkit
+      - name: Play the compact lobby and bounded floating controls on Chrome and Safari
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npm start > /tmp/lobby-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health; then break; fi
+            sleep 1
+          done
+          npm run test:lobby
+          npm run test:forest
+          npm run test:battle-royale
+          npm run test:hud
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:battle-royale
       - name: Verify stalled requests, cancellation and fresh-seat recovery in the real Worker runtime
         shell: bash
         run: |
@@ -35,6 +68,9 @@ jobs:
           done
           JOIN_RECOVERY_TESTS=1 CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 node tests/join.browser.js
           JOIN_RECOVERY_TESTS=1 CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/join.browser.js
+          CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:battle-royale:runtime
+          CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:multimode
+          CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:community
       - name: Verify this client version is deployed
         if: github.ref == 'refs/heads/main'
         shell: bash
@@ -55,6 +91,7 @@ jobs:
           echo "JOIN_RECOVERY_TESTS=1" >> "$GITHUB_ENV"
       - name: Check current public quick join and returning mobile sessions
         run: |
+          npm run test:battle-royale:runtime
           node tests/join.browser.js
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/join.browser.js
       - uses: actions/upload-artifact@v4

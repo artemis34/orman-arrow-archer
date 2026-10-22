@@ -26,6 +26,8 @@ try {
   await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible();
   const providers = await (await fetch(`${base}/api/auth/providers`)).json();
+  await page.locator("#collection-open").tap();
+  await page.locator("#account-options > summary").tap();
   for (const key of ["google", "apple"]) {
     await expect(
       page.locator(`#lobby-accounts [data-auth-provider="${key}"]`),
@@ -35,6 +37,7 @@ try {
         page.locator(`#lobby-accounts [data-auth-provider="${key}"]`),
       ).toBeDisabled();
   }
+  await page.locator("#collection-close").tap();
   await page.locator("#friends-open").tap();
   await expect(page.locator(".collection-content")).toContainText(
     "Arkadaş kodun",

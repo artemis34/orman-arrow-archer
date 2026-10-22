@@ -1,3 +1,4 @@
+import { BattleRoyaleZoneView } from "./br-zone-view.js";
 import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
 import { AvatarBatches, ArrowBatches, ParticleBatch } from "./render-pools.js";
@@ -163,6 +164,7 @@ export class ArenaScene {
     this.arrows = new ArrowBatches(this.scene, RULES.maxArrows);
     this.feedback = new CombatFeedback(this.scene);
     this.lootView = new LootView(this.scene);
+    this.brZone = new BattleRoyaleZoneView(this.scene);
     this.bowBuffs = new BowBuffEffects(this.scene);
     this.gems = new THREE.InstancedMesh(
       new THREE.OctahedronGeometry(0.24),
@@ -1093,6 +1095,7 @@ export class ArenaScene {
         e.mesh.rotation.x += dt * 4;
       }
     this.lootView.update(state, dt);
+    this.brZone.update(state?.match);
     this.camera.updateMatrixWorld();
     this.feedback.update(this.camera, this.players, dt, playing);
     // Publish animated world transforms to the shared GPU instance buffers.

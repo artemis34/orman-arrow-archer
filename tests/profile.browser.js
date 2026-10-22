@@ -35,6 +35,7 @@ try {
   await expect(page.locator(".collection-status")).toContainText(
     "Online maç tamamla",
   );
+  await page.locator('[data-tab="looks"]').tap();
   await expect(page.locator(".cosmetic-sample svg")).toHaveCount(3);
   await page
     .locator(".cosmetic-card")

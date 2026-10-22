@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
-import { RoundMode } from "../shared/modes.js";
+import { RoundMode, FORMATS } from "../shared/modes.js";
 import { RULES } from "../shared/config.js";
 const base = process.env.TEST_SERVER_URL || "http://127.0.0.1:3000";
 const engine = process.env.PLAYWRIGHT_ENGINE || "chromium";
@@ -66,7 +66,10 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
-  assert.equal(await page.locator("#match-format option").count(), 9);
+  assert.equal(
+    await page.locator("#match-format option").count(),
+    Object.keys(FORMATS).length,
+  );
   for (const [width, height] of [
     [390, 844],
     [375, 667],

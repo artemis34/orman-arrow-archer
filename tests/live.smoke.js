@@ -1,3 +1,4 @@
+import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
 import { chromium, expect } from "@playwright/test";
@@ -64,7 +65,7 @@ try {
       console.log("HOST_NOTICE_ACKNOWLEDGED", page.url());
     }
     await expect(page.locator("#lobby")).toBeVisible();
-    await page.locator("#player-name").fill("Live Smoke");
+    await setPlayerName(page, "Live Smoke");
     await page.locator("#play").click();
     await expect(page.locator("#hud")).toBeVisible();
     await expect(page.locator("#hud-name")).toHaveText("Live Smoke");

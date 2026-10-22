@@ -1,3 +1,4 @@
+import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
 import { chromium, expect } from "@playwright/test";
@@ -44,7 +45,7 @@ try {
   await page.goto(baseUrl);
   await page.locator("#lobby").waitFor({ state: "visible" });
   await page.screenshot({ path: "/tmp/archer-validation/lobby-desktop.png" });
-  await page.locator("#player-name").fill("Test Okçu");
+  await setPlayerName(page, "Test Okçu");
   await page.locator("#play").click();
   await page.locator("#hud").waitFor({ state: "visible" });
   await page.waitForTimeout(600);
@@ -102,8 +103,8 @@ try {
     true,
   );
   await m.screenshot({ path: "/tmp/archer-validation/game-mobile.png" });
-  // A tap on open arena space is an auto-shot request, even with no target.
-  await m.touchscreen.tap(195, 330);
+  // A tap in the lower aim area requests an auto-shot, even with no target.
+  await m.touchscreen.tap(295, 600);
   await expect
     .poll(
       async () =>

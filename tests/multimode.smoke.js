@@ -50,7 +50,10 @@ try {
       "all participants share one authority",
     );
     assert.equal(first.latest.match.format, format);
-    assert.equal(first.latest.match.phase, "playing");
+    await until(
+      () => first.latest.match.phase === "playing",
+      "round starts once roster is complete",
+    );
     assert.equal(first.latest.roster.length, rules.capacity);
     if (rules.teams)
       for (let team = 0; team < rules.teams; team++)

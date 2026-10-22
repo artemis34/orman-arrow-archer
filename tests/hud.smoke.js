@@ -94,36 +94,16 @@ try {
       dock.height < height * 0.36,
       `${label}: compact cards (${dock.height}px)`,
     );
-    if (label === "landscape") {
-      const tray = page.locator("#upgrades");
-      assert.ok(await tray.evaluate((e) => e.scrollHeight > e.clientHeight));
-      const cd = await context.newCDPSession(page);
-      const x = dock.x + dock.width / 2,
-        y = dock.y + dock.height - 15;
-      await cd.send("Input.dispatchTouchEvent", {
-        type: "touchStart",
-        touchPoints: [{ id: 19, x, y }],
-      });
-      for (let step = 1; step <= 4; step++)
-        await cd.send("Input.dispatchTouchEvent", {
-          type: "touchMove",
-          touchPoints: [{ id: 19, x, y: y - step * 12 }],
-        });
-      await cd.send("Input.dispatchTouchEvent", {
-        type: "touchEnd",
-        touchPoints: [],
-      });
-      await expect
-        .poll(() => tray.evaluate((e) => e.scrollTop))
-        .toBeGreaterThan(0);
-      assert.equal(
-        world.players.get(id).pending,
-        2,
-        "reading a long card cannot select it",
+    for (const card of await page.locator("#upgrade-options button").all()) {
+      await expect(card.locator(".perk-value")).toBeVisible();
+      assert.ok(
+        (await card.innerText()).length < 65,
+        "cards can be scanned during fast play",
       );
-      await tray.evaluate((e) => {
-        e.scrollTop = 0;
-      });
+      assert.ok(
+        await card.evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
+        "no card requires scrolling",
+      );
     }
     assert.equal(
       await page.evaluate(

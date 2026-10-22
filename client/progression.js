@@ -98,6 +98,9 @@ export function setupProgression({ cloudflare, server, onSettings }) {
   }
   function render() {
     content.replaceChildren();
+    document
+      .getElementById("identity-settings")
+      .classList.toggle("hidden", tab !== "settings");
     for (const b of root.querySelectorAll("[data-tab]"))
       b.setAttribute("aria-selected", String(b.dataset.tab === tab));
     if (tab === "looks") {
@@ -307,6 +310,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     }
   }
   bindAction(document.getElementById("collection-open"), () => {
+    tab = "settings";
     returnFocus = document.activeElement;
     root.classList.remove("hidden");
     render();
@@ -320,8 +324,9 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     const elements = [
       ...root.querySelectorAll("button:not(:disabled),select,input"),
     ];
-    const first = elements[0],
-      last = elements.at(-1);
+    const visible = elements.filter((el) => el.getClientRects().length);
+    const first = visible[0],
+      last = visible.at(-1);
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();

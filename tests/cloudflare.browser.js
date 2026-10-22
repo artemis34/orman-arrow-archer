@@ -1,3 +1,4 @@
+import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
@@ -105,7 +106,7 @@ async function open(mobile, name) {
   await expect(page.locator("#online-mode")).toHaveClass(/selected/);
   await expect(page.locator("#room-code")).toHaveValue(room);
   await expect(page.locator("#server-address")).toBeHidden();
-  await page.locator("#player-name").fill(name);
+  await setPlayerName(page, name);
   await page.locator("#play").click();
   // The native transport allows 12 seconds for the handshake; a 5 second
   // assertion can fail prematurely on a cold or slow browser runner.

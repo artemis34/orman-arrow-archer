@@ -1,6 +1,13 @@
 /** Match rules run on the authority independently of transport and rendering. */
 export const FORMATS = Object.freeze({
   arena: { name: "Serbest arena", capacity: 16, teams: 0, duration: 0 },
+  br: {
+    name: "Battle Royale",
+    capacity: 16,
+    teams: 0,
+    duration: 210,
+    battleRoyale: true,
+  },
   round: { name: "Süreli arena", capacity: 16, teams: 0, duration: 240 },
   duel: {
     name: "Düello · 1v1",
@@ -199,17 +206,132 @@ export class TeamDeathmatch extends RoundMode {
     super(key, options);
   }
 }
-export class BattleRoyale extends GameMode {
-  constructor() {
-    super();
-    this.radius = 42;
+/** Solo elimination. Only this ruleset disables respawns and applies the storm.
+ * Zone state is optional match metadata, understood by web or native clients.
+ * The initial circle covers every corner of the existing 84 × 84 arena.
+ */
+export class BattleRoyale extends RoundMode {
+  constructor({ countdown = 12 } = {}) {
+    super("br");
+    this.countdown = countdown;
+    this.startAt = 0;
+    this.startedAt = 0;
+    this.nextStormAt = 0;
+    this.eliminations = new Map();
+    this.winnerId = null;
+    this.zone = {
+      x: 0,
+      z: 0,
+      radius: 60,
+      damage: 5,
+      shrinking: false,
+      remaining: 20,
+    };
   }
-  get id() {
-    return "br";
+  get acceptsPlayers() {
+    return this.phase === "waiting";
   }
-  step(_world, dt) {
-    this.radius = Math.max(6, this.radius - dt * 0.035);
+  get canRespawn() {
+    return this.phase === "waiting";
+  }
+  onElimination(world, attacker, target) {
+    super.onElimination(world, attacker, target);
+    this.eliminations.set(target.id, world.time);
+  }
+  updateZone(world) {
+    const age = world.time - this.startedAt;
+    // 20 seconds to gather, then five smooth 35-second contractions.
+    const radii = [60, 42, 28, 16, 7, 0];
+    const progress = Math.max(0, age - 20) / 35;
+    const stage = Math.min(4, Math.floor(progress));
+    const fraction = Math.min(1, progress - stage);
+    this.zone.radius =
+      radii[stage] + (radii[stage + 1] - radii[stage]) * fraction;
+    this.zone.damage = [5, 8, 12, 18, 30][stage];
+    this.zone.shrinking = age >= 20;
+    this.zone.remaining = Math.ceil(Math.max(0, 20 - age));
+  }
+  finish(world) {
+    const alive = [...world.players.values()].filter((p) => p.alive);
+    this.winnerId = alive.length === 1 ? alive[0].id : null;
+    super.finish(world);
+    this.results.sort((a, b) => {
+      if (a.id === this.winnerId) return -1;
+      if (b.id === this.winnerId) return 1;
+      return (
+        (this.eliminations.get(b.id) ?? Infinity) -
+          (this.eliminations.get(a.id) ?? Infinity) || b.kills - a.kills
+      );
+    });
+    this.results.forEach((row, i) => {
+      row.placement = i + 1;
+    });
+  }
+  step(world) {
+    if (this.phase === "waiting") {
+      if (world.players.size < 2) {
+        this.startAt = 0;
+        return;
+      }
+      this.startAt ||= world.time + this.countdown;
+      const humans = [...world.players.values()].filter((p) => !p.bot).length;
+      if (world.time < this.startAt && humans < this.rules.capacity) return;
+      world.resetRound();
+      this.eliminations.clear();
+      this.winnerId = null;
+      this.phase = "playing";
+      this.startedAt = world.time;
+      this.endAt = world.time + this.duration;
+      this.nextStormAt = world.time + 1;
+    } else if (this.phase === "playing") {
+      const alive = [...world.players.values()].filter((p) => p.alive);
+      if (alive.length <= 1) {
+        this.finish(world);
+        return;
+      }
+      this.updateZone(world);
+      if (world.time >= this.nextStormAt) {
+        this.nextStormAt = world.time + 1;
+        for (const p of alive)
+          if (
+            Math.hypot(p.x - this.zone.x, p.z - this.zone.z) >= this.zone.radius
+          )
+            world.damage(p, this.zone.damage, null, "storm");
+        if ([...world.players.values()].filter((p) => p.alive).length <= 1)
+          this.finish(world);
+      }
+    } else if (world.time >= this.restartAt) {
+      this.round++;
+      this.votes.clear();
+      this.results = null;
+      this.phase = "waiting";
+      this.startAt = 0;
+      this.winnerId = null;
+      this.zone.radius = 60;
+      this.zone.shrinking = false;
+      this.zone.damage = 5;
+      this.zone.remaining = 20;
+      // Departed seats may be replenished only between rounds.
+      const humans = [...world.players.values()].filter((p) => !p.bot).length;
+      world.setBotCount(Math.max(0, this.rules.capacity - humans));
+      world.resetRound();
+    }
+  }
+  snapshot(world) {
+    const state = super.snapshot(world);
+    if (this.phase === "waiting")
+      state.remaining = Math.ceil(Math.max(0, this.startAt - world.time));
+    return {
+      ...state,
+      zone: { ...this.zone },
+      winnerId: this.winnerId,
+      survivors: [...world.players.values()].filter((p) => p.alive).length,
+    };
   }
 }
 export const createMode = (key) =>
-  formatKey(key) === "arena" ? new FreeForAll() : new RoundMode(key);
+  formatKey(key) === "arena"
+    ? new FreeForAll()
+    : key === "br"
+      ? new BattleRoyale()
+      : new RoundMode(key);

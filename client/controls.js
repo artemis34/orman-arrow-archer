@@ -8,6 +8,12 @@ export function stickVector(dx, dz, radius) {
   const strength = Math.min(1, (length - dead) / (radius - dead));
   return { x: (dx / length) * strength, z: (dz / length) * strength };
 }
+/** Only a fresh press in the lower thumb area can create a floating pad.
+ * Once captured, a drag remains free to cross the boundary without stopping. */
+export function floatingStickStartAllowed(y, width, height) {
+  if (!Number.isFinite(y) || width <= 0 || height <= 0) return false;
+  return y >= height * (height >= width ? 0.6 : 0.5) && y <= height;
+}
 export class Controls {
   constructor(canvas, scene, audio) {
     this.scene = scene;
@@ -229,7 +235,12 @@ export class Controls {
       }
     };
     const begin = (e, target = el) => {
-      if (pointer !== null || !this.active) return;
+      if (
+        pointer !== null ||
+        !this.active ||
+        !floatingStickStartAllowed(e.clientY, innerWidth, innerHeight)
+      )
+        return;
       e.preventDefault();
       this.audio.unlock();
       this.isTouch = true;

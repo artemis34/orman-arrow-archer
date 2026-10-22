@@ -99,6 +99,21 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
+  await expect(page.locator("#account-options")).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await expect(page.locator("#lobby-accounts")).toBeHidden();
+  await expect(page.locator("#player-name")).toBeHidden();
+  await page.locator("#collection-open").tap();
+  await expect(page.locator("#player-name")).toBeVisible();
+  await page.locator("#player-name").fill("Orman Okçusu");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#collection")).toBeVisible();
+  await page.locator("#account-options > summary").tap();
+  await expect(page.locator("#lobby-accounts")).toBeVisible();
+  await page.locator("#collection-close").tap();
+  await expect(page.locator("#player-name")).toBeHidden();
   for (const [width, height] of [
     [390, 844],
     [375, 667],
@@ -106,17 +121,19 @@ try {
     [568, 320],
   ]) {
     await page.setViewportSize({ width, height });
+    await page.locator("#lobby").evaluate((el) => {
+      el.scrollTop = 0;
+    });
     await expect(page.locator("#play")).toBeVisible();
     assert.ok(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     );
-    await page.locator("#play").scrollIntoViewIfNeeded();
     const button = await page.locator("#play").boundingBox();
     assert.ok(
       button.y >= 0 && button.y + button.height <= height + 1,
-      "play remains reachable on a short screen",
+      "primary play is visible without scrolling on a short screen",
     );
   }
   await page.setViewportSize({ width: 390, height: 844 });

@@ -1,8 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
-import { Controls, stickVector } from "../client/controls.js";
+import {
+  Controls,
+  stickVector,
+  floatingStickStartAllowed,
+} from "../client/controls.js";
 import { ArenaScene } from "../client/scene.js";
+test("floating pads start only in the lower portrait/landscape thumb area", () => {
+  for (const [w, h, ratio] of [
+    [390, 844, 0.6],
+    [375, 667, 0.6],
+    [768, 1024, 0.6],
+    [844, 390, 0.5],
+    [568, 320, 0.5],
+  ]) {
+    const edge = h * ratio;
+    assert.equal(floatingStickStartAllowed(edge - 0.1, w, h), false);
+    assert.equal(floatingStickStartAllowed(edge, w, h), true);
+    assert.equal(floatingStickStartAllowed(h, w, h), true);
+    assert.equal(floatingStickStartAllowed(h + 1, w, h), false);
+  }
+  for (const y of [NaN, Infinity, -5])
+    assert.equal(floatingStickStartAllowed(y, 390, 844), false);
+  assert.equal(floatingStickStartAllowed(0, 390, 0), false);
+});
 
 test("a resting thumb is neutral and diagonal movement has a circular speed limit", () => {
   assert.deepEqual(stickVector(3, -4, 38), { x: 0, z: 0 });

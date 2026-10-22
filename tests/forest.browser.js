@@ -78,8 +78,23 @@ try {
     cd = await context.newCDPSession(page);
     const touch = (type, touchPoints) =>
       cd.send("Input.dispatchTouchEvent", { type, touchPoints });
-    const left = { id: 1, x: 80, y: 420 },
-      right = { id: 2, x: 295, y: 420 };
+    // The upper arena is free of floating controls. Dragging a rejected
+    // upper press down into the thumb area must not start a controller.
+    await touch("touchStart", [{ id: 7, x: 80, y: 300 }]);
+    await expect(page.locator("#move-stick")).not.toHaveClass(
+      /floating-origin/,
+    );
+    await touch("touchMove", [{ id: 7, x: 120, y: 600 }]);
+    await expect(page.locator("#move-stick")).not.toHaveClass(
+      /floating-origin/,
+    );
+    assert.equal(Math.hypot(actor.input.x, actor.input.z), 0);
+    await touch("touchCancel", []);
+    await touch("touchStart", [{ id: 8, x: 295, y: 300 }]);
+    await expect(page.locator("#aim-stick")).not.toHaveClass(/floating-origin/);
+    await touch("touchCancel", []);
+    const left = { id: 1, x: 80, y: 600 },
+      right = { id: 2, x: 295, y: 600 };
     await touch("touchStart", [left]);
     await expect(page.locator("#move-stick")).toHaveClass(/floating-origin/);
     let box = await page.locator("#move-stick").boundingBox();
@@ -110,6 +125,12 @@ try {
       Math.abs(box.x + box.width / 2 - right.x) < 1 &&
         Math.abs(box.y + box.height / 2 - right.y) < 1,
     );
+    // The height limit applies to the origin, never to a held drag.
+    await touch("touchMove", [{ ...moving, y: 300 }, aiming]);
+    await expect(page.locator("#move-stick")).toHaveClass(/floating-origin/);
+    await expect
+      .poll(() => Math.hypot(actor.input.x, actor.input.z))
+      .toBeGreaterThan(0.5);
     await page.screenshot({
       path: `/tmp/archer-validation/forest-floating-${engine}.png`,
     });
@@ -119,7 +140,14 @@ try {
       /floating-origin/,
     );
   } else {
-    await page.touchscreen.tap(80, 420);
+    await page.touchscreen.tap(80, 300);
+    assert.equal(
+      await page
+        .locator("#move-stick")
+        .evaluate((e) => e.style.getPropertyValue("--floating-y")),
+      "",
+    );
+    await page.touchscreen.tap(80, 600);
     assert.equal(
       await page
         .locator("#move-stick")
@@ -131,20 +159,21 @@ try {
   await page.locator("#exit").tap();
   await page.locator("#onehand-controls").tap();
   await page.locator("#play").tap();
+  await expect(page.locator("#hud")).toBeVisible();
   await expect(page.locator("#aim-stick")).toBeHidden();
   if (cd) {
     await cd.send("Input.dispatchTouchEvent", {
       type: "touchStart",
-      touchPoints: [{ id: 4, x: 145, y: 370 }],
+      touchPoints: [{ id: 4, x: 145, y: 600 }],
     });
     await cd.send("Input.dispatchTouchEvent", {
       type: "touchMove",
-      touchPoints: [{ id: 4, x: 180, y: 370 }],
+      touchPoints: [{ id: 4, x: 180, y: 600 }],
     });
   } else {
-    await page.mouse.move(145, 370);
+    await page.mouse.move(145, 600);
     await page.mouse.down();
-    await page.mouse.move(180, 370);
+    await page.mouse.move(180, 600);
   }
   await expect
     .poll(() => Math.hypot(actor.input.x, actor.input.z))

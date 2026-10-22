@@ -1,3 +1,4 @@
+import { PERK_SUMMARY } from "./perk-summary.js";
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
 import { KillStreakBadge } from "./kill-streak.js";
@@ -23,6 +24,7 @@ import "./lobby.css";
 import "./expansion.css";
 import "./social.css";
 import "./kill-streak.css";
+import "./compact-ui.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -132,13 +134,15 @@ function updateFormat() {
   preferences.set("wildbow-format", format);
   text(
     "format-note",
-    FORMATS[format].duel
-      ? "Eşit başlangıç · Online düelloda bot yok · Rastgele yetenek yok"
-      : FORMATS[format].teams
-        ? `${FORMATS[format].teams} takım · Dost ateşi kapalı · 4 dakika`
-        : format === "round"
-          ? "4 dakika · Eleme, asist ve sunak puanı"
-          : "Kristalleri topla, yeteneklerini geliştir.",
+    FORMATS[format].battleRoyale
+      ? "Herkes tek · Alan daralır · Son hayatta kalan kazanır"
+      : FORMATS[format].duel
+        ? "Eşit başlangıç · Online düelloda bot yok · Rastgele yetenek yok"
+        : FORMATS[format].teams
+          ? `${FORMATS[format].teams} takım · Dost ateşi kapalı · 4 dakika`
+          : format === "round"
+            ? "4 dakika · Eleme, asist ve sunak puanı"
+            : "Kristalleri topla, yeteneklerini geliştir.",
   );
 }
 $("match-format").addEventListener("change", () => {
@@ -177,6 +181,16 @@ function setMode(next) {
   $("online-mode").classList.toggle("selected", mode === "online");
   show("server-field", mode === "online");
   show("room-access", cloudflare && mode === "online");
+  show(
+    "lobby-network",
+    mode === "online" && (!cloudflare || format !== "ranked"),
+  );
+  text(
+    "network-summary",
+    cloudflare ? "Arkadaşlarınla oyna" : "Sunucu bağlantısı",
+  );
+  if (mode === "online" && (!cloudflare || privateRoom))
+    $("lobby-network").open = true;
   for (const id of ["practice-mode", "online-mode"])
     $(id).setAttribute(
       "aria-pressed",
@@ -202,6 +216,7 @@ function setMode(next) {
 let privateRoom = !!query.get("room") && query.get("match") !== "quick";
 function setRoomAccess(privateMatch) {
   privateRoom = format === "ranked" ? false : privateMatch;
+  if (cloudflare) $("lobby-network").open = privateRoom;
   show("room-field", cloudflare && privateRoom);
   $("quick-match").setAttribute("aria-pressed", String(!privateRoom));
   $("friend-room").setAttribute("aria-pressed", String(privateRoom));
@@ -554,8 +569,14 @@ $("play").onclick = () => {
   if (joining) joiningTransport?.close();
   else join();
 };
+$("player-name").addEventListener("input", () => {
+  preferences.set("wildbow-name", $("player-name").value);
+});
 $("player-name").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") join();
+  if (e.key === "Enter") {
+    e.preventDefault();
+    $("player-name").blur();
+  }
 });
 function leave() {
   audio.stopAll();
@@ -609,6 +630,11 @@ function updateHud(current) {
   );
   const match = current.match;
   const finished = match?.phase === "results";
+  const outsideZone = !!(
+    match?.zone &&
+    me.alive &&
+    Math.hypot(me.x - match.zone.x, me.z - match.zone.z) > match.zone.radius
+  );
   show("match-status", !!match);
   if (match) {
     const seconds = Math.max(0, match.remaining);
@@ -616,11 +642,16 @@ function updateHud(current) {
     const team = me.team != null ? match.teams[me.team] : null;
     text(
       "match-status",
-      match.phase === "waiting"
-        ? "Rakip bekleniyor…"
-        : `${time}${team ? `\n${team.symbol} ${team.name} · ${team.score}` : " · Tur " + match.round}`,
+      match.format === "br"
+        ? match.phase === "waiting"
+          ? `Battle Royale · ${match.remaining} sn sonra`
+          : `${match.survivors} CANLI · ${outsideZone ? "ALANA GİR" : match.zone.shrinking ? "Alan daralıyor" : `Daralmaya ${match.zone.remaining ?? 20} sn`}`
+        : match.phase === "waiting"
+          ? "Rakip bekleniyor…"
+          : `${time}${team ? `\n${team.symbol} ${team.name} · ${team.score}` : " · Tur " + match.round}`,
     );
   }
+  $("match-status").classList.toggle("storm-warning", outsideZone);
   show("round-results", finished);
   if (finished) {
     controls.active = false;
@@ -638,21 +669,25 @@ function updateHud(current) {
       const top = [...match.teams].sort((a, b) => b.score - a.score);
       text(
         "round-winner",
-        top.length
-          ? top[0].score === top[1]?.score
-            ? "Takımlar berabere"
-            : `${top[0].symbol} ${top[0].name} kazandı`
-          : !match.results.length ||
-              match.results[0].points === match.results[1]?.points
-            ? "Berabere"
-            : `${match.results[0].name} kazandı`,
+        match.format === "br"
+          ? match.winnerId
+            ? `${match.results.find((p) => p.id === match.winnerId)?.name || "Son okçu"} kazandı`
+            : "Hayatta kalan yok · Berabere"
+          : top.length
+            ? top[0].score === top[1]?.score
+              ? "Takımlar berabere"
+              : `${top[0].symbol} ${top[0].name} kazandı`
+            : !match.results.length ||
+                match.results[0].points === match.results[1]?.points
+              ? "Berabere"
+              : `${match.results[0].name} kazandı`,
       );
       const rows = [
         {
           name: "OKÇU",
           kills: "E",
           assists: "A",
-          points: "PUAN",
+          points: match.format === "br" ? "SIRA" : "PUAN",
           heading: true,
         },
         ...match.results,
@@ -668,7 +703,7 @@ function updateHud(current) {
             p.team != null ? `${TEAMS[p.team].symbol} ${p.name}` : p.name,
             p.kills,
             p.assists,
-            p.points,
+            match.format === "br" && !p.heading ? `#${p.placement}` : p.points,
           ]) {
             const cell = document.createElement("span");
             cell.textContent = value;
@@ -865,7 +900,8 @@ function updateHud(current) {
           ["span", "perk-icon", u.icon],
           ["span", "perk-key", `${i + 1}`],
           ["strong", "perk-name", u.name],
-          ["p", "", u.description],
+          ["span", "perk-value", PERK_SUMMARY[key][0]],
+          ["small", "perk-note", PERK_SUMMARY[key][1]],
         ]) {
           const el = document.createElement(tag);
           el.className = cls;
@@ -873,6 +909,7 @@ function updateHud(current) {
           b.append(el);
         }
         b.setAttribute("aria-label", u.name + ": " + u.description);
+        b.title = u.description;
         bindAction(b, () => transport.choose(key));
         return b;
       }),
@@ -884,11 +921,13 @@ function updateHud(current) {
       "death-summary",
       `${me.kills} eleme · ${me.assists || 0} asist · Seviye ${me.level}${me.lastDeath ? ` · Son vuruş: ${me.lastDeath.killer} (${me.lastDeath.amount})` : ""}`,
     );
-    $("respawn").disabled = me.respawnIn > 0.05;
+    $("respawn").disabled = match?.format === "br" || me.respawnIn > 0.05;
     $("respawn").firstChild.textContent =
-      me.respawnIn > 0.05
-        ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
-        : "Yeniden doğ ";
+      match?.format === "br"
+        ? "Elendin · Yeni turu bekle "
+        : me.respawnIn > 0.05
+          ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
+          : "Yeniden doğ ";
   }
   const ctx = $("minimap").getContext("2d"),
     size = 160,
@@ -973,6 +1012,28 @@ function updateHud(current) {
       ctx.textAlign = "center";
       ctx.fillText(spec.icon, x, y + 3);
     }
+  }
+  if (match?.zone) {
+    const { x, z, radius } = match.zone;
+    ctx.save();
+    ctx.fillStyle = "#d8465544";
+    ctx.beginPath();
+    ctx.rect(0, 0, size, size);
+    ctx.arc(
+      (x + 42) * scale,
+      (z + 42) * scale,
+      radius * scale,
+      0,
+      Math.PI * 2,
+      true,
+    );
+    ctx.fill("evenodd");
+    ctx.strokeStyle = "#a5eeff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc((x + 42) * scale, (z + 42) * scale, radius * scale, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
   for (const p of current.players) {
     if (!p.alive) continue;

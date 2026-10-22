@@ -2,7 +2,11 @@ import { FORMATS, formatKey } from "./modes.js";
 /** Team formats keep all sides populated even when a friend party fills one side. */
 export function populationFor(format) {
   const rules = FORMATS[formatKey(format)];
-  return rules.duel ? 0 : rules.teams ? rules.capacity : ONLINE.roomPopulation;
+  return rules.duel
+    ? 0
+    : rules.teams || rules.battleRoyale
+      ? rules.capacity
+      : ONLINE.roomPopulation;
 }
 export const practiceBots = (format) =>
   FORMATS[formatKey(format)].duel ? 1 : populationFor(format) - 1;

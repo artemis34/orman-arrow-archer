@@ -60,7 +60,10 @@ io.on("connection", (socket) => {
     const humans = [...activeWorld.players.values()].filter(
       (p) => !p.bot,
     ).length;
-    if (humans >= FORMATS[format].capacity) {
+    if (
+      humans >= FORMATS[format].capacity ||
+      activeWorld.mode.acceptsPlayers === false
+    ) {
       socket.emit("full");
       return;
     }

@@ -1,0 +1,21 @@
+/** Scan-friendly presentation only; authoritative values remain in shared/config. */
+export const PERK_SUMMARY = Object.freeze({
+  lifesteal: ["+%5 CAN", "Ok isabetinde"],
+  returning: ["%40 HASAR", "Geri dönen ok"],
+  shell: ["−%40 HASAR", "6 sn’de bir kalkan"],
+  magnet: ["+%40 ÇEKİM", "Normal kristaller"],
+  evasion: ["+8 CAN", "Sıyrılınca · 6 sn"],
+  rhythm: ["+%15 HIZ", "Tam gerişten sonra"],
+  multishot: ["+2 OK", "Yan oklar %30"],
+  pierce: ["+1 DELİŞ", "Rakibin içinden"],
+  bounce: ["+1 SEKME", "Arena sınırından"],
+  ricochet: ["%40 HASAR", "Yakındaki rakibe"],
+  frost: ["−%18 HIZ", "Rakibi yavaşlat"],
+  blast: ["4 HASAR", "Yakın rakiplere"],
+  rear: ["+1 ARKA OK", "%50 hasarlı"],
+  longshot: ["+%20 HASAR", "Uzak mesafeden"],
+  poison: ["+3 HASAR", "3 sn zehir"],
+  speed: ["+%8 HIZ", "Daha hızlı yürü"],
+  draw: ["+%12 HIZ", "Daha hızlı atış"],
+  vitality: ["+20 CAN", "+25 can yenile"],
+});

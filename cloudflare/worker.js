@@ -40,6 +40,7 @@ export class ArenaRoom {
     if (url.pathname === "/reserve" && request.method === "POST") {
       if (
         requestedFormat !== this.format ||
+        this.world?.mode.acceptsPlayers === false ||
         this.sessions.size + this.reservations.size >= capacity
       )
         return new Response("Full", { status: 409 });
@@ -76,6 +77,7 @@ export class ArenaRoom {
     }
     if (
       requestedFormat !== this.format ||
+      this.world?.mode.acceptsPlayers === false ||
       this.sessions.size + this.reservations.size >= capacity ||
       (ticket && !reservation) ||
       (FORMATS[this.format].ranked && !reservation)
@@ -396,13 +398,16 @@ export class ArenaRoom {
         (!ranked && this.world.time - session.joinedAt < 30)
       )
         continue;
-      const win = mode.forfeit
-        ? mode.forfeit !== session.id
-        : p.team != null
-          ? teamWinners.length === 1 && teamWinners[0] === p.team
-          : top?.id === p.id &&
-            (!mode.results[1] || top.points > mode.results[1].points);
+      const win = mode.rules.battleRoyale
+        ? mode.winnerId === p.id
+        : mode.forfeit
+          ? mode.forfeit !== session.id
+          : p.team != null
+            ? teamWinners.length === 1 && teamWinners[0] === p.team
+            : top?.id === p.id &&
+              (!mode.results[1] || top.points > mode.results[1].points);
       const draw =
+        !mode.rules.battleRoyale &&
         !mode.forfeit &&
         mode.results.length > 1 &&
         mode.results[0].points === mode.results[1].points;
