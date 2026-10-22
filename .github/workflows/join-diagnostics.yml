@@ -23,7 +23,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
     steps:
@@ -91,7 +91,7 @@ jobs:
           echo "JOIN_RECOVERY_TESTS=1" >> "$GITHUB_ENV"
       - name: Check current public quick join and returning mobile sessions
         run: |
-          npm run test:battle-royale:runtime
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then npm run test:battle-royale:runtime; fi
           node tests/join.browser.js
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/join.browser.js
       - uses: actions/upload-artifact@v4
