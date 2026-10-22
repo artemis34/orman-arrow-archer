@@ -16,10 +16,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-Rjdh2b0V.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-DZAa9NSF.js">
+    <script type="module" crossorigin src="./assets/index-esdlysyF.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-BfPXzBdN.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-Cgztcujz.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BcLnT366.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -67,30 +67,8 @@
         </div>
         <section class="play-card" aria-label="Oyuna katıl">
           <div class="card-topline">
-            <span class="eyebrow">OKÇUNU HAZIRLA</span
-            ><span class="version">ÜCRETSİZ OYNA</span>
-          </div>
-          <h2>Arena seni bekliyor.</h2>
-          <div class="identity-row">
-            <div>
-              <label for="player-name">OKÇU ADIN</label
-              ><input
-                id="player-name"
-                maxlength="16"
-                placeholder="Gezgin"
-                autocomplete="nickname"
-                value="Gezgin"
-              />
-            </div>
-            <div>
-              <label>RENGİN</label>
-              <div
-                id="skins"
-                class="skins"
-                role="group"
-                aria-label="Okçu rengi"
-              ></div>
-            </div>
+            <h2>Oyuna katıl.</h2>
+            <span class="version">ÜCRETSİZ</span>
           </div>
           <div class="mode-switch" role="group" aria-label="Oyun modu">
             <button id="online-mode">◎ Çok oyunculu</button
@@ -100,6 +78,7 @@
             <label for="match-format">KARŞILAŞMA</label>
             <select id="match-format" aria-describedby="format-note">
               <option value="arena">Serbest arena · Süresiz</option>
+              <option value="br">Battle Royale · Herkes tek</option>
               <option value="round">Süreli arena · 4 dakika</option>
               <option value="duel">Düello · 1v1 · 2 dakika</option>
               <option value="ranked">Ranked · Orman düellosu · 1v1</option>
@@ -109,11 +88,16 @@
               <option value="squads">4 takım × 4 kişi · 16 oyuncu</option>
               <option value="duos">8 takım × 2 kişi · 16 oyuncu</option>
             </select>
-            <p id="format-note" class="field-note">
+            <p id="format-note" class="field-note sr-only">
               Kristalleri topla, yeteneklerini geliştir.
             </p>
           </div>
-          <div class="control-switch" role="group" aria-label="Kontrol düzeni">
+          <div
+            class="control-switch"
+            role="group"
+            aria-label="Kontrol düzeni"
+            aria-describedby="controls-hint"
+          >
             <button id="classic-controls" class="selected" aria-pressed="true">
               <span>↔</span><b>Klasik</b><small>Hareket + nişan</small>
             </button>
@@ -121,74 +105,81 @@
               <span>◎</span><b>Tek el</b><small>Otomatik atış</small>
             </button>
           </div>
-          <p id="controls-hint" class="controls-hint">
+          <p id="controls-hint" class="controls-hint sr-only">
             İki joystick veya klavye ve fare ile kontrol sende.
           </p>
-          <div
-            id="room-access"
-            class="room-access hidden"
-            role="group"
-            aria-label="Arena seçimi"
-          >
-            <button id="quick-match" class="selected" aria-pressed="true">
-              Hızlı katıl</button
-            ><button id="friend-room" aria-pressed="false">
-              Arkadaşlarla oyna
-            </button>
-          </div>
-          <div id="server-field" class="hidden">
-            <div id="server-address">
-              <label for="server-url">SUNUCU ADRESİ</label
-              ><input
-                id="server-url"
-                type="url"
-                placeholder="https://sunucun.onrender.com"
-              />
-              <p class="field-note">
-                Aynı adrese bağlanan arkadaşlarınla oyna.
-              </p>
-            </div>
-            <div id="room-field" class="hidden">
-              <label for="room-code">ODA KODU</label>
-              <div class="room-entry">
-                <input
-                  id="room-code"
-                  maxlength="24"
-                  value="arena"
-                  autocapitalize="none"
-                  autocomplete="off"
-                  spellcheck="false"
-                  aria-describedby="room-note"
-                /><button
-                  id="copy-invite"
-                  type="button"
-                  aria-label="Oda davetini kopyala"
-                >
-                  Davet ↗
+          <details id="lobby-network" class="lobby-details hidden">
+            <summary>
+              <span id="network-summary">Arkadaşlarınla oyna</span
+              ><span aria-hidden="true">⌄</span>
+            </summary>
+            <div class="lobby-details-content">
+              <div
+                id="room-access"
+                class="room-access hidden"
+                role="group"
+                aria-label="Arena seçimi"
+              >
+                <button id="quick-match" class="selected" aria-pressed="true">
+                  Hızlı katıl</button
+                ><button id="friend-room" aria-pressed="false">
+                  Arkadaşlarla oyna
                 </button>
               </div>
-              <p id="room-note" class="field-note">
-                Birlikte oynamak için aynı kodu kullanın.
-              </p>
+              <div id="server-field" class="hidden">
+                <div id="server-address">
+                  <label for="server-url">SUNUCU ADRESİ</label
+                  ><input
+                    id="server-url"
+                    type="url"
+                    placeholder="https://sunucun.onrender.com"
+                  />
+                  <p class="field-note">
+                    Aynı adrese bağlanan arkadaşlarınla oyna.
+                  </p>
+                </div>
+                <div id="room-field" class="hidden">
+                  <label for="room-code">ODA KODU</label>
+                  <div class="room-entry">
+                    <input
+                      id="room-code"
+                      maxlength="24"
+                      value="arena"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      spellcheck="false"
+                      aria-describedby="room-note"
+                    /><button
+                      id="copy-invite"
+                      type="button"
+                      aria-label="Oda davetini kopyala"
+                    >
+                      Davet ↗
+                    </button>
+                  </div>
+                  <p id="room-note" class="field-note">
+                    Birlikte oynamak için aynı kodu kullanın.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
           <button id="play" class="primary"><b>OYNA</b> <span>↗</span></button>
-          <button id="collection-open" class="collection-entry" type="button">
-            Okçum · Koleksiyon ve ayarlar
-            <span id="collection-balance">◇ 0</span>
-          </button>
           <p id="join-status" class="join-status" aria-live="polite">
             Botlarla anında oyna · Hesap gerekmez
           </p>
-          <div class="lobby-social">
+          <nav
+            class="lobby-shortcuts lobby-social"
+            aria-label="Okçu ve topluluk"
+          >
+            <button id="collection-open" class="collection-entry" type="button">
+              ⚙ Ayarlar
+              <span id="collection-balance">◇ 0</span>
+            </button>
             <button id="friends-open" type="button">♧ Arkadaşlar</button
             ><button id="leaderboard-open" type="button">♛ Sıralama</button>
-          </div>
-          <div id="lobby-accounts" class="lobby-accounts"></div>
-          <small class="account-note"
-            >Google / Apple bağlantıları hazırlanıyor.</small
-          >
-          <div class="card-footer">
+          </nav>
+          <div class="card-footer sr-only">
             <span class="live-dot"></span>
             <span id="server-label">Yerel arena • 7 bot rakip</span>
           </div>
@@ -394,6 +385,45 @@
         <p class="collection-status" aria-live="polite">
           Online maçlardan yaprak kazan. Görünüşler savaş gücünü değiştirmez.
         </p>
+        <section
+          id="identity-settings"
+          class="hidden"
+          aria-label="Okçu ayarları"
+        >
+          <div class="identity-row">
+            <div>
+              <label for="player-name">OKÇU ADIN</label
+              ><input
+                id="player-name"
+                maxlength="16"
+                placeholder="Gezgin"
+                autocomplete="nickname"
+                value="Gezgin"
+              />
+            </div>
+            <div>
+              <label>RENGİN</label>
+              <div
+                id="skins"
+                class="skins"
+                role="group"
+                aria-label="Okçu rengi"
+              ></div>
+            </div>
+          </div>
+          <details id="account-options" class="lobby-details account-options">
+            <summary>
+              <span>Hesap bağla <small>İsteğe bağlı</small></span
+              ><span aria-hidden="true">⌄</span>
+            </summary>
+            <div class="lobby-details-content">
+              <div id="lobby-accounts" class="lobby-accounts"></div>
+              <small class="account-note"
+                >Google / Apple bağlantıları hazırlanıyor.</small
+              >
+            </div>
+          </details>
+        </section>
         <div class="collection-content"></div>
       </section>
     </div>
@@ -438,20 +468,23 @@
           <div>
             <b>01 / HAREKET</b>
             <p>
-              WASD veya ok tuşlarıyla hareket et. Mobilde sol joystick’i kullan.
+              WASD veya ok tuşlarıyla hareket et. Mobilde joystick ekranın alt
+              bölümüne dokunduğun yerde belirir: dikeyde alt %40, yatayda alt
+              yarı. Parmağını kaldırmadan bu alanın dışına da sürükleyebilirsin.
+              Tek el modunda rakibe dokunarak hedef kilitleyebilirsin.
             </p>
           </div>
           <div>
             <b>02 / NİŞAN & ATIŞ</b>
             <p>
               Fareyle nişan al; sol tuşu basılı tutarak yayı ger, bırakınca at.
-              Mobilde ekrana veya sağ joystick’e kısa dokun: menzildeki açık
-              hedeflerden canı en az olana otomatik atış. Sağ joystick’i çekip
-              bırakarak elle nişan al; hafif nişan yardımı uygulanır. Temel ok
-              15 hasar verir; yayı germek okun hızını ve menzilini artırır. ◎
-              OTO düğmesini açarsan yalnızca hareket ederek tek elle
-              oynayabilirsin: menzilde ve açıkta olan en düşük canlı hedefe
-              normal atış aralıklarıyla ateş eder. Elle nişan her zaman
+              Mobilde alt bölümün sağ tarafına veya sağ joystick’e kısa dokun:
+              menzildeki açık hedeflerden canı en az olana otomatik atış. Sağ
+              joystick’i çekip bırakarak elle nişan al; hafif nişan yardımı
+              uygulanır. Temel ok 15 hasar verir; yayı germek okun hızını ve
+              menzilini artırır. ◎ OTO düğmesini açarsan yalnızca hareket ederek
+              tek elle oynayabilirsin: menzilde ve açıkta olan en düşük canlı
+              hedefe normal atış aralıklarıyla ateş eder. Elle nişan her zaman
               önceliklidir.
             </p>
           </div>
@@ -490,7 +523,9 @@
             <p>
               150 can ve 4 saniye korumayla başlarsın; ilk atış korumayı
               bitirir. Elenirsen 3 saniye sonra yeniden doğabilirsin; gelişim
-              sıfırlanır, skorun kalır.
+              sıfırlanır, skorun kalır. Battle Royale’da herkes tek oynar: alan
+              daralır, elenen oyuncu aynı turda yeniden doğmaz. Son hayatta
+              kalan kazanır.
             </p>
           </div>
         </div>
