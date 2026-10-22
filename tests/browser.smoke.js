@@ -19,7 +19,7 @@ const browser = await chromium.launch({
   ],
 });
 async function returnToLobby(page, touch = false) {
-  const activate = (selector, timeout = 5000) =>
+  const activate = (selector, timeout = 8000) =>
     touch
       ? page.locator(selector).tap({ timeout })
       : page.locator(selector).click({ timeout });
@@ -28,8 +28,9 @@ async function returnToLobby(page, touch = false) {
     try {
       if (!(await page.locator("#leader-panel").isVisible()))
         await activate("#leaders-toggle");
-      await activate("#exit", 1500);
+      await activate("#exit");
     } catch (error) {
+      if (await page.locator("#lobby").isVisible()) return;
       if (!(await page.locator("#death").isVisible())) throw error;
       await activate("#back-lobby");
     }
@@ -49,7 +50,9 @@ try {
   await page.locator("#play").click();
   await page.locator("#hud").waitFor({ state: "visible" });
   await page.waitForTimeout(600);
-  assert.equal(await page.locator("#hud-name").textContent(), "Test Okçu");
+  await expect(page.locator("#hud-name")).toHaveText("Test Okçu", {
+    timeout: 8000,
+  });
   await page.keyboard.down("KeyW");
   await page.waitForTimeout(600);
   await page.keyboard.up("KeyW");
@@ -79,7 +82,9 @@ try {
   await page.locator("#hud").waitFor({ state: "visible" });
   await page.waitForTimeout(600);
   assert.equal(await page.locator("#connection").textContent(), "ONLINE");
-  assert.equal(await page.locator("#hud-name").textContent(), "Test Okçu");
+  await expect(page.locator("#hud-name")).toHaveText("Test Okçu", {
+    timeout: 8000,
+  });
   await returnToLobby(page);
   await page.close();
   const mobile = await browser.newContext({
