@@ -1,4 +1,5 @@
 import { chromium, expect } from "@playwright/test";
+import { selectControlMode } from "./helpers/control-mode.js";
 import { existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
@@ -72,6 +73,7 @@ try {
     };
   });
   await page.goto(process.env.TEST_SERVER_URL || "http://127.0.0.1:3000");
+  await selectControlMode(page, "classic");
   await page.locator("#online-mode").click();
   await page
     .locator("#server-url")
