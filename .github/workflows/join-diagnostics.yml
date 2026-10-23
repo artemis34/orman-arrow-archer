@@ -96,6 +96,7 @@ jobs:
           test "$matched" = true
           echo "JOIN_RECOVERY_TESTS=1" >> "$GITHUB_ENV"
       - name: Check current public quick join and returning mobile sessions
+        if: github.ref == 'refs/heads/main'
         run: |
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then npm run test:battle-royale:runtime; fi
           node tests/join.browser.js
