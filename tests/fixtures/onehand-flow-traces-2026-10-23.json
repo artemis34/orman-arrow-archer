@@ -1,6 +1,6 @@
 {
   "baseline": "b23ed9151355e43ad2cd57482999d1adc65db2b4",
-  "purpose": "Reviewed behavior changes: five-second selection guard, reachable canopy-clear buff placements and resulting bot routes, and a stable 125ms remote-player display clock. Arrow presentation and v2 golden input/packet contracts remain unchanged. Historical fixtures are retained.",
+  "purpose": "Reviewed behavior changes: five-second selection guard, reachable canopy-clear buff placements and resulting bot routes, and a stable 125ms remote-player display clock. Arrow presentation and v2 golden input/packet contracts remain unchanged. Historical fixtures are retained. Per-actor display anchors prevent guard-release/respawn/visibility rewinds without changing live metadata or local movement.",
   "scenarios": [
     {
       "id": "arena-8",
@@ -51,5 +51,5 @@
       "shots": 280
     }
   ],
-  "clientViews": "35fa6795080b1e68cb2d7df3f46dee0903db7372c935e4ed3cef455106265336"
+  "clientViews": "791efc8a0e7e155a17897bac6c14f9f1479db572deef4987326163915f523649"
 }

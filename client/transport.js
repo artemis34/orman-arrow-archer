@@ -84,9 +84,11 @@ export class NetworkTransport {
     this.correction = { x: 0, z: 0, at: 0 };
     this.projectiles = new ProjectilePresentation();
     this.playerClock = new PresentationClock();
+    this.remoteAnchors = new Map();
   }
   acceptState(state) {
-    const previousMatch = this.snapshots.at(-1)?.state.match;
+    const previousState = this.snapshots.at(-1)?.state;
+    const previousMatch = previousState?.match;
     if (
       state.match &&
       previousMatch &&
@@ -95,9 +97,26 @@ export class NetworkTransport {
     ) {
       this.pending = [];
       this.lastInput = null;
+      this.remoteAnchors.clear();
     }
     this.frozen = !!state.match && state.match.phase !== "playing";
     const now = performance.now();
+    for (const id of this.remoteAnchors.keys())
+      if (!state.players.some((p) => p.id === id && p.alive))
+        this.remoteAnchors.delete(id);
+    for (const p of state.players) {
+      if (p.id === this.id || !p.alive) continue;
+      const previousActor = previousState?.players.find(
+        (old) => old.id === p.id,
+      );
+      if (!(p.levelGuard > 0) && previousActor?.alive) continue;
+      const anchor = this.remoteAnchors.get(p.id) || {};
+      anchor.x = p.x;
+      anchor.z = p.z;
+      anchor.angle = p.angle;
+      anchor.time = Number.isFinite(state.time) ? state.time * 1000 : now;
+      this.remoteAnchors.set(p.id, anchor);
+    }
     const previous = this.localPose(now);
     const wasGuarded =
       this.snapshots.at(-1)?.state.players.find((p) => p.id === this.id)
@@ -200,6 +219,15 @@ export class NetworkTransport {
             z: p.levelGuard > 0 ? p.z : local.z,
             angle: local.angle,
           };
+        const anchor = this.remoteAnchors.get(p.id);
+        if (anchor && !p.levelGuard && p.alive) {
+          // Life/protection are live metadata. Warm a new life or hold a
+          // protection anchor until the display clock reaches it, so an older
+          // snapshot cannot pull a released/respawned actor backward.
+          if (this.playerClock.time <= anchor.time)
+            return { ...p, x: anchor.x, z: anchor.z, angle: anchor.angle };
+          this.remoteAnchors.delete(p.id);
+        }
         const prev = old.get(p.id);
         const next = buffered.get(p.id);
         if (
@@ -209,8 +237,6 @@ export class NetworkTransport {
           !prev.alive ||
           !next.alive ||
           p.levelGuard > 0 ||
-          prev.levelGuard > 0 ||
-          next.levelGuard > 0 ||
           Math.hypot(p.x - next.x, p.z - next.z) > 8 ||
           Math.hypot(next.x - prev.x, next.z - prev.z) > 8
         )

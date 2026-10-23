@@ -328,18 +328,20 @@ test("interpolation keeps current protection, health and death on the predicted 
     t.close();
   }
 });
-test("remote motion stays buffered while protection and concealment update immediately", () => {
+test("remote motion stays buffered while protection and concealment update immediately", (context) => {
+  let now = 0;
+  context.mock.method(performance, "now", () => now);
   const { t, socket } = harness();
   try {
     t.id = "viewer";
-    for (let i = 0; i < 5; i++)
+    for (let i = 0; i < 5; i++) {
+      now = i * 33;
       socket.emit("state", {
         players: [player({ x: i, hp: i === 4 ? 80 : 100 })],
         arrows: [],
         orbs: [],
       });
-    const now = performance.now();
-    t.snapshots.forEach((s, i) => (s.at = now - (4 - i) * 33));
+    }
     const remote = t.view().players[0];
     assert.ok(
       remote.x > 0 && remote.x < 1,
