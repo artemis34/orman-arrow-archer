@@ -154,8 +154,11 @@ Mevcut sunucu-otoriter hareket, ok uçuşu, çarpışma, hasar ve seviye sistemi
 JavaScript sunucusunda kalır. Yerel hareket tahmini Swift'e aktarılacaksa
 `advanceMovement`/`moveBody` kuralları için ayrıca aynı girdilerle sayısal
 karşılaştırma gerekir. Bu çalışma yeni bir tahmin veya ok fiziği tasarlamaz.
-Mevcut web sunumu 90 ms interpolasyon ve yaklaşık 85 ms görsel uzlaştırma
-kullanır; yalnızca indeks oluşturma zamanı optimize edilmiştir.
+Güncel web sunumu uzak oyuncularda simülasyon saatine bağlı 125 ms tampon,
+oklarda yaklaşık 100 ms tampon ve yerel oyuncuda yaklaşık 85 ms görsel
+uzlaştırma kullanır. Koruma/doğuş/görünürlüğe geçişte eski pozlara geri kaymayı
+önleyen, oyuncu sayısıyla sınırlı sunum çapaları vardır. Bunlar sunucu kuralı
+veya yeni wire alanı değildir; Swift kendi renderer'ına uygun sunumu seçebilir.
 
 Profil HTTP API'si aynı kalır. Swift profil anahtarını Keychain'de saklayabilir.
 Kozmetik ve beceri kimlikleri sabit veri kimlikleridir; istemcinin çizim motoru
@@ -167,3 +170,17 @@ kodlanması, tüm kayıtların aynı değerlerle çözülmesi, ardından yerel w
 web + Swift oturumu. Bu dalda Swift derlemesi/iOS cihaz testi yapılmış değildir.
 Protokolü değiştirecek sonraki çalışmalar ayrı sürüm ve yetenek anlaşmasıyla
 eski v2/JSON yolu korunarak yapılmalıdır.
+
+## İsteğe bağlı emoji olayı
+
+WebSocket üzerinden `{"type":"emote","data":"wave"}` gönderilir. Geçerli
+anahtarlar: `wave`, `gg`, `laugh`, `heart`, `wow`, `target`. Sunucu canlı/oynayan
+oyuncuyu, sabit anahtarı ve dört saniyelik cooldown'ı doğrular. Snapshot'ın
+mevcut `events` alanında `{type:"emote", owner:playerId, key:"wave"}` yayınlar.
+Bu olay koordinat, serbest metin, fizik veya hasar içermez. Emoji gönderen
+oyuncu iki saniyelik balon boyunca çalıda gizlenmez. Node Socket.IO adaptöründe
+eşdeğer `emote` olayı anahtarı parametre olarak alır.
+
+Eski v2 istemcileri tanımadıkları kozmetik olayı görmezden gelir. Swift bu
+isteğe bağlı aksiyonu daha sonra ekleyebilir; hareket/ok protokolüne yeni bayrak,
+player alanı veya zorunlu mesaj eklenmemiştir.

@@ -15,6 +15,8 @@ Uzak karakterler snapshot'ın varış zamanıyla, oklar ise simülasyon zamanıy
 
 Yeni uzak karakter saati mevcut sekiz snapshot'ı ve gönderilen simülasyon zamanını kullanır; 125 ms tampon ve sınırlı saat düzeltmesi uygular. Önceki 90 ms varış zamanı tamponuna göre biraz daha fazla görüntü gecikmesi karşılığında dalgalı paketler düzenli çizilir. Yerel oyuncunun tahmini kontrolü beklemez. Uzak oyuncular bilinmeyen konumlara uzatılmaz. Ölüm, gizlenme, koruma, can, hedef üyeliği ve yeni tur bilgisi en güncel otoriteden gelir. Ok sunumu, isabetler ve fizik değiştirilmedi.
 
+Ek geçiş testleri koruma seçimi bitince ve yeniden doğunca tampon yetişirken oluşan 0,175 birimlik geri adımı yeniden üretti. Oyuncu başına kısa ömürlü sunum çapası bu geri adımı giderir; ayrılan/gizlenen oyuncuların kayıtları temizlenir. Otorite, girdiler ve paket izleri bu ek düzeltmeden önce/sonra birebir aynı kalır.
+
 Tekrarlama: `node benchmarks/remote-presentation.js --root=BASELINE_ROOT` ve aynı komut güncel kökte. Ayrı regresyonlar ölüm/doğuş, koruma bitişi ve tur değişimini kapsar.
 
 ## Gerçek oda döngüsü
