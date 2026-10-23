@@ -13,6 +13,11 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    # Match package-lock's Playwright version; browsers and OS libraries are
+    # preinstalled, avoiding repeated apt/CDN installation stalls.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 20
     outputs:
       pages_enabled: ${{ steps.pages.outputs.result }}
@@ -26,9 +31,6 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm run build
-      - name: Install test browser
-        timeout-minutes: 6
-        run: npx playwright install --with-deps chromium webkit
       - name: Validate full-quality renderer budgets and resource reuse
         run: |
           npm run test:performance
@@ -130,6 +132,9 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 10
     permissions:
       contents: write
@@ -150,7 +155,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - name: Verify public CDN deployment
         shell: bash
         run: |
@@ -194,6 +198,9 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 10
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -232,13 +239,15 @@ jobs:
       - name: Play the deployed Cloudflare multiplayer game
         if: steps.account.outputs.ready == 'true'
         run: |
-          npx playwright install --with-deps chromium
           npm run test:cloudflare
           npm run test:cloudflare:browser
   cloudflare-live:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'artemis34/orman-arrow-archer'
     needs: [validate, cloudflare]
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 10
     env:
       CLOUDFLARE_TEST_URL: ${{ vars.CLOUDFLARE_SITE_URL || 'https://orman-arrow-archer.cangunes1995.workers.dev' }}
@@ -274,7 +283,6 @@ jobs:
           echo "Client asset: $expected_asset" >> "$GITHUB_STEP_SUMMARY"
       - name: Play public Cloudflare multiplayer on desktop and phone
         run: |
-          npx playwright install --with-deps chromium
           npm run test:cloudflare
           npm run test:cloudflare:browser
           npm run test:multimode
