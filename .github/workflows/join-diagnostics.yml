@@ -74,6 +74,7 @@ jobs:
           CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:battle-royale:runtime
           CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:multimode
           CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 npm run test:community
+          CLOUDFLARE_TEST_URL=http://127.0.0.1:8787 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:community
       - name: Verify this client version is deployed
         if: github.ref == 'refs/heads/main'
         shell: bash
