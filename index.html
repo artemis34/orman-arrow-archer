@@ -88,22 +88,6 @@
               Kristalleri topla, yeteneklerini geliştir.
             </p>
           </div>
-          <div
-            class="control-switch"
-            role="group"
-            aria-label="Kontrol düzeni"
-            aria-describedby="controls-hint"
-          >
-            <button id="classic-controls" class="selected" aria-pressed="true">
-              <span>↔</span><b>Klasik</b><small>Hareket + nişan</small>
-            </button>
-            <button id="onehand-controls" aria-pressed="false">
-              <span>◎</span><b>Tek el</b><small>Otomatik atış</small>
-            </button>
-          </div>
-          <p id="controls-hint" class="controls-hint sr-only">
-            İki joystick veya klavye ve fare ile kontrol sende.
-          </p>
           <details id="lobby-network" class="lobby-details hidden">
             <summary>
               <span id="network-summary">Arkadaşlarınla oyna</span
@@ -364,23 +348,51 @@
         >
           ✕
         </button>
-        <div class="eyebrow">TARZIN SENİN İZİN</div>
-        <h2 id="collection-title">Okçum</h2>
+        <div class="eyebrow">SANA GÖRE OYNA</div>
+        <h2 id="collection-title">Ayarlar ve okçum</h2>
         <div
           class="collection-tabs"
           role="tablist"
           aria-label="Okçum bölümleri"
         >
+          <button data-tab="settings" role="tab">Ayarlar</button>
           <button data-tab="looks" role="tab">Görünüşler</button>
           <button data-tab="profile" role="tab">Profil</button>
           <button data-tab="friends" role="tab">Arkadaşlar</button>
           <button data-tab="leaderboard" role="tab">Sıralama</button>
           <button data-tab="skills" role="tab">Yetenekler</button>
-          <button data-tab="settings" role="tab">Ayarlar</button>
         </div>
         <p class="collection-status" aria-live="polite">
           Online maçlardan yaprak kazan. Görünüşler savaş gücünü değiştirmez.
         </p>
+        <section
+          id="control-settings"
+          class="settings-group hidden"
+          aria-labelledby="control-settings-title"
+        >
+          <h3 id="control-settings-title">Nasıl oynamak istersin?</h3>
+          <div
+            class="control-switch"
+            role="group"
+            aria-label="Kontrol düzeni"
+            aria-describedby="controls-hint"
+          >
+            <button id="classic-controls" aria-pressed="false">
+              <span>↔</span><b>Klasik</b
+              ><small>WASD + fare / iki joystick</small>
+            </button>
+            <button id="onehand-controls" class="selected" aria-pressed="true">
+              <span>◎</span><b>Tek el</b><small>Otomatik atış</small>
+            </button>
+          </div>
+          <p id="controls-hint" class="controls-hint sr-only">
+            İki joystick veya klavye ve fare ile kontrol sende.
+          </p>
+          <p class="settings-note">
+            Tek elde yalnızca yönlendir. Hareket alanına çift dokunarak atıl,
+            rakibe dokunarak kilitle.
+          </p>
+        </section>
         <section
           id="identity-settings"
           class="hidden"
@@ -496,7 +508,7 @@
             <b>04 / GÜÇLEN</b>
             <p>
               Kristalleri topla, rakiplerini vur. Seviye atladığında üç
-              yetenekten birini alttaki kartlardan seç. İlk 3 saniye sabit ve
+              yetenekten birini alttaki kartlardan seç. İlk 5 saniye sabit ve
               hasara karşı korumalı olursun; seçimleri bitirince hemen devam
               edersin. Altın ışık ve azalan halka koruma bitene kadar yanar.
               Altın büyük kristaller nadirdir ve 60 XP verir.
