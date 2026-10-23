@@ -1,7 +1,7 @@
 name: Validate public mobile connection
 on:
   push:
-    branches: [fix/arena-join-recovery, feature/compact-lobby-touch-zone, main]
+    branches: [fix/arena-join-recovery, feature/compact-lobby-touch-zone, feature/onehand-flow-performance, main]
     paths:
       [
         client/main.js,
