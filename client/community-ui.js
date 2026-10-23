@@ -153,11 +153,14 @@ export function communityUI({
         input.placeholder = "Arkadaş kodu";
         input.maxLength = 14;
         input.setAttribute("aria-label", "Arkadaş kodu");
-        const send = button("İstek gönder", () => {});
-        send.type = "submit";
+        // Touch actions suppress compatibility clicks. Explicit submission
+        // works on Safari too, without a second native click submitting twice.
+        const send = button("İstek gönder", () => form.requestSubmit());
+        send.type = "button";
         form.append(input, send);
         form.onsubmit = async (e) => {
           e.preventDefault();
+          if (send.disabled) return;
           send.disabled = true;
           try {
             await request("friends/request", { target: input.value });

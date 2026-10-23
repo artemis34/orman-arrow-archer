@@ -158,6 +158,8 @@ try {
     "aria-pressed",
     "true",
   );
+  world.killStreaks.set(actor, 2);
+  await expect(page.locator("#kill-streak")).toBeVisible();
   for (const [width, height] of [
     [390, 844],
     [375, 667],
@@ -175,6 +177,7 @@ try {
       "#move-stick",
       ".arena-vitals",
       "#map-toggle",
+      "#kill-streak",
     ]) {
       const box = await page.locator(selector).boundingBox();
       const overlap =

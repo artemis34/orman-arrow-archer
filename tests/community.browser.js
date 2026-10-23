@@ -30,6 +30,11 @@ try {
     }),
     errors = [];
   activePage = page;
+  let friendRequests = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/profile/friends/request")
+      friendRequests++;
+  });
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible();
@@ -72,6 +77,7 @@ try {
   await expect(page.locator(".collection-content")).toContainText(
     "Onay bekleniyor",
   );
+  assert.equal(friendRequests, 1, "one touch submits exactly one friend request");
   const myToken = await page.evaluate(() =>
     localStorage.getItem("wildbow-profile-key"),
   );

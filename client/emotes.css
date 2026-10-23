@@ -6,7 +6,8 @@
   z-index: 9;
 }
 #hud.guarded #emote-controls,
-#hud.panel-open #emote-controls {
+#hud.panel-open #emote-controls,
+#upgrades:not(.hidden) ~ #emote-controls {
   display: none;
 }
 #emote-toggle {
@@ -98,6 +99,7 @@
   }
   body.onehand.left-handed #emote-controls {
     top: calc(116px + env(safe-area-inset-top));
+    left: calc(94px + env(safe-area-inset-left));
   }
 }
 @media (prefers-reduced-motion: reduce) {

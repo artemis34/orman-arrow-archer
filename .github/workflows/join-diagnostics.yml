@@ -10,6 +10,8 @@ on:
         client/network-mode.js,
         client/controls.js,
         client/progression.js,
+        client/community-ui.js,
+        client/emotes.css,
         tests/community.browser.js,
         client/lobby.css,
         client/expansion.css,
