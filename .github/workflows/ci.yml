@@ -155,13 +155,25 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Read the published static revision
+        id: static_revision
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/gh-pages',
+            });
+            core.setOutput('sha', data.object.sha);
       - name: Verify public CDN deployment
+        env:
+          STATIC_SITE_COMMIT: ${{ steps.static_revision.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          site_commit=$(git ls-remote origin refs/heads/gh-pages | cut -f1)
-          test -n "$site_commit"
-          site_url="https://rawcdn.githack.com/${GITHUB_REPOSITORY}/${site_commit}/index.html"
+          test -n "$STATIC_SITE_COMMIT"
+          site_url="https://rawcdn.githack.com/${GITHUB_REPOSITORY}/${STATIC_SITE_COMMIT}/index.html"
           curl --fail --location --retry 8 --retry-delay 5 --retry-all-errors "$site_url" -o /tmp/live-index.html
           grep -q 'Wildbow' /tmp/live-index.html
           asset_path=$(sed -n 's/.*src="\.\/\([^"]*\.js\)".*/\1/p' /tmp/live-index.html | head -1)
