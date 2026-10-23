@@ -32,6 +32,9 @@ try {
   );
   assert.match(identity, /^[a-f0-9]{64}$/);
   await page.locator("#collection-open").tap();
+  // This regression measures the large twin-stick layout. New phones default
+  // to one-hand; its mirrored controls have their own lobby/gesture coverage.
+  await page.locator("#classic-controls").tap();
   await expect(page.locator(".collection-status")).toContainText(
     "Online maç tamamla",
   );
