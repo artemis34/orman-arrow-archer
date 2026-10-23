@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
@@ -66,6 +67,7 @@ try {
     }
     await expect(page.locator("#lobby")).toBeVisible();
     await setPlayerName(page, "Live Smoke");
+    if (mobile) await selectControlMode(page, "classic");
     await page.locator("#play").click();
     await expect(page.locator("#hud")).toBeVisible();
     await expect(page.locator("#hud-name")).toHaveText("Live Smoke");

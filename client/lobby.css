@@ -545,6 +545,10 @@ body.onehand.playing #touch-controls {
 body.onehand #aim-stick {
   display: none;
 }
+/* Automatic fire is inherent to this layout; classic retains its toggle. */
+body.onehand #auto-fire {
+  display: none;
+}
 body.onehand #move-stick {
   left: 50%;
   transform: translateX(-50%);
@@ -555,6 +559,10 @@ body.onehand .arena-actions {
   right: max(14px, env(safe-area-inset-right));
   transform: none;
   bottom: calc(69px + env(safe-area-inset-bottom));
+}
+body.onehand.left-handed .arena-actions {
+  left: max(14px, env(safe-area-inset-left));
+  right: auto;
 }
 body.onehand .action-buttons {
   display: grid;

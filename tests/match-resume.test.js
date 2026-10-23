@@ -31,8 +31,8 @@ test("partial friend parties retain full opposing sides in every team format", (
     );
   }
 });
-test("duel eliminations and respawns never introduce XP drops or random upgrades", () => {
-  const w = new World({ bots: 0, mode: createMode("duel") });
+test("ranked eliminations and respawns never introduce XP drops or random upgrades", () => {
+  const w = new World({ bots: 0, mode: createMode("ranked") });
   const a = w.addPlayer("a"),
     b = w.addPlayer("b");
   w.step();

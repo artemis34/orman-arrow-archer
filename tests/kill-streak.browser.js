@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
@@ -190,7 +191,7 @@ try {
   assert.equal(actor.kills, 10, "life streak is separate from total kills");
   await page.locator("#leaders-toggle").tap();
   await page.locator("#exit").tap();
-  await page.locator("#onehand-controls").tap();
+  await selectControlMode(page, "onehand");
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
   await expect(badge).toBeHidden();

@@ -5,7 +5,8 @@ import { AvatarBatches, ArrowBatches, ParticleBatch } from "./render-pools.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
-import { POWERUPS, POWERUP_RULES } from "../shared/powerups.js";
+import { POWERUPS } from "../shared/powerups.js";
+import { PowerupView } from "./powerup-view.js";
 import { TEAMS } from "../shared/modes.js";
 import { CATALOG } from "../shared/profile.js";
 import { REGIONS } from "../shared/regions.js";
@@ -46,6 +47,7 @@ export class ArenaScene {
     this.camera.lookAt(0, 0, 0);
     this.target = new THREE.Vector3();
     this.players = new Map();
+    this.visiblePlayerIds = new Set();
     this.orbMeshes = [];
     this.effects = [];
     this.ray = new THREE.Raycaster();
@@ -179,6 +181,8 @@ export class ArenaScene {
       normal: new THREE.Color(0xcaed8b),
       rare: new THREE.Color(0xffcd70),
     };
+    // Gem transforms animate, but a slot's two possible colours rarely change.
+    this.gemColorSlots = new Uint8Array(RULES.maxOrbs).fill(255);
     this.rareHalos = new THREE.InstancedMesh(
       new THREE.RingGeometry(0.7, 0.88, 24),
       new THREE.MeshBasicMaterial({
@@ -193,44 +197,7 @@ export class ArenaScene {
     this.rareHalos.frustumCulled = false;
     this.rareHalos.count = 0;
     this.scene.add(this.rareHalos);
-    this.powerupMeshes = [];
-    for (let i = 0; i < POWERUP_RULES.count; i++) {
-      const group = new THREE.Group();
-      const pad = new THREE.Mesh(
-        new THREE.RingGeometry(0.45, 0.95, 6),
-        new THREE.MeshBasicMaterial({
-          color: 0x71877b,
-          side: THREE.DoubleSide,
-        }),
-      );
-      pad.rotation.x = -Math.PI / 2;
-      pad.position.y = 0.04;
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(0.93, 1.04, 32),
-        new THREE.MeshBasicMaterial({
-          color: 0x82dfff,
-          transparent: true,
-          opacity: 0.8,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        }),
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.05;
-      const emblem = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.48, 0),
-        new THREE.MeshStandardMaterial({
-          color: 0x82dfff,
-          emissive: 0x82dfff,
-          emissiveIntensity: 0.55,
-          roughness: 0.4,
-        }),
-      );
-      group.add(pad, ring, emblem);
-      group.visible = false;
-      this.scene.add(group);
-      this.powerupMeshes.push({ group, ring, emblem });
-    }
+    this.powerupView = new PowerupView(this.scene);
     this.haloDummy = new THREE.Object3D();
     this.haloDummy.rotation.x = -Math.PI / 2;
     const effectGeo = new THREE.OctahedronGeometry(0.11);
@@ -322,13 +289,14 @@ export class ArenaScene {
     addEventListener("resize", () => this.resize());
   }
   setQuality(quality) {
-    this.quality = quality;
-    this.renderer.setPixelRatio(
-      Math.min(
-        devicePixelRatio,
-        quality === "low" ? 1 : quality === "high" ? 2 : 1.5,
-      ),
+    const dpr = Math.min(
+      devicePixelRatio,
+      quality === "low" ? 1 : quality === "high" ? 2 : 1.5,
     );
+    if (this.quality === quality && this.renderer.getPixelRatio() === dpr)
+      return;
+    this.quality = quality;
+    if (this.renderer.getPixelRatio() !== dpr) this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = quality !== "low";
     this.resize();
   }
@@ -371,6 +339,13 @@ export class ArenaScene {
     });
   }
   resize() {
+    if (
+      this.viewportWidth === innerWidth &&
+      this.viewportHeight === innerHeight
+    )
+      return;
+    this.viewportWidth = innerWidth;
+    this.viewportHeight = innerHeight;
     this.renderer.setSize(innerWidth, innerHeight);
     this.camera.aspect = innerWidth / innerHeight;
     this.camera.updateProjectionMatrix();
@@ -652,6 +627,25 @@ export class ArenaScene {
     label.scale.set(3.8, 1.2, 1);
     label.position.y = local ? 2.35 : 2.6;
     root.add(label);
+    // These parts never change their local transform. Parent/hip transforms
+    // still propagate every frame, preserving the full walk/bow animation.
+    for (const part of [
+      contact,
+      torso,
+      head,
+      hood,
+      bowLine,
+      string,
+      base,
+      buffRing,
+      shield,
+      guardRing,
+      label,
+      ...legs.flatMap((hip) => hip.children),
+    ]) {
+      part.updateMatrix();
+      part.matrixAutoUpdate = false;
+    }
     this.avatarBatches.add(root);
     this.scene.add(root);
     return {
@@ -807,7 +801,8 @@ export class ArenaScene {
     this.camera.lookAt(this.target.x, 0, this.target.z);
 
     if (state) {
-      const ids = new Set();
+      const ids = this.visiblePlayerIds;
+      ids.clear();
       for (const p of state.players) {
         ids.add(p.id);
         let v = this.players.get(p.id);
@@ -983,22 +978,7 @@ export class ArenaScene {
             this.players.delete(id);
           }
         }
-      for (let i = 0; i < this.powerupMeshes.length; i++) {
-        const view = this.powerupMeshes[i],
-          site = state.powerups?.[i],
-          spec = site && POWERUPS[site.key];
-        view.group.visible = !!spec;
-        if (!spec) continue;
-        view.group.position.set(site.x, 0, site.z);
-        view.emblem.visible = site.cooldown <= 0;
-        view.emblem.material.color.set(spec.color);
-        view.emblem.material.emissive.set(spec.color);
-        view.emblem.position.y = 1.1 + Math.sin(this.time * 2 + i) * 0.15;
-        view.emblem.rotation.y = this.time * 0.8;
-        view.ring.material.color.set(spec.color);
-        view.ring.material.opacity =
-          site.cooldown > 0 ? 0.18 : 0.65 + Math.sin(this.time * 3) * 0.15;
-      }
+      this.powerupView.update(state.powerups, this.time, this.camera);
       this.arrows.update(state.arrows);
       if (this.quality !== "low") {
         for (let i = 0; i < state.arrows.length; i++) {
@@ -1010,16 +990,22 @@ export class ArenaScene {
         }
       }
       this.gems.count = state.orbs.length;
-      let rareCount = 0;
+      let rareCount = 0,
+        gemColorsChanged = false;
       for (let i = 0; i < state.orbs.length; i++) {
         const o = state.orbs[i],
           m = this.gemDummy;
         m.position.set(o.x, 0.45 + Math.sin(this.time * 2 + o.id) * 0.11, o.z);
         m.scale.setScalar(o.rare ? 2.7 : o.value > RULES.orbXP ? 1.2 : 1);
-        this.gems.setColorAt(
-          i,
-          o.rare ? this.gemColors.rare : this.gemColors.normal,
-        );
+        const rare = o.rare ? 1 : 0;
+        if (this.gemColorSlots[i] !== rare) {
+          this.gemColorSlots[i] = rare;
+          this.gems.setColorAt(
+            i,
+            rare ? this.gemColors.rare : this.gemColors.normal,
+          );
+          gemColorsChanged = true;
+        }
         if (o.rare && rareCount < RULES.maxRareOrbs) {
           this.haloDummy.position.set(o.x, 0.045, o.z);
           this.haloDummy.scale.setScalar(
@@ -1033,7 +1019,7 @@ export class ArenaScene {
         this.gems.setMatrixAt(i, m.matrix);
       }
       this.gems.instanceMatrix.needsUpdate = true;
-      if (this.gems.instanceColor) this.gems.instanceColor.needsUpdate = true;
+      if (gemColorsChanged) this.gems.instanceColor.needsUpdate = true;
       this.rareHalos.count = rareCount;
       this.rareHalos.instanceMatrix.needsUpdate = true;
       const objective = state.objective;
@@ -1102,7 +1088,6 @@ export class ArenaScene {
     this.scene.updateMatrixWorld();
     this.bowBuffs.update(this.players, this.time);
     this.avatarBatches.update();
-    this.camera.updateMatrixWorld();
     this.particles.update(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

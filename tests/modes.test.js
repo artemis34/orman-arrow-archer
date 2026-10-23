@@ -120,8 +120,8 @@ test("a completed round freezes damage and movement, awards assists and supports
   for (const p of w.players.values())
     assert.equal(p.kills + p.assists + p.matchPoints, 0);
 });
-test("duels wait for a second player, have equal stats and symmetric cover, without XP or random cards", () => {
-  const w = new World({ bots: 0, mode: createMode("duel") });
+test("ranked duels wait for a second player, have equal stats and symmetric cover, without XP or random cards", () => {
+  const w = new World({ bots: 0, mode: createMode("ranked") });
   const a = w.addPlayer("a");
   w.setInput("a", { x: 1 });
   w.step();

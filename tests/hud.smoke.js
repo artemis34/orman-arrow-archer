@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync } from "node:fs";
@@ -73,12 +74,13 @@ try {
     const activate = (selector) =>
       page.locator(selector)[touch ? "tap" : "click"]();
     await page.goto(baseUrl);
+    if (touch) await selectControlMode(page, "classic");
     await page.locator("#online-mode").click();
     await page.locator("#server-url").fill(fixtureUrl);
     await page.locator("#play").click();
     await expect(page.locator("#hud")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    // Start the three-second window after initial navigation and font loading,
+    // Start the five-second window after initial navigation and font loading,
     // so a slow CI browser doesn't consume it before any controls are usable.
     world.gain(world.players.get(id), 200);
     // Always cover the longest new description instead of depending on which
@@ -301,7 +303,7 @@ try {
     );
     await context.close();
     console.log(
-      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, actual map enlargement, ghost-click protection, three-second selection, expiry, resumed input, queued picks.`,
+      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, actual map enlargement, ghost-click protection, five-second selection, expiry, resumed input, queued picks.`,
     );
   }
   assert.deepEqual(errors, []);

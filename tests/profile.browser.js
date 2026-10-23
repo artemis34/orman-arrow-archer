@@ -52,6 +52,7 @@ try {
     path: "/tmp/archer-validation/profile-cloudflare-phone.png",
   });
   await page.locator('[data-tab="settings"]').tap();
+  await page.locator(".settings-extra > summary").tap();
   await page
     .locator(".collection-content label")
     .filter({ hasText: "Joystick boyutu" })

@@ -18,6 +18,12 @@ export function setupPanels() {
         open ? "Haritayı küçült" : "Haritayı büyüt",
       );
     }
+    $("hud").classList.toggle(
+      "panel-open",
+      entries.some(
+        ([button]) => $(button).getAttribute("aria-expanded") === "true",
+      ),
+    );
   }
   function close() {
     for (const [button, panel] of entries) toggle(button, panel, false);

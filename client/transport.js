@@ -3,6 +3,8 @@ import { World } from "../shared/world.js";
 import { createMode, formatKey } from "../shared/modes.js";
 import { practiceBots } from "../shared/online.js";
 import { ProjectilePresentation, localProjectiles } from "./projectiles.js";
+import { PresentationClock } from "./presentation-clock.js";
+import { sendEmote, drainEmotes } from "../shared/emotes.js";
 import {
   advanceMovement,
   moveBody,
@@ -32,6 +34,7 @@ export class LocalTransport {
   step(input) {
     this.world.setInput(this.id, input);
     this.world.step();
+    this.world.events.push(...drainEmotes(this.world));
     this.previousState = this.currentState;
     this.currentState = { state: this.world.snapshot(this.id) };
     return this.currentState.state;
@@ -59,6 +62,9 @@ export class LocalTransport {
   rematch() {
     this.world.mode.vote?.(this.world, this.id);
   }
+  emote(key) {
+    sendEmote(this.world, this.id, key);
+  }
   close() {}
 }
 /** Prediction and interpolation are shared by both online protocols. */
@@ -77,6 +83,7 @@ export class NetworkTransport {
     this.inputAt = 0;
     this.correction = { x: 0, z: 0, at: 0 };
     this.projectiles = new ProjectilePresentation();
+    this.playerClock = new PresentationClock();
   }
   acceptState(state) {
     const previousMatch = this.snapshots.at(-1)?.state.match;
@@ -171,16 +178,11 @@ export class NetworkTransport {
     const last = this.snapshots.at(-1);
     if (!last) return null;
     const local = this.localPose();
-    const now = performance.now() - 90;
-    let a = this.snapshots[0],
-      b = last;
-    for (let i = 1; i < this.snapshots.length; i++)
-      if (this.snapshots[i].at >= now) {
-        a = this.snapshots[i - 1];
-        b = this.snapshots[i];
-        break;
-      }
-    const t = Math.max(0, Math.min(1, (now - a.at) / (b.at - a.at || 1)));
+    const {
+      a,
+      b,
+      fraction: t,
+    } = this.playerClock.sample(this.snapshots, performance.now());
     // Accepted snapshots keep stable entity membership. Cache only lookups on
     // their existing eight-entry buffer; timing, prediction and transforms stay
     // unchanged, and shifting a snapshot also releases its index references.
@@ -207,6 +209,8 @@ export class NetworkTransport {
           !prev.alive ||
           !next.alive ||
           p.levelGuard > 0 ||
+          prev.levelGuard > 0 ||
+          next.levelGuard > 0 ||
           Math.hypot(p.x - next.x, p.z - next.z) > 8 ||
           Math.hypot(next.x - prev.x, next.z - prev.z) > 8
         )
@@ -240,6 +244,9 @@ export class NetworkTransport {
   }
   rematch() {
     this.send("rematch");
+  }
+  emote(key) {
+    this.send("emote", key);
   }
 }
 export class SocketTransport extends NetworkTransport {

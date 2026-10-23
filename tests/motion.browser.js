@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
@@ -122,6 +123,7 @@ try {
   installFloatingGestures(page);
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(process.env.TEST_SERVER_URL || "http://127.0.0.1:3000");
+  await selectControlMode(page, "classic");
   await page.locator("#online-mode").click();
   await page
     .locator("#server-url")

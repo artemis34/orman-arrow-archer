@@ -14,6 +14,7 @@ export class LootDrops {
     return this.seed / 4294967296;
   }
   interval(world) {
+    if (world.mode.rules?.duel) return 35;
     const players = [...world.players.values()];
     const population = players.reduce((n, p) => n + (p.bot ? 0.25 : 1), 0);
     return clamp(
@@ -23,11 +24,29 @@ export class LootDrops {
     );
   }
   spawn(world) {
+    if (world.mode.rules?.progression === false) return;
     const cell = this.nextId++ % 9,
       edge = this.size / 2 - 5;
     let best = null,
       score = -Infinity;
-    for (let n = 0; n < 48; n++) {
+    if (world.mode.rules?.duel) {
+      // Neutral corridor: both x=±18 spawns have the same route to every drop.
+      const points = [0, -12, 12];
+      for (let i = 0; i < points.length; i++) {
+        const point = { x: 0, z: points[(cell + i) % points.length] };
+        if (
+          world.obstacles.every(
+            (o) =>
+              o.type === "bush" ||
+              Math.hypot(o.x - point.x, o.z - point.z) >= o.r + 2.3,
+          )
+        ) {
+          best = point;
+          break;
+        }
+      }
+    }
+    for (let n = 0; !world.mode.rules?.duel && n < 48; n++) {
       const x =
         n < 32
           ? ((((cell % 3) + this.random()) / 3) * 2 - 1) * edge
@@ -67,9 +86,13 @@ export class LootDrops {
     world.events.push({ type: "lootDrop", x: drop.x, z: drop.z });
   }
   tick(world) {
-    if (world.mode.rules?.duel) return;
+    if (world.mode.rules?.progression === false) return;
     if (world.time >= this.nextAt) {
-      if (this.drops.length < 3 && world.players.size) this.spawn(world);
+      if (
+        this.drops.length < (world.mode.rules?.duel ? 1 : 3) &&
+        world.players.size
+      )
+        this.spawn(world);
       this.nextAt =
         world.time + this.interval(world) * (0.85 + this.random() * 0.3);
     }

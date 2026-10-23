@@ -31,7 +31,7 @@ export class CombatFeedback {
       return { mesh, life: 0 };
     });
   }
-  show(owner, text, kind = "level", point = null) {
+  show(owner, text, kind = "level", point = null, duration = 1.1) {
     const label =
       this.labels.find(
         (l) => l.life > 0 && l.owner === owner && l.kind === kind,
@@ -44,7 +44,7 @@ export class CombatFeedback {
       this.labels.filter((l) => l !== label && l.life > 0 && l.owner === owner)
         .length * 16;
     label.point = point;
-    label.life = 1.1;
+    label.life = duration;
     label.node.textContent = text;
     label.node.className = `combat-word word-${kind}`;
     label.node.hidden = false;
@@ -59,7 +59,7 @@ export class CombatFeedback {
         },
         { opacity: 0, transform: "translate(-50%,-240%) scale(1)" },
       ],
-      { duration: 1100, easing: "ease-out" },
+      { duration: duration * 1000, easing: "ease-out" },
     );
   }
   kill(owner, x, z) {

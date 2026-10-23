@@ -90,12 +90,27 @@ try {
       scene.setQuality("balanced");
       scene.setMap(world.obstacles);
       const gl = scene.renderer.getContext(),
-        createBuffer = gl.createBuffer;
+        createBuffer = gl.createBuffer,
+        bufferSubData = gl.bufferSubData,
+        matrixPrototype = Object.getPrototypeOf(scene.camera.matrix),
+        compose = matrixPrototype.compose;
       let createdBuffers = 0,
-        warmBuffers = 0;
+        warmBuffers = 0,
+        uploadBytes = 0,
+        matrixCompositions = 0;
       gl.createBuffer = function () {
         createdBuffers++;
         return createBuffer.call(this);
+      };
+      gl.bufferSubData = function (target, offset, data, ...range) {
+        uploadBytes += range[1]
+          ? range[1] * data.BYTES_PER_ELEMENT
+          : data.byteLength;
+        return bufferSubData.call(this, target, offset, data, ...range);
+      };
+      matrixPrototype.compose = function (...args) {
+        matrixCompositions++;
+        return compose.apply(this, args);
       };
       const lineDistance = scene.aimLine.geometry.attributes.lineDistance;
       scene.burst(0, 0, 0xffdd88, 140);
@@ -108,6 +123,8 @@ try {
           p.x += (j % 2 ? 1 : -1) * 0.01;
           p.charge = (f % 30) / 30;
         });
+        const previousUploads = uploadBytes,
+          previousCompositions = matrixCompositions;
         const start = performance.now();
         scene.render(state, "local", 1 / 60, true);
         if (f === 10) warmBuffers = createdBuffers;
@@ -116,6 +133,8 @@ try {
             ms: performance.now() - start,
             calls: scene.renderer.info.render.calls,
             triangles: scene.renderer.info.render.triangles,
+            uploadBytes: uploadBytes - previousUploads,
+            matrixCompositions: matrixCompositions - previousCompositions,
           });
       }
       const before = { ...scene.renderer.info.memory };
@@ -165,6 +184,8 @@ try {
         guard.levelEffect.visible &&
         guard.shield.visible &&
         guard.guardSparks.length === 6;
+      matrixPrototype.compose = compose;
+      gl.bufferSubData = bufferSubData;
       return {
         players: state.players.length,
         rareExpected: RULES.maxRareOrbs,
@@ -233,6 +254,10 @@ try {
       frames: undefined,
       medianSubmissionMs: sorted[Math.floor(sorted.length / 2)],
       maxDrawCalls: Math.max(...result.frames.map((f) => f.calls)),
+      medianUploadBytes: result.frames.map((f) => f.uploadBytes)
+        .sort((a, b) => a - b)[Math.floor(result.frames.length / 2)],
+      medianMatrixCompositions: result.frames.map((f) => f.matrixCompositions)
+        .sort((a, b) => a - b)[Math.floor(result.frames.length / 2)],
     };
     writeFileSync(
       `/tmp/archer-validation/performance-${engine}-${label}.json`,

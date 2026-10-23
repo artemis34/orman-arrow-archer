@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
@@ -70,6 +71,7 @@ try {
     errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
+  await selectControlMode(page, "classic");
   await page.locator("#online-mode").tap();
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
@@ -157,7 +159,7 @@ try {
   }
   await page.locator("#leaders-toggle").tap();
   await page.locator("#exit").tap();
-  await page.locator("#onehand-controls").tap();
+  await selectControlMode(page, "onehand");
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
   await expect(page.locator("#aim-stick")).toBeHidden();

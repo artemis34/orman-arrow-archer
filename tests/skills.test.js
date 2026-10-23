@@ -22,18 +22,18 @@ const shoot = (w, p, skills = {}) => {
   Object.assign(p, { upgrades: skills, angle: 0, charge: 1, shotCd: 0 });
   w.fire(p);
 };
-test("level-up grants a three-second freeze visible to enemies, blocks damage and actions, then resumes", () => {
+test("level-up grants a five-second freeze visible to enemies, blocks damage and actions, then resumes", () => {
   const w = empty(),
     p = add(w, "p", 0, 0),
     enemy = add(w, "e", 8, 0);
   p.hp = 80;
   p.hidden = true;
   w.gain(p, 60);
-  assert.equal(p.levelGuard, 3);
+  assert.equal(p.levelGuard, RULES.levelGuardDuration);
   assert.equal(p.hidden, false);
   assert.equal(
     w.snapshot(enemy.id).players.find((v) => v.id === p.id).levelGuard,
-    3,
+    RULES.levelGuardDuration,
   );
   const hp = p.hp;
   w.damage(p, 999, enemy.id);
@@ -51,8 +51,8 @@ test("level-up grants a three-second freeze visible to enemies, blocks damage an
   assert.equal(p.dashTime, 0);
   assert.equal(p.healCd, 0);
   assert.equal(w.arrows.active.length, 0);
-  assert.ok(p.levelGuard > 1.9 && p.levelGuard <= 2.01);
-  run(w, 62);
+  assert.ok(p.levelGuard > 3.9 && p.levelGuard <= 4.01);
+  run(w, 122);
   assert.equal(p.levelGuard, 0);
   assert.ok(p.x > 0);
   assert.ok(p.choices.length > 0);
@@ -260,7 +260,10 @@ test("combined projectile skills stay bounded through repeated fights, eliminati
           Number.isFinite(actor.hp),
       );
       assert.ok(actor.hp >= 0 && actor.hp <= actor.maxHp);
-      assert.ok(actor.levelGuard <= 3 && actor.slowTime <= RULES.frostDuration);
+      assert.ok(
+        actor.levelGuard <= RULES.levelGuardDuration &&
+          actor.slowTime <= RULES.frostDuration,
+      );
     }
     for (const arrow of w.arrows.active)
       assert.ok(

@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { annotateFailure } from "./report.js";
@@ -99,6 +100,7 @@ try {
   await m.goto(baseUrl);
   await m.locator("#lobby").waitFor({ state: "visible" });
   await m.screenshot({ path: "/tmp/archer-validation/lobby-mobile.png" });
+  await selectControlMode(m, "classic");
   await m.locator("#play").click();
   await m.locator("#hud").waitFor({ state: "visible" });
   await m.waitForTimeout(500);

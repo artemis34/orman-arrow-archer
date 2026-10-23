@@ -1,3 +1,5 @@
+import { EMOTES, EMOTE_RULES } from "../shared/emotes.js";
+import { setupEmotes } from "./emotes-ui.js";
 import { PERK_SUMMARY } from "./perk-summary.js";
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
@@ -6,6 +8,7 @@ import { usesCloudflare } from "./network-mode.js";
 import { selectTarget } from "../shared/aim.js";
 import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
+import { controlModeFor, saveControlMode } from "./control-preferences.js";
 import { setupProgression } from "./progression.js";
 import { FORMATS, TEAMS, formatKey } from "../shared/modes.js";
 import "@fontsource/manrope/latin-800.css";
@@ -25,6 +28,7 @@ import "./expansion.css";
 import "./social.css";
 import "./kill-streak.css";
 import "./compact-ui.css";
+import "./emotes.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -83,6 +87,14 @@ let playing = false,
   joining = false,
   joiningTransport = null,
   guardWasActive = false;
+const emotes = setupEmotes({
+  send: (key) => transport?.emote(key),
+  canSend: () =>
+    playing &&
+    !!state?.players.find((p) => p.id === myId)?.alive &&
+    (!state?.match || state.match.phase === "playing"),
+  announce: (message) => toast(message),
+});
 const initialServer =
   (cloudflare ? query.get("server") || location.origin : null) ||
   query.get("server") ||
@@ -98,6 +110,7 @@ const progression = setupProgression({
   server: () => $("server-url").value || location.origin,
   onSettings: () => {
     scene.setQuality(preferences.get("wildbow-quality") || "balanced");
+    controls.setDoubleTapDash(preferences.get("wildbow-doubletap") !== "false");
     document.body.classList.toggle(
       "left-handed",
       preferences.get("wildbow-hand") === "left",
@@ -137,7 +150,9 @@ function updateFormat() {
     FORMATS[format].battleRoyale
       ? "Herkes tek · Alan daralır · Son hayatta kalan kazanır"
       : FORMATS[format].duel
-        ? "Eşit başlangıç · Online düelloda bot yok · Rastgele yetenek yok"
+        ? FORMATS[format].progression === false
+          ? "Eşit başlangıç · Botsuz · Rastgele yetenek yok"
+          : "1v1 · Kristal, yetenek ve ikmal · Botsuz"
         : FORMATS[format].teams
           ? `${FORMATS[format].teams} takım · Dost ateşi kapalı · 4 dakika`
           : format === "round"
@@ -275,11 +290,16 @@ function syncAutoFire() {
     : "Otomatik atışı aç · tek elle oyna";
 }
 controls.setAutoFire(preferences.get("wildbow-auto-fire") === "true");
-function setControls(oneHanded) {
+function setControls(oneHanded, persist = true) {
   controls.setOneHanded(oneHanded);
   if (!oneHanded)
     controls.setAutoFire(preferences.get("wildbow-auto-fire") === "true");
-  preferences.set("wildbow-controls", oneHanded ? "onehand" : "classic");
+  if (persist)
+    saveControlMode({
+      touch: matchMedia("(pointer: coarse)").matches,
+      mode: oneHanded ? "onehand" : "classic",
+      set: preferences.set,
+    });
   document.body.classList.toggle("onehand", oneHanded);
   for (const [id, selected] of [
     ["classic-controls", !oneHanded],
@@ -298,7 +318,13 @@ function setControls(oneHanded) {
 }
 bindAction($("classic-controls"), () => setControls(false));
 bindAction($("onehand-controls"), () => setControls(true));
-setControls(preferences.get("wildbow-controls") === "onehand");
+setControls(
+  controlModeFor({
+    touch: matchMedia("(pointer: coarse)").matches,
+    get: preferences.get,
+  }) === "onehand",
+  false,
+);
 syncAutoFire();
 bindAction($("auto-fire"), () => {
   audio.unlock();
@@ -356,6 +382,7 @@ function consume(next) {
     const guarded = me.levelGuard > 0;
     if (guarded && !guardWasActive) {
       panels.close();
+      emotes.close();
     }
     controls.active =
       me.alive &&
@@ -364,7 +391,15 @@ function consume(next) {
     guardWasActive = guarded;
   }
   for (const e of next.events || []) {
-    if (e.type === "kill") {
+    if (e.type === "emote" && Object.hasOwn(EMOTES, e.key)) {
+      scene.feedback.show(
+        e.owner,
+        EMOTES[e.key].icon,
+        "emote",
+        null,
+        EMOTE_RULES.duration,
+      );
+    } else if (e.type === "kill") {
       const row = document.createElement("div");
       row.className = "kill-entry";
       const b = document.createElement("b");
@@ -579,6 +614,7 @@ $("player-name").addEventListener("keydown", (e) => {
   }
 });
 function leave() {
+  emotes.reset();
   audio.stopAll();
   playing = false;
   controls.active = false;

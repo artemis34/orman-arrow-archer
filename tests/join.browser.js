@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import assert from "node:assert/strict";
@@ -85,7 +86,7 @@ async function join(label) {
 try {
   await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible({ timeout: 20000 });
-  await page.locator("#onehand-controls").tap();
+  await selectControlMode(page, "onehand");
   await expect(page.locator("#quick-match")).toHaveAttribute(
     "aria-pressed",
     "true",

@@ -1,0 +1,107 @@
+#emote-controls {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  top: calc(64px + env(safe-area-inset-top));
+  pointer-events: auto;
+  z-index: 9;
+}
+#hud.guarded #emote-controls,
+#hud.panel-open #emote-controls {
+  display: none;
+}
+#emote-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d2e8b642;
+  border-radius: 50%;
+  color: #eef7dd;
+  background: #153625dc;
+  font-size: 23px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+#emote-options {
+  position: absolute;
+  top: 43px;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  gap: 5px;
+  border: 1px solid #d2e8b64d;
+  border-radius: 12px;
+  background: #102c22f5;
+  padding: 7px;
+  box-shadow: 0 5px 20px #06150e66;
+}
+#emote-options button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  background: #d6edbd12;
+  border: 0;
+  border-radius: 8px;
+  font:
+    25px "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    sans-serif;
+  touch-action: manipulation;
+}
+#emote-options button:hover,
+#emote-options button:focus-visible {
+  background: #d6edbd30;
+}
+.word-emote {
+  padding: 4px 7px;
+  border-radius: 12px;
+  border: 1px solid #dbf1b85c;
+  background: #183b2ce8;
+  font:
+    29px "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    sans-serif;
+  line-height: 1.15;
+  text-shadow: none;
+}
+@media (pointer: coarse) {
+  #emote-controls {
+    top: auto;
+    bottom: calc(210px + env(safe-area-inset-bottom));
+  }
+  #emote-options {
+    top: auto;
+    bottom: 43px;
+  }
+  body.onehand #emote-controls {
+    bottom: calc(194px + env(safe-area-inset-bottom));
+  }
+  body.onehand.left-handed #emote-controls {
+    right: auto;
+    left: max(14px, env(safe-area-inset-left));
+  }
+  body.onehand.left-handed #emote-options {
+    right: auto;
+    left: 0;
+  }
+}
+@media (pointer: coarse) and (max-height: 500px) {
+  #emote-controls,
+  body.onehand #emote-controls {
+    top: max(50px, env(safe-area-inset-top));
+    bottom: auto;
+  }
+  #emote-options {
+    top: 43px;
+    bottom: auto;
+  }
+  body.onehand.left-handed #emote-controls {
+    top: calc(116px + env(safe-area-inset-top));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-emote {
+    animation: none;
+  }
+}

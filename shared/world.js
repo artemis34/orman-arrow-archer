@@ -16,6 +16,14 @@ import {
   advanceMovement,
 } from "./config.js";
 import { SpatialGrid, segmentFraction, Pool } from "./spatial.js";
+// Public duels use mirrored, bounded XP sites in their central fighting area.
+const DUEL_ORB_SITES = Object.freeze([
+  ...[-24, -18, -8, 8, 18, 24].flatMap((x) =>
+    [-18, -6, 6, 18].map((z) => ({ x, z, value: RULES.orbXP })),
+  ),
+  { x: 0, z: -18, value: RULES.rareOrbXP },
+  { x: 0, z: 18, value: RULES.rareOrbXP },
+]);
 const names = [
   "Juniper",
   "Kestrel",
@@ -78,7 +86,6 @@ export class World {
       if (region) o.type = region.types[i % region.types.length];
       this.obstacleGrid.insert(o, o.r);
     }
-    this.powerups = new PowerupSystem(this.obstacles);
     if (mode.rules?.duel) {
       this.obstacles = [];
       this.obstacleGrid.clear();
@@ -89,8 +96,11 @@ export class World {
           this.obstacleGrid.insert(o, o.r);
         }
     }
-    if (!mode.rules?.duel)
-      for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
+    this.powerups = new PowerupSystem(this.obstacles, {
+      duel: !!mode.rules?.duel,
+    });
+    if (mode.rules?.duel) this.loot.nextAt = 25;
+    this.seedOrbs();
     for (let i = 0; i < bots; i++)
       this.addPlayer(`bot-${i}`, names[i % names.length], i % 4, true);
   }
@@ -176,7 +186,27 @@ export class World {
     return best;
   }
 
+  seedOrbs() {
+    if (this.mode.rules?.progression === false) return;
+    if (this.mode.rules?.duel) {
+      for (const site of DUEL_ORB_SITES)
+        this.spawnOrb(site.x, site.z, site.value);
+    } else for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
+  }
   spawnOrb(x, z, value) {
+    if (x === undefined && this.mode.rules?.duel) {
+      if (this.mode.rules.progression === false) return;
+      const available = DUEL_ORB_SITES.filter((site) =>
+        this.orbs.active.every(
+          (o) => Math.hypot(o.x - site.x, o.z - site.z) > 1.5,
+        ),
+      );
+      if (!available.length) return;
+      const site = available[Math.floor(this.random() * available.length)];
+      x = site.x;
+      z = site.z;
+      value ??= site.value;
+    }
     const rare =
       value === undefined
         ? this.random() < RULES.rareOrbChance &&
@@ -323,7 +353,12 @@ export class World {
   }
   reroll(id) {
     const p = this.players.get(id);
-    if (!p?.alive || !p.choices.length || p.rerolled || this.mode.rules?.duel)
+    if (
+      !p?.alive ||
+      !p.choices.length ||
+      p.rerolled ||
+      this.mode.rules?.progression === false
+    )
       return false;
     const previous = p.choices;
     this.offer(p);
@@ -338,7 +373,7 @@ export class World {
   }
   resetRound() {
     this.loot.drops.length = 0;
-    this.loot.nextAt = this.time + 45;
+    this.loot.nextAt = this.time + (this.mode.rules?.duel ? 25 : 45);
     while (this.arrows.active.length) this.arrows.release(0);
     while (this.orbs.active.length) this.orbs.release(0);
     this.objective.reset(this.time);
@@ -351,8 +386,7 @@ export class World {
       p.kills = p.assists = p.matchPoints = p.objectives = p.hits = p.score = 0;
       p.rerolled = false;
     }
-    if (!this.mode.rules?.duel)
-      for (let i = 0; i < RULES.maxOrbs; i++) this.spawnOrb();
+    this.seedOrbs();
   }
   offer(p) {
     p.choices =
@@ -367,7 +401,7 @@ export class World {
     if (!p.choices.length) p.pending = 0;
   }
   gain(p, amount) {
-    if (this.mode.rules?.duel || !this.mode.combat) return;
+    if (this.mode.rules?.progression === false || !this.mode.combat) return;
     const wasPending = p.pending > 0;
     p.xp += amount;
     p.score += amount;
@@ -469,7 +503,7 @@ export class World {
         kind,
         amount: Math.round(amount),
       };
-      if (!this.mode.rules?.duel)
+      if (this.mode.rules?.progression !== false)
         for (let i = 0; i < 5; i++)
           this.spawnOrb(
             p.x + (this.random() - 0.5) * 3,
@@ -933,7 +967,8 @@ export class World {
           value: o.value,
         });
       }
-      if (!this.mode.rules?.duel) this.powerups.collect(p, this.events);
+      if (this.mode.rules?.progression !== false)
+        this.powerups.collect(p, this.events);
     }
     // A later player can push an earlier one after its velocity/grid insertion.
     // Publish and collide against the final positions of the entire tick.
@@ -1082,8 +1117,9 @@ export class World {
       if (dead) this.arrows.release(n);
     }
     if (
-      !this.mode.rules?.duel &&
-      this.orbs.active.length < RULES.maxOrbs &&
+      this.mode.rules?.progression !== false &&
+      this.orbs.active.length <
+        (this.mode.rules?.duel ? DUEL_ORB_SITES.length : RULES.maxOrbs) &&
       this.random() < dt * 12
     )
       this.spawnOrb();
@@ -1098,12 +1134,13 @@ export class World {
     return {
       time: this.time,
       match: this.mode.snapshot?.(this) || null,
-      objective: this.mode.rules?.duel
-        ? null
-        : {
-            ...this.objective.snapshot(this.time),
-            drops: this.loot.snapshot(),
-          },
+      objective:
+        this.mode.rules?.progression === false
+          ? null
+          : {
+              ...this.objective.snapshot(this.time),
+              drops: this.loot.snapshot(),
+            },
       roster: [...this.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
@@ -1200,7 +1237,8 @@ export class World {
           value: o.value,
           rare: o.rare,
         })),
-      powerups: this.mode.rules?.duel ? [] : this.powerups.snapshot(),
+      powerups:
+        this.mode.rules?.progression === false ? [] : this.powerups.snapshot(),
       events: events
         .filter((e) => {
           if (e.type === "kill") return true;

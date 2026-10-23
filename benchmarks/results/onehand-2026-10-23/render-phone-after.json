@@ -1,0 +1,38 @@
+{
+  "players": 16,
+  "rareExpected": 5,
+  "animation": {
+    "buffedBows": 16,
+    "labels": 16,
+    "arrows": 120,
+    "heads": 120,
+    "gems": 140,
+    "rare": 5,
+    "shadowCasters": 32
+  },
+  "settings": {
+    "dpr": 1.5,
+    "shadows": true,
+    "shadowSize": 1024
+  },
+  "high": {
+    "dpr": 2,
+    "shadows": true
+  },
+  "guardVisible": true,
+  "before": {
+    "geometries": 95,
+    "textures": 17
+  },
+  "after": {
+    "geometries": 95,
+    "textures": 17
+  },
+  "steadyBuffers": 0,
+  "reusedAimBuffer": true,
+  "contextLost": false,
+  "medianSubmissionMs": 4.699999988079071,
+  "maxDrawCalls": 124,
+  "medianUploadBytes": 173760,
+  "medianMatrixCompositions": 737
+}

@@ -98,9 +98,11 @@ export function setupProgression({ cloudflare, server, onSettings }) {
   }
   function render() {
     content.replaceChildren();
-    document
-      .getElementById("identity-settings")
-      .classList.toggle("hidden", tab !== "settings");
+    for (const id of ["identity-settings", "control-settings"])
+      document
+        .getElementById(id)
+        .classList.toggle("hidden", tab !== "settings");
+    status.classList.toggle("hidden", tab === "settings");
     for (const b of root.querySelectorAll("[data-tab]"))
       b.setAttribute("aria-selected", String(b.dataset.tab === tab));
     if (tab === "looks") {
@@ -250,7 +252,34 @@ export function setupProgression({ cloudflare, server, onSettings }) {
         content.append(row);
       }
     } else {
-      for (const [key, label, choices, fallback] of [
+      const primary = document.createElement("section");
+      primary.className = "settings-group settings-controls";
+      const extra = document.createElement("details");
+      extra.className = "settings-group settings-extra";
+      const summary = document.createElement("summary");
+      summary.textContent = "Görüntü ve dokunma";
+      extra.append(summary);
+      for (const [key, label, choices, fallback, advanced] of [
+        [
+          "hand",
+          "Oyun eli",
+          [
+            ["right", "Sağ el · tuşlar sağda"],
+            ["left", "Sol el · tuşlar solda"],
+          ],
+          "right",
+          false,
+        ],
+        [
+          "doubletap",
+          "Çift dokunuşla atıl",
+          [
+            ["true", "Açık"],
+            ["false", "Kapalı"],
+          ],
+          "true",
+          false,
+        ],
         [
           "quality",
           "Görüntü",
@@ -260,6 +289,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
             ["high", "Yüksek"],
           ],
           "balanced",
+          true,
         ],
         [
           "stick",
@@ -270,15 +300,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
             ["large", "Büyük"],
           ],
           "normal",
-        ],
-        [
-          "hand",
-          "Klasik joystick yerleşimi",
-          [
-            ["right", "Hareket solda"],
-            ["left", "Hareket sağda"],
-          ],
-          "right",
+          true,
         ],
         [
           "haptics",
@@ -288,11 +310,13 @@ export function setupProgression({ cloudflare, server, onSettings }) {
             ["false", "Kapalı"],
           ],
           "true",
+          true,
         ],
       ]) {
         const row = document.createElement("label");
         row.textContent = label;
         const select = document.createElement("select");
+        select.dataset.setting = key;
         for (const [value, name] of choices) {
           const option = document.createElement("option");
           option.value = value;
@@ -305,8 +329,9 @@ export function setupProgression({ cloudflare, server, onSettings }) {
           onSettings();
         });
         row.append(select);
-        content.append(row);
+        (advanced ? extra : primary).append(row);
       }
+      content.append(primary, extra);
     }
   }
   bindAction(document.getElementById("collection-open"), () => {
@@ -318,11 +343,14 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     refresh();
   });
   bindAction(document.getElementById("collection-close"), close);
+  root.addEventListener("click", (event) => {
+    if (event.target === root) close();
+  });
   root.addEventListener("keydown", (e) => {
     if (e.key === "Escape") close();
     if (e.key !== "Tab") return;
     const elements = [
-      ...root.querySelectorAll("button:not(:disabled),select,input"),
+      ...root.querySelectorAll("button:not(:disabled),select,input,summary"),
     ];
     const visible = elements.filter((el) => el.getClientRects().length);
     const first = visible[0],

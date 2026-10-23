@@ -15,6 +15,7 @@ export const FORMATS = Object.freeze({
     teams: 0,
     duration: 120,
     duel: true,
+    progression: true,
   },
   ranked: {
     name: "Ranked · Orman düellosu",
@@ -23,6 +24,7 @@ export const FORMATS = Object.freeze({
     duration: 120,
     duel: true,
     ranked: true,
+    progression: false,
   },
   t2: { name: "Takım · 2v2", capacity: 4, teams: 2, duration: 240 },
   t4: { name: "Takım · 4v4", capacity: 8, teams: 2, duration: 240 },

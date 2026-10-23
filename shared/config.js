@@ -7,7 +7,7 @@ export const RULES = Object.freeze({
   playerHealth: 150,
   botHealth: 100,
   playerShield: 4,
-  levelGuardDuration: 3,
+  levelGuardDuration: 5,
   frostDuration: 0.65,
   frostImmunity: 2.2,
   frostSlow: 0.18,

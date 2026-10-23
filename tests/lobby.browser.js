@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
@@ -99,6 +100,8 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
+  await expect(page.locator("body")).toHaveClass(/onehand/);
+  await expect(page.locator("#onehand-controls")).toBeHidden();
   await expect(page.locator("#account-options")).not.toHaveAttribute(
     "open",
     "",
@@ -112,6 +115,8 @@ try {
   await expect(page.locator("#collection")).toBeVisible();
   await page.locator("#account-options > summary").tap();
   await expect(page.locator("#lobby-accounts")).toBeVisible();
+  await page.locator('[data-setting="hand"]').selectOption("left");
+  await expect(page.locator("body")).toHaveClass(/left-handed/);
   await page.locator("#collection-close").tap();
   await expect(page.locator("#player-name")).toBeHidden();
   for (const [width, height] of [
@@ -137,7 +142,7 @@ try {
     );
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator("#onehand-controls").tap();
+  await selectControlMode(page, "onehand");
   await expect(page.locator("#onehand-controls")).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -153,6 +158,38 @@ try {
     "aria-pressed",
     "true",
   );
+  for (const [width, height] of [
+    [390, 844],
+    [375, 667],
+    [844, 390],
+    [568, 320],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const actions = await page.locator(".arena-actions").boundingBox();
+    const emoji = await page.locator("#emote-toggle").boundingBox();
+    assert.ok(actions.x < width / 2, "one-hand left layout mirrors actions");
+    assert.ok(emoji.x < width / 2, "emoji follows the preferred hand");
+    for (const selector of [
+      "#dash",
+      "#heal",
+      "#move-stick",
+      ".arena-vitals",
+      "#map-toggle",
+    ]) {
+      const box = await page.locator(selector).boundingBox();
+      const overlap =
+        Math.min(box.x + box.width, emoji.x + emoji.width) >
+          Math.max(box.x, emoji.x) &&
+        Math.min(box.y + box.height, emoji.y + emoji.height) >
+          Math.max(box.y, emoji.y);
+      assert.equal(
+        overlap,
+        false,
+        `${width}×${height}: emoji does not cover ${selector}`,
+      );
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => actor?.autoTargetId).toBe("weak");
   // Project a real opponent with the same camera the scene uses; no app debug API.
   await page.evaluate(
@@ -196,7 +233,7 @@ try {
     const move = await page.locator("#move-stick").boundingBox();
     assert.ok(Math.abs(move.x + move.width / 2 - width / 2) < 1);
     const controls = [move];
-    for (const id of ["dash", "heal", "auto-fire"]) {
+    for (const id of ["dash", "heal"]) {
       const r = await page.locator(`#${id}`).boundingBox();
       assert.ok(
         r.x >= 0 &&
@@ -251,6 +288,13 @@ try {
   await page.screenshot({
     path: `/tmp/archer-validation/onehand-${engine}-phone.png`,
   });
+  await expect.poll(() => actor.dashCd).toBe(0);
+  const scale = await page.evaluate(() => visualViewport.scale);
+  // Real touch taps, without the legacy joystick-direction test adapter.
+  await page.touchscreen.tap(195, 715);
+  await page.touchscreen.tap(195, 715);
+  await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
+  assert.equal(await page.evaluate(() => visualViewport.scale), scale);
   await page.locator("#leaders-toggle").tap();
   await page.locator("#exit").tap();
   await expect(page.locator("#lobby")).toBeVisible();
@@ -259,9 +303,16 @@ try {
     "aria-pressed",
     "true",
   );
-  await page.locator("#classic-controls").tap();
+  await selectControlMode(page, "classic");
   await page.locator("#play").tap();
   await expect(page.locator("#aim-stick")).toBeVisible();
+  const desktop = await browser.newPage({
+    viewport: { width: 1280, height: 800 },
+  });
+  await desktop.goto(base);
+  await expect(desktop.locator("#lobby")).toBeVisible();
+  await expect(desktop.locator("body")).not.toHaveClass(/onehand/);
+  await desktop.close();
   assert.deepEqual(errors, []);
   console.log(
     `LOBBY_ONEHAND_OK ${engine}: short/landscape menus, saved controls, centered joystick, automatic fire, real enemy tap lock/unlock, independent movement and classic fallback.`,

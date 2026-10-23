@@ -101,12 +101,12 @@ test("loot preserves terrain/XP, announces before landing, then grants exactly o
   assert.equal(p.level, 2);
   assert.equal(p.xp, 0);
   assert.equal(w.loot.drops.length, 0);
-  assert.equal(p.levelGuard, 3);
+  assert.equal(p.levelGuard, RULES.levelGuardDuration);
   w.loot.tick(w);
   assert.equal(p.level, 2);
   assert.equal(w.events.filter((e) => e.type === "lootClaim").length, 1);
 });
-test("loot density is bounded, population/area aware, obstruction free and absent in equal-start duels", () => {
+test("loot density is bounded, population/area aware, obstruction free and absent in equal-start ranked duels", () => {
   const w = new World({ bots: 0 });
   w.addPlayer("p");
   const initial = w.loot.interval(w);
@@ -127,7 +127,7 @@ test("loot density is bounded, population/area aware, obstruction free and absen
         ),
       );
   }
-  for (const key of ["duel", "ranked"]) {
+  for (const key of ["ranked"]) {
     const d = new World({ bots: 0, mode: createMode(key) });
     d.time = 200;
     d.loot.tick(d);

@@ -2,7 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
-import { POWERUP_RULES, attackRate, arrowPower } from "../shared/powerups.js";
+import {
+  POWERUP_RULES,
+  PowerupSystem,
+  powerupSpotClear,
+  attackRate,
+  arrowPower,
+} from "../shared/powerups.js";
 function setup() {
   const w = new World({ bots: 0 });
   w.obstacles = [];
@@ -146,4 +152,61 @@ test("elimination and respawn remove buffs rather than carrying them into a new 
   assert.equal(p.buffTime, 0);
   assert.equal(attackRate(p), 1);
   assert.equal(arrowPower(p), 1);
+});
+
+test("tree crowns cannot hide a trunk-clear public objective behind them", () => {
+  const tree = { x: 0, z: 6, r: 1, type: "tree" };
+  const hidden = { x: 0, z: 0 };
+  assert.equal(
+    powerupSpotClear(hidden, [tree], false),
+    true,
+    "trunk collision alone accepts the old hidden spot",
+  );
+  assert.equal(
+    powerupSpotClear(hidden, [tree]),
+    false,
+    "inclined-camera canopy footprint rejects it",
+  );
+  assert.equal(powerupSpotClear({ x: 6, z: 0 }, [tree]), true);
+});
+test("forest pickup sites stay outside projected crowns across deterministic maps", () => {
+  for (let i = 0; i < 24; i++) {
+    const seed = (Math.imul(i, 1664525) + 1013904223) >>> 0;
+    const w = new World({ bots: 0, seed });
+    assert.equal(w.powerups.sites.length, 2);
+    for (const s of w.powerups.sites)
+      assert.equal(
+        powerupSpotClear(s, w.obstacles),
+        true,
+        `seed ${seed}: ${s.key} is clear`,
+      );
+    assert.deepEqual(
+      new PowerupSystem(w.obstacles).snapshot(),
+      w.powerups.snapshot(),
+    );
+  }
+});
+test("duel buff objectives are mirrored and equally reachable from both starting sides", () => {
+  const obstacles = [];
+  for (const x of [-12, 12])
+    for (const z of [-10, 10]) obstacles.push({ x, z, r: 1.5, type: "rock" });
+  const system = new PowerupSystem(obstacles, { duel: true });
+  assert.equal(system.sites.length, 2);
+  const [a, b] = system.sites;
+  assert.equal(a.x, 0);
+  assert.equal(b.x, 0);
+  assert.equal(a.z, -b.z);
+  for (const site of system.sites) {
+    assert.equal(
+      Math.hypot(site.x + 18, site.z),
+      Math.hypot(site.x - 18, site.z),
+    );
+    assert.equal(powerupSpotClear(site, obstacles), true);
+  }
+});
+test("an impossible custom map never places buffs inside blocking cover as a fallback", () => {
+  assert.deepEqual(
+    new PowerupSystem([{ x: 0, z: 0, r: 100, type: "rock" }]).sites,
+    [],
+  );
 });

@@ -12,7 +12,7 @@ export class ForestShrine {
     this.contested = false;
   }
   step(world, dt) {
-    if (world.mode.rules?.duel) return;
+    if (world.mode.rules?.progression === false) return;
     if (!this.active && world.time >= this.nextAt) {
       this.active = true;
       this.until = world.time + 25;

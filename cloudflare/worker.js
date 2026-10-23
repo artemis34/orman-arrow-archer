@@ -9,6 +9,7 @@ import {
 import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 import { FORMATS, formatKey, createMode } from "../shared/modes.js";
 import { profileId, sanitizeCosmetics } from "../shared/profile.js";
+import { sendEmote, drainEmotes } from "../shared/emotes.js";
 export { PlayerProfile } from "./profile.js";
 export { CommunityHub } from "./community.js";
 import { community, canonicalProfile } from "./community.js";
@@ -273,6 +274,7 @@ export class ArenaRoom {
       else if (type === "reroll") this.world.reroll(session.id);
       else if (type === "rematch")
         this.world.mode.vote?.(this.world, session.id);
+      else if (type === "emote") sendEmote(this.world, session.id, data);
       else if (type === "ping") this.send(ws, "pong");
       else if (type === "view") session.viewRadius = viewRadius(data);
     }
@@ -339,6 +341,7 @@ export class ArenaRoom {
       for (const key of ACTIVITY_KEYS) s.tickCounters[key] = p[key];
     }
     this.world.step();
+    this.world.events.push(...drainEmotes(this.world));
     if (
       this.world.mode.rules?.ranked &&
       previousPhase !== "playing" &&

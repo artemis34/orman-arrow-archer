@@ -76,7 +76,15 @@ try {
     );
     if (rules.duel) {
       assert.equal(first.latest.roster.filter((p) => p.bot).length, 0);
-      assert.equal(first.latest.orbs.length, 0);
+      assert.ok(
+        first.latest.orbs.length > 0,
+        "public duel contains XP pickups",
+      );
+      assert.equal(
+        first.latest.powerups.length,
+        2,
+        "duel has fair central buffs",
+      );
     }
     assert.ok(me);
     for (const t of group) t.close();

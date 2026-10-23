@@ -1,0 +1,10 @@
+{
+  "fixture": "15Hz snapshots, 60Hz display, constant 3 units/s, 65-120ms arrival delay",
+  "frames": 410,
+  "meanSpeed": 2.999999999999977,
+  "speedStdDev": 9.053003694879291e-14,
+  "p95SpeedError": 1.7053025658242404e-13,
+  "stationaryFrames": 0,
+  "backwardFrames": 0,
+  "largestStep": 0.05000000000000426
+}

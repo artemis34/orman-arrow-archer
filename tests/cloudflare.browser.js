@@ -1,3 +1,4 @@
+import { selectControlMode } from "./helpers/control-mode.js";
 import { setPlayerName } from "./helpers/identity.js";
 import { installFloatingGestures } from "./helpers/floating-gestures.js";
 import { chromium, webkit, expect } from "@playwright/test";
@@ -107,6 +108,7 @@ async function open(mobile, name) {
   await expect(page.locator("#room-code")).toHaveValue(room);
   await expect(page.locator("#server-address")).toBeHidden();
   await setPlayerName(page, name);
+  if (mobile) await selectControlMode(page, "classic");
   await page.locator("#play").click();
   // The native transport allows 12 seconds for the handshake; a 5 second
   // assertion can fail prematurely on a cold or slow browser runner.
@@ -184,6 +186,32 @@ try {
   await expect.poll(() => a.probe.state?.match?.phase).toBe("playing");
   assert.equal(a.probe.state.roster.filter((p) => p.bot).length, 0);
   await ready(a);
+  await a.page.locator("#emote-toggle").click();
+  await expect(a.page.locator("#emote-options")).toBeVisible();
+  await a.page.locator('[data-emote="heart"]').click();
+  await expect(a.page.locator("#emote-options")).toBeHidden();
+  await expect
+    .poll(() =>
+      b.probe.events.some(
+        (event) =>
+          event.type === "emote" &&
+          event.owner === a.probe.id &&
+          event.key === "heart",
+      ),
+    )
+    .toBe(true);
+  await b.page.locator("#emote-toggle").tap();
+  await b.page.locator('[data-emote="gg"]').tap();
+  await expect
+    .poll(() =>
+      a.probe.events.some(
+        (event) =>
+          event.type === "emote" &&
+          event.owner === b.probe.id &&
+          event.key === "gg",
+      ),
+    )
+    .toBe(true);
   await a.page.mouse.move(900, 420);
   await a.page.mouse.down();
   await expect
@@ -312,7 +340,7 @@ try {
     .toBe(false);
   assert.deepEqual(errors, []);
   console.log(
-    `CLOUDFLARE_BROWSER_OK ${engine}: two real desktop/mobile browser players, shared authoritative shots/actors, automatic-fire toggle over the real WebSocket, joystick movement, map, landscape, invitation URL and empty-room shutdown.`,
+    `CLOUDFLARE_BROWSER_OK ${engine}: two real desktop/mobile browser players, shared authoritative shots/actors, rate-limited emoji over native WebSocket, automatic-fire toggle, joystick movement, map, landscape, invitation URL and empty-room shutdown.`,
   );
 } catch (error) {
   const diagnostics = [];

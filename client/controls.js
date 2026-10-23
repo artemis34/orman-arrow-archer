@@ -1,5 +1,6 @@
 import { selectTarget, aimedAngle, angleDelta } from "../shared/aim.js";
 import { RULES, clamp } from "../shared/config.js";
+import { TapDashDetector } from "./tap-dash.js";
 /** A radial dead zone removes resting-thumb noise without snapping diagonals. */
 export function stickVector(dx, dz, radius) {
   const length = Math.hypot(dx, dz);
@@ -32,6 +33,10 @@ export class Controls {
     this.releasedAim = null;
     this.autoFire = false;
     this.oneHanded = false;
+    this.doubleTapDash = true;
+    this.tapDash = new TapDashDetector();
+    this.lastMoveJoy = { x: 0, z: 0 };
+    this.dashVector = null;
     this.lockRequest = undefined;
     this.focused = !document.hidden;
     this.joy = { x: 0, z: 0 };
@@ -49,6 +54,19 @@ export class Controls {
       )
         return;
       if (!this.oneHanded) return;
+      // Lower empty-space taps belong to movement/double-tap dodge. They must
+      // not clear an existing target lock or compete with the floating stick.
+      if (
+        floatingStickStartAllowed(e.clientY, innerWidth, innerHeight) &&
+        !this.scene.pickPlayer(
+          e.clientX,
+          e.clientY,
+          this.latestState?.players || [],
+          this.latestMe?.id,
+        )
+      )
+        return;
+      this.tapDash.reset();
       if (e.pointerType === "touch") this.isTouch = true;
       this.audio.unlock();
       canvasTouch = {
@@ -126,6 +144,18 @@ export class Controls {
       if (e.pointerType === "mouse" && e.button === 0) this.charge = false;
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    // Restrict browser gesture suppression to the active arena. Pointer events
+    // still drive aiming and dodge; menus retain normal touch interaction.
+    canvas.addEventListener("dblclick", (e) => {
+      if (this.active && this.isTouch) e.preventDefault();
+    });
+    canvas.addEventListener(
+      "touchend",
+      (e) => {
+        if (this.active && this.oneHanded && e.cancelable) e.preventDefault();
+      },
+      { passive: false },
+    );
     addEventListener("blur", () => {
       this.focused = false;
       this.reset();
@@ -144,6 +174,7 @@ export class Controls {
     });
     document.getElementById("dash").addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      this.tapDash.reset();
       if (this.active) {
         this.audio.unlock();
         this.dash = true;
@@ -151,6 +182,7 @@ export class Controls {
     });
     document.getElementById("heal").addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      this.tapDash.reset();
       if (this.active) {
         this.audio.unlock();
         this.heal = true;
@@ -183,6 +215,9 @@ export class Controls {
     });
   }
   reset() {
+    this.tapDash?.reset();
+    this.dashVector = null;
+    this.lastMoveJoy = { x: 0, z: 0 };
     this.cancelShot ||= this.charge;
     for (const release of this.stickResets) release();
     this.releasedAim = null;
@@ -199,6 +234,10 @@ export class Controls {
   }
   setAutoFire(enabled) {
     this.autoFire = enabled === true;
+  }
+  setDoubleTapDash(enabled) {
+    this.doubleTapDash = enabled !== false;
+    this.tapDash.reset();
   }
   setOneHanded(enabled) {
     this.reset();
@@ -232,6 +271,7 @@ export class Controls {
         }
       } else {
         this.joy = vector;
+        if (vector.x || vector.z) this.lastMoveJoy = { ...vector };
       }
     };
     const begin = (e, target = el) => {
@@ -280,6 +320,21 @@ export class Controls {
     this.stickResets.push(release);
     const end = (e) => {
       if (pointer === e.pointerId) {
+        if (!aim && this.oneHanded && this.doubleTapDash) {
+          const dash = this.tapDash.release({
+            x: e.clientX,
+            y: e.clientY,
+            startedAt: pressedAt,
+            endedAt: e.timeStamp,
+            dragged,
+            cancelled: e.type !== "pointerup",
+            pointerType: e.pointerType,
+          });
+          if (dash && this.active) {
+            this.dash = true;
+            this.dashVector = { ...this.lastMoveJoy };
+          }
+        }
         // Keep the release direction for the shot, then return the torso to
         // walking. A sticky aiming flag used to lock it after the first touch.
         if (aim)
@@ -308,6 +363,8 @@ export class Controls {
     const active = this.active && this.focused !== false;
     const manualAim = this.charge ? this.aimJoy : this.releasedAim;
     let movement = this.joy;
+    if (this.dash && this.dashVector && !(movement.x || movement.z))
+      movement = this.dashVector;
     if (me && this.isTouch && (movement.x || movement.z)) {
       const direction = this.scene.aimFromStick(movement.x, movement.z, me);
       const strength = Math.hypot(movement.x, movement.z);
@@ -394,6 +451,7 @@ export class Controls {
       lockTarget: this.lockRequest,
     };
     this.dash = false;
+    this.dashVector = null;
     this.heal = false;
     this.quickShot = false;
     this.cancelShot = false;

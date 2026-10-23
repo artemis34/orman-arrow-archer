@@ -1,0 +1,55 @@
+{
+  "baseline": "b23ed9151355e43ad2cd57482999d1adc65db2b4",
+  "purpose": "Reviewed behavior changes: five-second selection guard, reachable canopy-clear buff placements and resulting bot routes, and a stable 125ms remote-player display clock. Arrow presentation and v2 golden input/packet contracts remain unchanged. Historical fixtures are retained.",
+  "scenarios": [
+    {
+      "id": "arena-8",
+      "physics": "4990499c308f7876530d4d00f983c105b9df58ce270f8ff880fde395dc61a412",
+      "json": "5e6ff58cd9b78c67de858ab74de955b24a7f851b683e40bca05f207edfa0924c",
+      "wire": "77206f9be78b52485b760a1fb8e916357e0e5ee6e4106dd5e48c06eb68b4b76d",
+      "decoded": "6d87f312591413fe9481f1b4e719b6b348f50fbaaa84aae26794f7b46d1a3cc6",
+      "inputWire": "05c6ba2fb14a3d2c0f4ba4c9bc67e996f1effd34597fe0255c9b41c0d6508508",
+      "bytes": 4328699,
+      "messages": 3600,
+      "legacyBytes": 55017838,
+      "inputBytes": 186073,
+      "inputMessages": 3688,
+      "hits": 132,
+      "kills": 9,
+      "shots": 291
+    },
+    {
+      "id": "team-16",
+      "physics": "e84a1b0179a4f201f25b40ef664a920f1833fcb52ca398f0bf147b89369d85de",
+      "json": "d051dc69a2cb402a43af116c4c0a32ce6b4a2ec6e9c07aa88691ba5603d6702b",
+      "wire": "9df499754b80fc6a91e7722a7a28fd48ce793dc5317adef416bb5f1d4d361ee3",
+      "decoded": "0c4b40fdc082c789d85c8d3c45bd5399b8aced737ce926ceb3bd3c13f16706c3",
+      "inputWire": "fe5c8fc35a0c164b849f92770b378ec9e91cace8d045eef3fa78647cfd9ad713",
+      "bytes": 18067111,
+      "messages": 7200,
+      "legacyBytes": 164877852,
+      "inputBytes": 372610,
+      "inputMessages": 7375,
+      "hits": 361,
+      "kills": 14,
+      "shots": 588
+    },
+    {
+      "id": "team-bots",
+      "physics": "529e68b8f7e063cb0d1bb17d402ceb276222ba9bec263d4cc62e5799efa39769",
+      "json": "193e3b4d1d25d51a735271fa016efa229469f60f686da18279bf5b75f815a580",
+      "wire": "3e22d147036d33d59d6d1624eae4806475e3b71b6364705fa19878b52df6fe88",
+      "decoded": "3a2c751cee53b7b1653636634448fc4756bc80ff5542cbf0abc43bd3b99d0a0e",
+      "inputWire": "e0e725ad7445a486482cfe0f049f973078529f70f716c1ef5520347dce9c2e5b",
+      "bytes": 1047605,
+      "messages": 450,
+      "legacyBytes": 8968460,
+      "inputBytes": 23189,
+      "inputMessages": 460,
+      "hits": 915,
+      "kills": 5,
+      "shots": 280
+    }
+  ],
+  "clientViews": "35fa6795080b1e68cb2d7df3f46dee0903db7372c935e4ed3cef455106265336"
+}

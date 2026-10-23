@@ -1,4 +1,5 @@
 import express from "express";
+import { sendEmote, drainEmotes } from "../shared/emotes.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { fileURLToPath } from "node:url";
@@ -104,6 +105,9 @@ io.on("connection", (socket) => {
   socket.on("rematch", () => {
     if (joined && permit()) activeWorld.mode.vote?.(activeWorld, socket.id);
   });
+  socket.on("emote", (key) => {
+    if (joined && permit()) sendEmote(activeWorld, socket.id, key);
+  });
   socket.on("latency", (cb) => {
     if (permit() && typeof cb === "function") cb();
   });
@@ -125,7 +129,10 @@ io.on("connection", (socket) => {
   });
 });
 setInterval(() => {
-  for (const w of worlds.values()) w.step();
+  for (const w of worlds.values()) {
+    w.step();
+    w.events.push(...drainEmotes(w));
+  }
   for (const [id, socket] of io.sockets.sockets)
     if (socket.data.world?.players.has(id))
       socket.emit("state", socket.data.world.snapshot(id));

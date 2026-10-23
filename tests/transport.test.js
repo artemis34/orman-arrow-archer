@@ -342,8 +342,8 @@ test("remote motion stays buffered while protection and concealment update immed
     t.snapshots.forEach((s, i) => (s.at = now - (4 - i) * 33));
     const remote = t.view().players[0];
     assert.ok(
-      remote.x > 1 && remote.x < 2,
-      "remote transforms retain smooth interpolation",
+      remote.x > 0 && remote.x < 1,
+      "remote transforms retain the 125ms display buffer",
     );
     assert.equal(remote.hp, 80);
     socket.emit("state", {
