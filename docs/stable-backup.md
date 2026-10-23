@@ -1,5 +1,17 @@
 # Büyük geliştirmeler öncesi kararlı sürüm yedeği
 
+## 23 Ekim 2026 — tek el varsayılanından önce
+
+Çalışan kaynak sürümü `b23ed9151355e43ad2cd57482999d1adc65db2b4`, değişikliklerden önce GitHub'a [`backup/pre-onehand-default-b23ed91`](https://github.com/artemis34/orman-arrow-archer/tree/backup/pre-onehand-default-b23ed91) etiketiyle yedeklendi. Yerelde tam geçmişi içeren ve doğrulanan `/workspace/backups/wildbow-pre-onehand-default-b23ed91.bundle` dosyası da var. Etiketi yeni bir dala açmak geçmişi veya mevcut dalı silmez:
+
+```sh
+git switch -c restore/pre-onehand backup/pre-onehand-default-b23ed91
+```
+
+[Yeni geliştirme kapsamı ve ölçümler](onehand-release.md). Aşağıdaki 19 Ekim yedeği ayrıca korunur.
+
+## 19 Ekim 2026 — ilk geliştirme planından önce
+
 Yedek tarihi: 19 Ekim 2026. Amaç: geliştirme planı ve merkez joystick'li tek el deneyi öncesindeki test edilmiş oyuna dönebilmek ve oynanışı karşılaştırabilmek.
 
 ## Sabit referanslar
