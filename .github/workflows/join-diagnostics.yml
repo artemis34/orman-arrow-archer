@@ -9,6 +9,8 @@ on:
         client/transport.js,
         client/network-mode.js,
         client/controls.js,
+        client/progression.js,
+        tests/community.browser.js,
         client/lobby.css,
         client/expansion.css,
         index.html,
@@ -22,7 +24,7 @@ permissions:
   contents: read
 jobs:
   diagnose:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
@@ -36,6 +38,7 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npx playwright install --with-deps chromium webkit
+        timeout-minutes: 6
       - name: Play the compact lobby and bounded floating controls on Chrome and Safari
         shell: bash
         run: |

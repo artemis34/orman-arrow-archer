@@ -343,8 +343,27 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     refresh();
   });
   bindAction(document.getElementById("collection-close"), close);
-  root.addEventListener("click", (event) => {
-    if (event.target === root) close();
+  // A compatibility click may land on a newly opened backdrop after the
+  // original touch opened Friends. Require an actual press on that backdrop.
+  let backdropPress = null;
+  root.addEventListener("pointerdown", (event) => {
+    backdropPress =
+      event.target === root
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY }
+        : null;
+  });
+  root.addEventListener("pointerup", (event) => {
+    const press = backdropPress;
+    backdropPress = null;
+    if (
+      press?.id === event.pointerId &&
+      event.target === root &&
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) < 12
+    )
+      close();
+  });
+  root.addEventListener("pointercancel", () => {
+    backdropPress = null;
   });
   root.addEventListener("keydown", (e) => {
     if (e.key === "Escape") close();

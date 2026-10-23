@@ -1,20 +1,27 @@
-import { chromium, expect } from "@playwright/test";
+import { chromium, webkit, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import assert from "node:assert/strict";
+import { annotateFailure } from "./report.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
-const browser = await chromium.launch({
+const engine = process.env.PLAYWRIGHT_ENGINE || "chromium";
+const browser = await (engine === "webkit" ? webkit : chromium).launch({
   headless: true,
-  executablePath:
-    process.env.CHROMIUM_PATH ||
-    (existsSync("/usr/bin/chromium")
-      ? "/usr/bin/chromium"
-      : chromium.executablePath()),
-  args: [
-    "--no-sandbox",
-    "--use-angle=swiftshader",
-    "--enable-unsafe-swiftshader",
-  ],
+  ...(engine === "chromium"
+    ? {
+        executablePath:
+          process.env.CHROMIUM_PATH ||
+          (existsSync("/usr/bin/chromium")
+            ? "/usr/bin/chromium"
+            : chromium.executablePath()),
+        args: [
+          "--no-sandbox",
+          "--use-angle=swiftshader",
+          "--enable-unsafe-swiftshader",
+        ],
+      }
+    : {}),
 });
+let activePage;
 try {
   const page = await browser.newPage({
       viewport: { width: 390, height: 844 },
@@ -22,6 +29,7 @@ try {
       hasTouch: true,
     }),
     errors = [];
+  activePage = page;
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible();
@@ -39,6 +47,7 @@ try {
   }
   await page.locator("#collection-close").tap();
   await page.locator("#friends-open").tap();
+  await expect(page.locator("#collection")).toBeVisible();
   await expect(page.locator(".collection-content")).toContainText(
     "Arkadaş kodun",
   );
@@ -110,8 +119,17 @@ try {
     body: JSON.stringify({ target: mine.profile.socialCode }),
   });
   console.log(
-    "COMMUNITY_BROWSER_OK friends with consent, profile/rank panels, global leaderboards and optional identity buttons",
+    `COMMUNITY_BROWSER_OK ${engine}: friends with consent, touch-safe dialogs, profile/rank panels, global leaderboards and optional identity buttons`,
   );
+} catch (error) {
+  const markup = await activePage
+    ?.locator(".collection-content")
+    .innerHTML()
+    .catch(() => "unavailable");
+  error.message += `\nCollection markup: ${markup}`;
+  annotateFailure(error, "Community panels");
+  console.error(error.message);
+  throw error;
 } finally {
   await browser.close();
 }

@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       pages_enabled: ${{ steps.pages.outputs.result }}
@@ -27,6 +27,7 @@ jobs:
       - run: npm run check
       - run: npm run build
       - name: Install test browser
+        timeout-minutes: 6
         run: npx playwright install --with-deps chromium webkit
       - name: Validate full-quality renderer budgets and resource reuse
         run: |
@@ -84,6 +85,7 @@ jobs:
           npm run test:battle-royale:runtime
           npm run test:profile
           npm run test:community
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:community
           npm run test:community:runtime
           JOIN_RECOVERY_TESTS=1 npm run test:join
           JOIN_RECOVERY_TESTS=1 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:join
@@ -127,7 +129,7 @@ jobs:
   static:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -178,7 +180,7 @@ jobs:
   pages:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.pages_enabled == 'true'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write
@@ -191,7 +193,7 @@ jobs:
   cloudflare:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -236,7 +238,7 @@ jobs:
   cloudflare-live:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'artemis34/orman-arrow-archer'
     needs: [validate, cloudflare]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       CLOUDFLARE_TEST_URL: ${{ vars.CLOUDFLARE_SITE_URL || 'https://orman-arrow-archer.cangunes1995.workers.dev' }}
