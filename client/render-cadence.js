@@ -22,9 +22,10 @@ export class RenderCadence {
     }
     this.observedAt = now;
     const late = now - this.nextAt;
-    // RAF timestamps can fall a fraction of a millisecond before the ideal
-    // deadline. Without this tolerance a 60 Hz display can alternate 16/33 ms.
-    const tolerance = Math.min(0.5, interval * 0.03);
+    // RAF timestamps may be rounded down to 1–2 ms precision. Accept that
+    // quantization plus floating-point drift without skipping a display frame;
+    // cap the allowance at one eighth of a slot for faster target rates.
+    const tolerance = Math.min(2.01, interval * 0.125);
     if (late < -tolerance) return false;
     // Preserve phase through ordinary refresh jitter instead of resetting the
     // deadline to now. After a missed whole slot, discard that debt: never

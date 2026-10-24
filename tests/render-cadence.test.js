@@ -2,21 +2,62 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { RenderCadence } from "../client/render-cadence.js";
 
-function run(displayRate, targetRate, seconds = 10, jitter = () => 0) {
+function run(
+  displayRate,
+  targetRate,
+  seconds = 10,
+  jitter = () => 0,
+  timestampQuantum = 0,
+) {
   const cadence = new RenderCadence();
   const times = [];
   for (let frame = 0; frame < displayRate * seconds; frame++) {
-    const now = (frame * 1000) / displayRate + jitter(frame);
+    const timestamp = (frame * 1000) / displayRate + jitter(frame);
+    const now = timestampQuantum
+      ? Math.floor(timestamp / timestampQuantum) * timestampQuantum
+      : timestamp;
     if (cadence.due(now, targetRate)) times.push(now);
   }
   return times;
 }
 
-test("120 Hz and 144 Hz displays submit only 60 render frames per second", () => {
-  for (const display of [120, 144]) {
+test("120 Hz, 144 Hz and 240 Hz displays submit only 60 render frames per second", () => {
+  for (const display of [120, 144, 240]) {
     const times = run(display, 60);
     assert.equal(times.length, 600, `${display} Hz`);
     assert.ok(times.every((at, i) => !i || at > times[i - 1]));
+  }
+});
+
+test("1–2 ms timestamps preserve 60 Hz rendering and 30 Hz idle phase", () => {
+  for (const target of [60, 30]) {
+    const interval = 1000 / target;
+    for (const quantum of [1, 2]) {
+      const times = run(60, target, 60, undefined, quantum);
+      const label = `${target} FPS with ${quantum} ms timestamps`;
+      assert.equal(times.length, target * 60, label);
+      for (let i = 0; i < times.length; i++) {
+        assert.ok(Math.abs(times[i] - i * interval) < quantum + 0.001, label);
+        if (i) {
+          const gap = times[i] - times[i - 1];
+          assert.ok(gap >= interval - quantum, label);
+          assert.ok(gap <= interval + quantum, label);
+        }
+      }
+    }
+  }
+});
+
+test("coarse timestamps retain 60 Hz and idle caps on high refresh displays", () => {
+  for (const display of [120, 144, 240]) {
+    for (const target of [60, 30]) {
+      for (const quantum of [1, 2]) {
+        const times = run(display, target, 60, undefined, quantum);
+        const label = `${display} Hz, ${target} FPS, ${quantum} ms timestamps`;
+        assert.equal(times.length, target * 60, label);
+        assert.ok(times.every((at, i) => !i || at > times[i - 1]), label);
+      }
+    }
   }
 });
 
