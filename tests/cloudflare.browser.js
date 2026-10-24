@@ -9,7 +9,8 @@ import { SnapshotDecoder, decodeInputs } from "../shared/protocol.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const engine = process.env.PLAYWRIGHT_ENGINE || "chromium";
 const room = `ui-${Date.now().toString(36)}`;
-const browser = await (engine === "webkit" ? webkit : chromium).launch({
+const browserType = engine === "webkit" ? webkit : chromium;
+const launchOptions = {
   headless: true,
   ...(engine === "chromium"
     ? {
@@ -25,10 +26,16 @@ const browser = await (engine === "webkit" ? webkit : chromium).launch({
         ],
       }
     : {}),
-});
+};
+const browsers = [];
 const errors = [];
 const probes = new Map();
 async function open(mobile, name) {
+  // Real desktop/phone clients have independent browser/GPU processes. Keep
+  // cold shader compilation from queuing both renderers through one shared
+  // browser GPU process when this test uses software rendering.
+  const browser = await browserType.launch(launchOptions);
+  browsers.push(browser);
   const context = await browser.newContext({
     viewport: mobile
       ? { width: 390, height: 844 }
@@ -352,8 +359,8 @@ try {
   );
 } catch (error) {
   const diagnostics = [];
-  for (const [i, page] of browser
-    .contexts()
+  for (const [i, page] of browsers
+    .flatMap((browser) => browser.contexts())
     .flatMap((context) => context.pages())
     .entries()) {
     diagnostics.push({
@@ -369,6 +376,26 @@ try {
         .catch(() => null),
       documentState: await page
         .evaluate(() => document.readyState)
+        .catch(() => null),
+      performance: await page
+        .evaluate(() => {
+          const navigation = performance.getEntriesByType("navigation")[0];
+          return {
+            now: performance.now(),
+            completedFrames: window.__completedFrames,
+            navigation: navigation
+              ? {
+                  responseStart: navigation.responseStart,
+                  responseEnd: navigation.responseEnd,
+                  domInteractive: navigation.domInteractive,
+                  domContentLoadedEventStart:
+                    navigation.domContentLoadedEventStart,
+                  loadEventStart: navigation.loadEventStart,
+                  duration: navigation.duration,
+                }
+              : null,
+          };
+        })
         .catch(() => null),
       join: await page
         .locator("#join-status")
@@ -404,5 +431,5 @@ try {
   annotateFailure(error, `Cloudflare ${engine} desktop/mobile multiplayer`);
   throw error;
 } finally {
-  await browser.close();
+  await Promise.all(browsers.map((browser) => browser.close()));
 }
