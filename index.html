@@ -16,10 +16,10 @@
     />
     <title>Wildbow — Archer.io</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-DrcLPp-T.js"></script>
+    <script type="module" crossorigin src="./assets/index-CVt-9NK5.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-CO_7nuH_.js">
     <link rel="modulepreload" crossorigin href="./assets/network-Kk_l3rvZ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-CH-uFSQO.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-CD_rPuQJ.css">
   </head>
   <body>
     <canvas id="arena" aria-label="Üç boyutlu okçuluk arenası"></canvas>
@@ -268,13 +268,15 @@
         </div>
         <div class="action-buttons">
           <button id="dash" class="arena-ability" aria-label="Atılma">
-            <span>ϟ</span><small>ATIL</small><b id="dash-time"></b></button
+            <span>ϟ</span><small id="dash-label">ATIL</small
+            ><b id="dash-time"></b></button
           ><button
             id="heal"
             class="arena-ability"
             aria-label="Orman nefesi: 25 can yenile"
           >
-            <span>+</span><small>+25 CAN</small><b id="heal-time"></b>
+            <span>+</span><small id="heal-label">+25 CAN</small
+            ><b id="heal-time"></b>
           </button>
           <button
             id="auto-fire"
@@ -317,6 +319,9 @@
           </button>
         </div>
         <div id="upgrade-options"></div>
+        <p id="joystick-card-hint">
+          ← 1 · ↑ 2 · 3 → <span>Çek, bırak · seç</span>
+        </p>
       </section>
       <div id="toast" class="hidden" aria-live="polite"></div>
       <div
@@ -505,12 +510,16 @@
             <p>
               Space, sağ tık veya ϟ butonuyla atıl. Atılırken oklar sana
               işlemez. 3 saniyede yenilenir. E veya + butonu 25 can yeniler; 14
-              saniyede dolar.
+              saniyede dolar. Tek el modunda joystick’i normal çemberinin dışına
+              uzatınca atılırsın. Canın %35’e düştüğünde +25 can yeteneğin
+              hazırsa otomatik kullanılır. İkisini de ayarlardan kapatabilirsin.
             </p>
           </div>
           <div>
             <b>04 / GÜÇLEN</b>
             <p>
+              Tek el modunda kart seçmek için joystick’i sola (1), yukarı (2)
+              veya sağa (3) çekip bırak. Merkeze geri dönmek seçimi iptal eder.
               Kristalleri topla, rakiplerini vur. Seviye atladığında üç
               yetenekten birini alttaki kartlardan seç. İlk 5 saniye sabit ve
               hasara karşı korumalı olursun; seçimleri bitirince hemen devam
