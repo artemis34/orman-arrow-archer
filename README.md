@@ -1,6 +1,8 @@
 # Wildbow · Archer.io
 
-Güncel geliştirme: [FPS/akıcılık düzeltmeleri, ölçümler ve yeni öneriler](docs/fps-optimization-2026-10-24.md). Grafik/efektler korunarak çizim çağrıları ve GPU yüklemeleri azaltılır; antrenmandaki 30 Hz hız salınımı giderilir.
+Güncel geliştirme: [FPS/ping göstergesi, çizim düzeni ve kesintili ok düzeltmesi](docs/live-diagnostics-2026-10-24.md). Gösterge **⚙ Ayarlar → Ayarlar → FPS / ping göstergesi** altında açılır. Grafik kalitesi korunur; yüksek yenileme hızlı ekranlarda çizim 60 Hz ile sınırlandırılır, alınan durumların görüntü saati düzeltilir.
+
+Önceki geçiş: [FPS/akıcılık ölçümleri ve öneriler](docs/fps-optimization-2026-10-24.md). Çizim çağrıları ve GPU yüklemeleri azaltılır; antrenmandaki 30 Hz hız salınımı giderilir.
 
 [Tek el, solak yerleşimi, düello ve emojiler](docs/onehand-release.md) · [önceki performans raporu](docs/onehand-performance.md) · [iOS ve ödül önerileri](docs/ios-retention-roadmap.md). Telefonda tek el, bilgisayarda WASD/fare varsayılandır; klasik düzen ayarlardan seçilebilir.
 

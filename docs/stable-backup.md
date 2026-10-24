@@ -1,5 +1,9 @@
 # Büyük geliştirmeler öncesi kararlı sürüm yedeği
 
+## 24 Ekim 2026 — FPS/ping göstergesi ve ağ saati düzeltmesinden önce
+
+`3d07703832ceccccb3fc8b58bb4d8117d6712cc0`, [`backup/pre-live-diagnostics-3d07703`](https://github.com/artemis34/orman-arrow-archer/tree/backup/pre-live-diagnostics-3d07703) etiketiyle korunur. [Gösterge, ölçüm ve düzeltme raporu](live-diagnostics-2026-10-24.md).
+
 ## 24 Ekim 2026 — yeni FPS geçişinden önce
 
 Önceki doğrulanmış sürüm `ab4fed8eeb083b2de43c9def6f64e29ef94a1d93`, [`backup/pre-fps-pass-ab4fed8`](https://github.com/artemis34/orman-arrow-archer/tree/backup/pre-fps-pass-ab4fed8) etiketiyle korunur. Yerel tam geçmiş yedeği `/workspace/backups/wildbow-before-frame-pacing-ab4fed8.bundle` doğrulandı. [FPS değişiklikleri ve ölçüm sınırları](fps-optimization-2026-10-24.md).
