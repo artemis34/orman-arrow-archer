@@ -108,8 +108,6 @@ jobs:
           npm run test:community:runtime
           JOIN_RECOVERY_TESTS=1 npm run test:join
           JOIN_RECOVERY_TESTS=1 LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:join
-          npm run test:cloudflare:browser
-          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -145,9 +143,46 @@ jobs:
         if: steps.pages.outputs.result == 'true'
         with:
           path: dist
+  multiplayer:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Play two independent browsers against a fresh Worker
+        shell: bash
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          set -euo pipefail
+          npm run dev:cloudflare > /tmp/cloudflare-multiplayer.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8787/health; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8787/health
+          npm run test:cloudflare:browser
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-multiplayer-diagnostics
+          path: |
+            /tmp/cloudflare-multiplayer.log
+            /tmp/archer-validation/cloudflare-*.png
+          if-no-files-found: ignore
   static:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, multiplayer]
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
@@ -212,7 +247,7 @@ jobs:
           if-no-files-found: ignore
   pages:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.pages_enabled == 'true'
-    needs: validate
+    needs: [validate, multiplayer]
     runs-on: ubuntu-24.04
     permissions:
       pages: write
@@ -225,7 +260,7 @@ jobs:
         id: deployment
   cloudflare:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, multiplayer]
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble

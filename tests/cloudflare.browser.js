@@ -102,7 +102,14 @@ async function open(mobile, name) {
   });
   await page.bringToFront();
   // Exercise the shipped two-human duel, including its real matchmaking rules.
-  await page.goto(`${base}/?room=${room}&format=duel`);
+  // Navigation's load event also waits for nonessential resource completion.
+  // The actual release gate is the ready lobby, completed WebGL frames and a
+  // successful authoritative join below, including on the deliberately slow
+  // second renderer. Do not hold a connected peer on an unrelated load event.
+  await page.goto(`${base}/?room=${room}&format=duel`, {
+    waitUntil: "domcontentloaded",
+  });
+  await expect(page.locator("#loading")).toBeHidden({ timeout: 20000 });
   await expect(page.locator("#lobby")).toBeVisible({ timeout: 20000 });
   await expect(page.locator("#online-mode")).toHaveClass(/selected/);
   await expect(page.locator("#room-code")).toHaveValue(room);
@@ -351,6 +358,17 @@ try {
     diagnostics.push({
       page: i,
       url: page.url(),
+      loadingVisible: await page
+        .locator("#loading")
+        .isVisible()
+        .catch(() => null),
+      lobbyVisible: await page
+        .locator("#lobby")
+        .isVisible()
+        .catch(() => null),
+      documentState: await page
+        .evaluate(() => document.readyState)
+        .catch(() => null),
       join: await page
         .locator("#join-status")
         .textContent()

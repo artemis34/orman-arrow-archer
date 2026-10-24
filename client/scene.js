@@ -757,7 +757,7 @@ export class ArenaScene {
       }
     return Math.min(80, Math.ceil(radius));
   }
-  render(state, myId, dt, playing, lockId = null) {
+  render(state, myId, dt, playing, lockId = null, submit = true) {
     this.time += dt;
     const me = state?.players.find((p) => p.id === myId);
     const desired =
@@ -1045,6 +1045,6 @@ export class ArenaScene {
     this.avatarBatches.update();
     this.avatarLines.update();
     this.particles.update(this.camera);
-    this.renderer.render(this.scene, this.camera);
+    if (submit) this.renderer.render(this.scene, this.camera);
   }
 }

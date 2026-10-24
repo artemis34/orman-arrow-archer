@@ -1,4 +1,5 @@
 {
+  "preparedWithoutDraw": true,
   "players": 16,
   "rareExpected": 5,
   "animation": {
@@ -33,7 +34,7 @@
   "steadyTextureUploads": 0,
   "reusedAimBuffer": true,
   "contextLost": false,
-  "medianSubmissionMs": 4.400000095367432,
+  "medianSubmissionMs": 3.700000047683716,
   "maxDrawCalls": 96,
   "medianUploadBytes": 57472,
   "medianMatrixCompositions": 737

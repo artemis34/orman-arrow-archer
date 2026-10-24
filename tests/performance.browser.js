@@ -89,6 +89,11 @@ try {
       const scene = new ArenaScene(document.querySelector("canvas"));
       scene.setQuality("balanced");
       scene.setMap(world.obstacles);
+      const initialFrame = scene.renderer.info.render.frame;
+      scene.render(state, "local", 0, true, null, false);
+      const preparedWithoutDraw =
+        initialFrame === scene.renderer.info.render.frame &&
+        scene.players.size === 16;
       const gl = scene.renderer.getContext(),
         createBuffer = gl.createBuffer,
         bufferSubData = gl.bufferSubData,
@@ -203,6 +208,7 @@ try {
       matrixPrototype.compose = compose;
       gl.bufferSubData = bufferSubData;
       return {
+        preparedWithoutDraw,
         players: state.players.length,
         rareExpected: RULES.maxRareOrbs,
         animation,
@@ -219,6 +225,7 @@ try {
       };
     });
     assert.equal(result.players, 16);
+    assert.equal(result.preparedWithoutDraw, true);
     assert.equal(result.animation.labels, 16);
     assert.equal(result.animation.buffedBows, 16);
     assert.equal(result.animation.arrows, 120);

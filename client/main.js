@@ -1157,12 +1157,17 @@ addEventListener("resize", () =>
 );
 async function startPresentation() {
   try {
-    // Create the real demo avatars, instance colours and shadow programs on
-    // the normal framebuffer, under the existing loading screen. Preparing
-    // hidden buff/shield/label variants here avoids compiling them mid-fight.
+    // Build the real avatar hierarchy/instance colours without a cold GPU draw.
+    // Preparing hidden buff/shield/label variants under the loading screen
+    // avoids synchronous shader compilation in that draw or the first fight.
     // This does not advance the world or connect a player to an online room.
-    scene.render(state, null, 0, false);
+    scene.render(state, null, 0, false, null, false);
     await warmupRenderer(scene.renderer, scene.scene, scene.camera);
+    for (const avatar of scene.players.values())
+      scene.renderer.initTexture(avatar.tex);
+    // Use the normal framebuffer: an offscreen target would prepare different
+    // colour-space shader variants. No world tick or online join has occurred.
+    scene.render(state, null, 0, false);
   } catch (error) {
     // Shader diagnostics remain enabled. A failed optional warmup must never
     // leave a supported browser stuck on the opening screen.
