@@ -1,0 +1,29 @@
+name: Measure live FPS and network
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/live-frame-network-diagnostics, main]
+    paths: [benchmarks/runtime-diagnostics.js, .github/workflows/performance-diagnostics.yml]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Measure current production without changing its deployment
+        run: node benchmarks/runtime-diagnostics.js --base=https://orman-arrow-archer.cangunes1995.workers.dev --seconds=45 --label=current-production
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-measurements
+          path: /tmp/archer-validation/runtime-diagnostics.*
