@@ -102,12 +102,13 @@ async function open(mobile, name) {
   });
   await page.bringToFront();
   // Exercise the shipped two-human duel, including its real matchmaking rules.
-  // Navigation's load event also waits for nonessential resource completion.
-  // The actual release gate is the ready lobby, completed WebGL frames and a
-  // successful authoritative join below, including on the deliberately slow
-  // second renderer. Do not hold a connected peer on an unrelated load event.
+  // Confirm the document response committed, then gate on the real app below.
+  // Browser lifecycle delivery can be delayed by a cold WebGL renderer; neither
+  // load nor DOMContentLoaded establishes that this multiplayer app is ready.
+  // Keep explicit lobby, completed-frame and authoritative-join deadlines,
+  // including on the deliberately slow second renderer.
   await page.goto(`${base}/?room=${room}&format=duel`, {
-    waitUntil: "domcontentloaded",
+    waitUntil: "commit",
   });
   await expect(page.locator("#loading")).toBeHidden({ timeout: 20000 });
   await expect(page.locator("#lobby")).toBeVisible({ timeout: 20000 });
