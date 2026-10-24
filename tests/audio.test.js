@@ -86,3 +86,62 @@ test("voices stay bounded during bursts and stop immediately on mute or scene ex
   audio.play("hit");
   assert.equal(oscillators.length, 9);
 });
+
+test("mute never opens audio hardware and suspends an existing device until explicit unmute", async (t) => {
+  const audio = new AudioEngine();
+  audio.enabled = true;
+  let created = 0,
+    resumes = 0,
+    suspends = 0;
+  const originalWindow = globalThis.window;
+  t.after(() => {
+    if (originalWindow === undefined) delete globalThis.window;
+    else globalThis.window = originalWindow;
+  });
+  globalThis.window = {
+    AudioContext: class {
+      constructor() {
+        created++;
+        this.state = "running";
+      }
+      resume() {
+        resumes++;
+        this.state = "running";
+        return Promise.resolve();
+      }
+      suspend() {
+        suspends++;
+        this.state = "suspended";
+        return Promise.resolve();
+      }
+    },
+  };
+  assert.equal(audio.toggle(), false);
+  audio.unlock();
+  assert.equal(created, 0);
+  assert.equal(audio.ctx, null);
+  assert.equal(audio.toggle(), true);
+  assert.equal(created, 1);
+  const device = audio.ctx;
+  assert.equal(audio.toggle(), false);
+  await Promise.resolve();
+  assert.equal(suspends, 1);
+  assert.equal(device.state, "suspended");
+  audio.unlock();
+  assert.equal(resumes, 0);
+  assert.equal(audio.toggle(), true);
+  assert.equal(audio.ctx, device);
+  assert.equal(created, 1);
+  assert.equal(resumes, 1);
+});
+
+test("an unavailable audio device does not break mute", async () => {
+  const audio = new AudioEngine();
+  audio.enabled = true;
+  audio.ctx = {
+    suspend: () => Promise.reject(new Error("device interrupted")),
+  };
+  assert.equal(audio.toggle(), false);
+  await Promise.resolve();
+  assert.equal(audio.enabled, false);
+});

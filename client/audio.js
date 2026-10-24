@@ -21,6 +21,7 @@ export class AudioEngine {
     }
   }
   unlock() {
+    if (!this.enabled) return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
@@ -36,9 +37,18 @@ export class AudioEngine {
   }
   toggle() {
     this.enabled = !this.enabled;
-    if (!this.enabled) this.stopAll();
     preferences.set("wildbow-sound", this.enabled ? "on" : "off");
-    this.unlock();
+    if (this.enabled) this.unlock();
+    else {
+      this.stopAll();
+      // Muting must not create/resume an audio device, or keep an existing
+      // device running silently. The next explicit unmute resumes it.
+      try {
+        this.ctx?.suspend?.().catch(() => {});
+      } catch {
+        // An interrupted/closed audio device must not break the mute control.
+      }
+    }
     return this.enabled;
   }
   stopAll() {
