@@ -30,6 +30,8 @@
     "test:lobby": "node tests/lobby.browser.js",
     "test:expansion": "node tests/expansion.browser.js",
     "test:performance": "node tests/performance.browser.js",
+    "test:player-labels": "node tests/player-label.browser.js",
+    "test:opaque-depth": "node tests/opaque-depth.browser.js",
     "test:conformance": "node --test tests/protocol-conformance.test.js tests/safe-traces.test.js",
     "bench:safe": "node --expose-gc benchmarks/safe-optimizations.js",
     "test:multimode": "node tests/multimode.smoke.js",

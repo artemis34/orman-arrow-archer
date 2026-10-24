@@ -85,8 +85,10 @@ export class CombatFeedback {
       const p = player?.root.position || label.point;
       this.point.set(p.x, 3.6, p.z).project(camera);
       label.node.hidden = this.point.z > 1 || this.point.z < -1;
-      label.node.style.left = `${((this.point.x + 1) * innerWidth) / 2}px`;
-      label.node.style.top = `${((1 - this.point.y) * innerHeight) / 2 - label.offset}px`;
+      // Keep world tracking independent of the word's existing transform
+      // animation. Moving its layout box with left/top forces layout every
+      // battle frame; the individual translate property composes identically.
+      label.node.style.translate = `${((this.point.x + 1) * innerWidth) / 2}px ${((1 - this.point.y) * innerHeight) / 2 - label.offset}px`;
     }
     for (const ring of this.rings) {
       ring.life -= dt;

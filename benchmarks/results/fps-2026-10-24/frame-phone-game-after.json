@@ -1,0 +1,143 @@
+{
+  "label": "phone",
+  "scenario": "game",
+  "root": "/workspace/orman-arrow-archer",
+  "seconds": 8.016300000000001,
+  "frames": 68,
+  "fps": 8.482716465202149,
+  "medianFrameMs": 116.69999999999891,
+  "p95FrameMs": 166.70000000000073,
+  "slowFramesOver25Ms": 64,
+  "medianUploadBytes": 20560,
+  "medianDrawCalls": 81,
+  "metrics": {
+    "LayoutDuration": {
+      "before": 0,
+      "after": 0.006249,
+      "delta": 0.006249
+    },
+    "RecalcStyleDuration": {
+      "before": 0.000163,
+      "after": 0.02646,
+      "delta": 0.026297
+    },
+    "ScriptDuration": {
+      "before": 0.007024,
+      "after": 0.498139,
+      "delta": 0.491115
+    },
+    "TaskDuration": {
+      "before": 0.28192,
+      "after": 0.974274,
+      "delta": 0.6923539999999999
+    },
+    "JSHeapUsedSize": {
+      "before": 14779944,
+      "after": 28491912,
+      "delta": 13711968
+    }
+  },
+  "topCpu": [
+    [
+      "(idle) :0",
+      7405175
+    ],
+    [
+      "(program) :0",
+      509702
+    ],
+    [
+      "updateHud /client/main.js:657",
+      50053
+    ],
+    [
+      "step /shared/world.js:826",
+      40120
+    ],
+    [
+      "compose /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:7082",
+      32500
+    ],
+    [
+      "getProgram /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:40766",
+      28045
+    ],
+    [
+      "update /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34057",
+      22601
+    ],
+    [
+      "frame /client/main.js:1104",
+      18288
+    ],
+    [
+      "render /client/scene.js:760",
+      15420
+    ],
+    [
+      "getParameters /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:35492",
+      14462
+    ],
+    [
+      "insert /shared/spatial.js:13",
+      11669
+    ],
+    [
+      "bindVertexArray :0",
+      11369
+    ],
+    [
+      "(garbage collector) :0",
+      10474
+    ],
+    [
+      "anonymous /client/main.js:1148",
+      9768
+    ],
+    [
+      "anonymous /shared/world.js:916",
+      8616
+    ],
+    [
+      "WebGLRenderer.render /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:40506",
+      8035
+    ],
+    [
+      "useProgram :0",
+      7484
+    ],
+    [
+      "upload /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34743",
+      7445
+    ],
+    [
+      "setMaterial /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:37195",
+      7042
+    ],
+    [
+      "multiplyMatrices /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:6652",
+      6553
+    ],
+    [
+      "convert /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:3400",
+      6446
+    ],
+    [
+      "setValueV3f /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34171",
+      6208
+    ],
+    [
+      "step /client/transport.js:34",
+      5665
+    ],
+    [
+      "query /shared/spatial.js:29",
+      5476
+    ],
+    [
+      "bufferSubData :0",
+      5395
+    ]
+  ],
+  "errors": []
+}

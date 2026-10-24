@@ -1,0 +1,143 @@
+{
+  "label": "phone",
+  "scenario": "fixture",
+  "root": "/tmp/wildbow-fps-baseline",
+  "seconds": 5.9497,
+  "frames": 33,
+  "fps": 5.546498142763501,
+  "medianFrameMs": 150.10000000000036,
+  "p95FrameMs": 483.1999999999998,
+  "slowFramesOver25Ms": 31,
+  "medianUploadBytes": 173760,
+  "medianDrawCalls": 129,
+  "metrics": {
+    "LayoutDuration": {
+      "before": 0,
+      "after": 0,
+      "delta": 0
+    },
+    "RecalcStyleDuration": {
+      "before": 0,
+      "after": 0.003905,
+      "delta": 0.003905
+    },
+    "ScriptDuration": {
+      "before": 0.003375,
+      "after": 0.193245,
+      "delta": 0.18987
+    },
+    "TaskDuration": {
+      "before": 0.131271,
+      "after": 0.374678,
+      "delta": 0.243407
+    },
+    "JSHeapUsedSize": {
+      "before": 17150704,
+      "after": 20774256,
+      "delta": 3623552
+    }
+  },
+  "topCpu": [
+    [
+      "(idle) :0",
+      5909621
+    ],
+    [
+      "(program) :0",
+      155724
+    ],
+    [
+      "getParameters /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:35492",
+      22486
+    ],
+    [
+      "anonymous :1",
+      20277
+    ],
+    [
+      "arraysEqual /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:34128",
+      18826
+    ],
+    [
+      "render /client/scene.js:774",
+      12370
+    ],
+    [
+      "draw :15",
+      9649
+    ],
+    [
+      "getProgramCacheKey /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:35707",
+      9020
+    ],
+    [
+      "getProgram /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40766",
+      7914
+    ],
+    [
+      "setProgram /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40855",
+      7224
+    ],
+    [
+      "multiplyMatrices /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:6652",
+      6123
+    ],
+    [
+      "seqWithValue /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:34751",
+      6101
+    ],
+    [
+      "prototype.<computed> :12",
+      5335
+    ],
+    [
+      "pixelStorei :0",
+      5060
+    ],
+    [
+      "upload /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:34743",
+      4919
+    ],
+    [
+      "uniformMatrix4fv :0",
+      4734
+    ],
+    [
+      "WebGLRenderer.renderBufferDirect /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40314",
+      4148
+    ],
+    [
+      "setMaterial /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:37195",
+      3589
+    ],
+    [
+      "setup /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:32400",
+      3430
+    ],
+    [
+      "frontFace :0",
+      3196
+    ],
+    [
+      "projectObject /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40593",
+      3116
+    ],
+    [
+      "refreshMaterialUniforms /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:39435",
+      2838
+    ],
+    [
+      "copy /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:5619",
+      2640
+    ],
+    [
+      "(garbage collector) :0",
+      2445
+    ],
+    [
+      "updateMatrixWorld /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:8325",
+      2221
+    ]
+  ],
+  "errors": []
+}

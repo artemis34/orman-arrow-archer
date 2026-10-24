@@ -41,13 +41,43 @@ export class LocalTransport {
   }
   view(fraction = 1) {
     if (!this.currentState) return null;
+    const current = this.currentState.state,
+      previous = this.previousState?.state;
+    let players = current.players;
+    // Practice has exact 30 Hz ticks, just like its arrows. Supply continuous
+    // positions to the walk/camera animation at display rate; easing a stepped
+    // input alone still alternates the visible speed every other 60 Hz frame.
+    // Combat metadata and lifecycle transitions always use the latest tick.
+    if (
+      previous &&
+      previous.match?.round === current.match?.round &&
+      previous.match?.phase === current.match?.phase &&
+      (!current.match || current.match.phase === "playing")
+    ) {
+      const old = (this.previousState.playerIndex ||= indexById(
+          previous.players,
+        )),
+        t = Number.isNaN(fraction) ? 1 : Math.max(0, Math.min(1, fraction));
+      players = current.players.map((p) => {
+        const before = old.get(p.id);
+        if (
+          !before?.alive ||
+          !p.alive ||
+          p.levelGuard > 0 ||
+          Math.hypot(p.x - before.x, p.z - before.z) > 8
+        )
+          return p;
+        return {
+          ...p,
+          x: before.x + (p.x - before.x) * t,
+          z: before.z + (p.z - before.z) * t,
+        };
+      });
+    }
     return {
-      ...this.currentState.state,
-      arrows: localProjectiles(
-        this.previousState,
-        this.currentState.state,
-        fraction,
-      ),
+      ...current,
+      players,
+      arrows: localProjectiles(this.previousState, current, fraction),
     };
   }
   choose(k) {

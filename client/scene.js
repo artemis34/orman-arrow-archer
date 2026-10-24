@@ -2,6 +2,9 @@ import { BattleRoyaleZoneView } from "./br-zone-view.js";
 import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
 import { AvatarBatches, ArrowBatches, ParticleBatch } from "./render-pools.js";
+import { AvatarLines } from "./avatar-lines.js";
+import { createPlayerLabel } from "./player-label.js";
+import { prioritizeStaticOccluders } from "./static-occluders.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RULES, SKINS } from "../shared/config.js";
@@ -162,7 +165,9 @@ export class ArenaScene {
       this.staticGroup.add(t);
     }
     this.batch(this.staticGroup);
+    prioritizeStaticOccluders(this.staticGroup);
     this.avatarBatches = new AvatarBatches(this.scene);
+    this.avatarLines = new AvatarLines(this.scene);
     this.arrows = new ArrowBatches(this.scene, RULES.maxArrows);
     this.feedback = new CombatFeedback(this.scene);
     this.lootView = new LootView(this.scene);
@@ -405,11 +410,13 @@ export class ArenaScene {
       this.worldGroup.add(forestProp(o, this.forestMats));
     decorateForest(this.worldGroup, this.forestMats, obstacles);
     this.batch(this.worldGroup);
+    prioritizeStaticOccluders(this.worldGroup, this.forestMats.trail);
   }
   disposePlayer(v) {
     const geometries = new Set(),
       materials = new Set();
     this.avatarBatches.remove(v.root);
+    this.avatarLines.remove(v.root);
     v.root.traverse((o) => {
       if (o.geometry && !o.userData.batched) geometries.add(o.geometry);
       if (o.material) materials.add(o.material);
@@ -601,31 +608,8 @@ export class ArenaScene {
     }
     levelEffect.visible = false;
     root.add(levelEffect);
-    const labelCanvas = document.createElement("canvas");
-    labelCanvas.width = 256;
-    labelCanvas.height = 80;
-    const ctx = labelCanvas.getContext("2d");
-    ctx.textAlign = "center";
-    ctx.font = "600 22px sans-serif";
-    ctx.fillStyle = "#eef3dc";
-    ctx.shadowColor = "#142c20";
-    ctx.shadowBlur = 7;
-    if (!local) ctx.fillText(p.name, 128, 27);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#192e22";
-    ctx.fillRect(64, 44, 128, 8);
-    ctx.fillStyle = p.hp < p.maxHp * 0.3 ? "#e6a181" : "#bde08d";
-    ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
-    const tex = new THREE.CanvasTexture(labelCanvas);
-    const label = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: tex,
-        depthTest: false,
-        transparent: true,
-      }),
-    );
-    label.scale.set(3.8, 1.2, 1);
-    label.position.y = local ? 2.35 : 2.6;
+    const playerLabel = createPlayerLabel(p, local);
+    const { label, canvas: labelCanvas, tex } = playerLabel;
     root.add(label);
     // These parts never change their local transform. Parent/hip transforms
     // still propagate every frame, preserving the full walk/bow animation.
@@ -647,6 +631,7 @@ export class ArenaScene {
       part.matrixAutoUpdate = false;
     }
     this.avatarBatches.add(root);
+    this.avatarLines.add(root);
     this.scene.add(root);
     return {
       root,
@@ -670,6 +655,7 @@ export class ArenaScene {
       label,
       canvas: labelCanvas,
       tex,
+      playerLabel,
       pose: createPose(p),
       hp: p.hp,
       maxHp: p.maxHp,
@@ -933,41 +919,10 @@ export class ArenaScene {
           v.string.geometry.attributes.position.needsUpdate = true;
         }
         if (v.hp !== p.hp || v.maxHp !== p.maxHp || v.team !== p.team) {
-          const teamChanged = v.team !== p.team;
           v.team = p.team;
           v.hp = p.hp;
           v.maxHp = p.maxHp;
-          const ctx = v.canvas.getContext("2d");
-          ctx.clearRect(0, 39, 256, 22);
-          ctx.fillStyle = "#192e22";
-          ctx.fillRect(64, 44, 128, 8);
-          ctx.fillStyle =
-            p.hp < p.maxHp * 0.3
-              ? "#e6a181"
-              : p.team != null
-                ? TEAMS[p.team].color
-                : "#bde08d";
-          ctx.fillRect(64, 44, 128 * Math.max(0, p.hp / p.maxHp), 8);
-          v.tex.needsUpdate = true;
-          if (teamChanged) {
-            ctx.clearRect(0, 0, 256, 38);
-            ctx.textAlign = "center";
-            ctx.font = "600 22px sans-serif";
-            if (p.team != null) {
-              ctx.fillStyle = TEAMS[p.team].color;
-              ctx.fillText(
-                `${TEAMS[p.team].symbol} ${p.id === myId ? "Sen" : p.name}`,
-                128,
-                27,
-              );
-            } else if (p.id !== myId) {
-              ctx.fillStyle = "#eef3dc";
-              ctx.shadowColor = "#142c20";
-              ctx.shadowBlur = 7;
-              ctx.fillText(p.name, 128, 27);
-              ctx.shadowBlur = 0;
-            }
-          }
+          v.playerLabel.update(p);
         }
       }
       for (const [id, v] of this.players)
@@ -1088,6 +1043,7 @@ export class ArenaScene {
     this.scene.updateMatrixWorld();
     this.bowBuffs.update(this.players, this.time);
     this.avatarBatches.update();
+    this.avatarLines.update();
     this.particles.update(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

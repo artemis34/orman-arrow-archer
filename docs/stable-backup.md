@@ -1,5 +1,9 @@
 # Büyük geliştirmeler öncesi kararlı sürüm yedeği
 
+## 24 Ekim 2026 — yeni FPS geçişinden önce
+
+Önceki doğrulanmış sürüm `ab4fed8eeb083b2de43c9def6f64e29ef94a1d93`, [`backup/pre-fps-pass-ab4fed8`](https://github.com/artemis34/orman-arrow-archer/tree/backup/pre-fps-pass-ab4fed8) etiketiyle korunur. Yerel tam geçmiş yedeği `/workspace/backups/wildbow-before-frame-pacing-ab4fed8.bundle` doğrulandı. [FPS değişiklikleri ve ölçüm sınırları](fps-optimization-2026-10-24.md).
+
 ## 23 Ekim 2026 — tek el varsayılanından önce
 
 Çalışan kaynak sürümü `b23ed9151355e43ad2cd57482999d1adc65db2b4`, değişikliklerden önce GitHub'a [`backup/pre-onehand-default-b23ed91`](https://github.com/artemis34/orman-arrow-archer/tree/backup/pre-onehand-default-b23ed91) etiketiyle yedeklendi. Yerelde tam geçmişi içeren ve doğrulanan `/workspace/backups/wildbow-pre-onehand-default-b23ed91.bundle` dosyası da var. Etiketi yeni bir dala açmak geçmişi veya mevcut dalı silmez:

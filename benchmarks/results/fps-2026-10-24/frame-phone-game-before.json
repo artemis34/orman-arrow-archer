@@ -1,0 +1,143 @@
+{
+  "label": "phone",
+  "scenario": "game",
+  "root": "/tmp/wildbow-fps-baseline",
+  "seconds": 5.783000000000001,
+  "frames": 47,
+  "fps": 8.127269583261281,
+  "medianFrameMs": 116.69999999999891,
+  "p95FrameMs": 183.30000000000018,
+  "slowFramesOver25Ms": 44,
+  "medianUploadBytes": 73488,
+  "medianDrawCalls": 84,
+  "metrics": {
+    "LayoutDuration": {
+      "before": 0,
+      "after": 0.00637,
+      "delta": 0.00637
+    },
+    "RecalcStyleDuration": {
+      "before": 0,
+      "after": 0.023715,
+      "delta": 0.023715
+    },
+    "ScriptDuration": {
+      "before": 0.000069,
+      "after": 0.689115,
+      "delta": 0.689046
+    },
+    "TaskDuration": {
+      "before": 0.211485,
+      "after": 1.101413,
+      "delta": 0.8899279999999999
+    },
+    "JSHeapUsedSize": {
+      "before": 12697692,
+      "after": 26416108,
+      "delta": 13718416
+    }
+  },
+  "topCpu": [
+    [
+      "(idle) :0",
+      5235139
+    ],
+    [
+      "(program) :0",
+      463489
+    ],
+    [
+      "getShaderInfoLog :0",
+      217148
+    ],
+    [
+      "getProgramInfoLog :0",
+      108734
+    ],
+    [
+      "frame /client/main.js:1104",
+      40504
+    ],
+    [
+      "updateHud /client/main.js:657",
+      29880
+    ],
+    [
+      "step /shared/world.js:826",
+      18985
+    ],
+    [
+      "getProgramCacheKeyParameters /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:35729",
+      15492
+    ],
+    [
+      "render /client/scene.js:774",
+      15000
+    ],
+    [
+      "getParameters /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:35492",
+      14812
+    ],
+    [
+      "projectObject /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40593",
+      12964
+    ],
+    [
+      "bindVertexArray :0",
+      11572
+    ],
+    [
+      "(garbage collector) :0",
+      10499
+    ],
+    [
+      "setFromRotationMatrix /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:7436",
+      9038
+    ],
+    [
+      "getProgram /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40766",
+      8668
+    ],
+    [
+      "setProgram /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:40855",
+      8503
+    ],
+    [
+      "bindBuffer :0",
+      7494
+    ],
+    [
+      "getProgramCacheKey /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:35707",
+      7467
+    ],
+    [
+      "anonymous /client/main.js:1148",
+      6827
+    ],
+    [
+      "query /shared/spatial.js:29",
+      6049
+    ],
+    [
+      "bufferSubData :0",
+      5512
+    ],
+    [
+      "insert /shared/spatial.js:13",
+      5299
+    ],
+    [
+      "update /client/combat-feedback.js:73",
+      5253
+    ],
+    [
+      "updateMatrixWorld /node_modules/.vite/deps/chunk-IHALPLPJ.js?v=6a70eabc:8325",
+      4445
+    ],
+    [
+      "step /client/transport.js:34",
+      4415
+    ]
+  ],
+  "errors": []
+}

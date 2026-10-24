@@ -3,6 +3,7 @@ import { RULES, clamp } from "../shared/config.js";
 import { TapDashDetector } from "./tap-dash.js";
 /** A radial dead zone removes resting-thumb noise without snapping diagonals. */
 export function stickVector(dx, dz, radius) {
+  if (!Number.isFinite(radius) || radius <= 0) return { x: 0, z: 0 };
   const length = Math.hypot(dx, dz);
   const dead = radius * 0.18;
   if (length <= dead) return { x: 0, z: 0 };
@@ -251,12 +252,22 @@ export class Controls {
       dragged = false,
       pressedAt = 0,
       startX = 0,
-      startY = 0;
+      startY = 0,
+      radius = 0;
     let captureTarget = el;
+    // Pointer moves can arrive faster than animation frames. Read layout only
+    // when a gesture starts or the pad's actual size changes, never after each
+    // knob/HUD write. Size observation also covers rotation and stick settings.
+    const measure = () => {
+      const width = el.getBoundingClientRect().width;
+      radius = Number.isFinite(width) && width > 0 ? width * 0.35 : 0;
+    };
+    const sizeObserver = new ResizeObserver(() => {
+      if (pointer !== null) measure();
+    });
+    sizeObserver.observe(el);
     const update = (e) => {
-      const r = el.getBoundingClientRect(),
-        radius = r.width * 0.35,
-        dx = e.clientX - startX,
+      const dx = e.clientX - startX,
         dz = e.clientY - startY,
         l = Math.hypot(dx, dz),
         scale = l > radius ? radius / l : 1;
@@ -294,6 +305,7 @@ export class Controls {
       el.classList.add("floating-origin");
       pointer = e.pointerId;
       captureTarget.setPointerCapture(pointer);
+      measure();
       update(e);
     };
     this.floatingSticks.push({ begin });

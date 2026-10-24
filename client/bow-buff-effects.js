@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { publishInstanceRange } from "./instance-updates.js";
 
 // One shared draw per effect, regardless of how many archers have the buff.
 // All animation runs on the GPU; only each visible bow's matrix is uploaded.
@@ -210,7 +211,7 @@ export class BowBuffEffects {
     for (const mesh of this.meshes) {
       mesh.visible = mesh.count > 0;
       mesh.material.uniforms.uTime.value = time;
-      if (mesh.count) mesh.instanceMatrix.needsUpdate = true;
+      publishInstanceRange(mesh.instanceMatrix, mesh.count);
     }
   }
 }

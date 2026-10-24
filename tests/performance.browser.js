@@ -92,12 +92,19 @@ try {
       const gl = scene.renderer.getContext(),
         createBuffer = gl.createBuffer,
         bufferSubData = gl.bufferSubData,
+        texSubImage2D = gl.texSubImage2D,
         matrixPrototype = Object.getPrototypeOf(scene.camera.matrix),
         compose = matrixPrototype.compose;
       let createdBuffers = 0,
         warmBuffers = 0,
         uploadBytes = 0,
-        matrixCompositions = 0;
+        matrixCompositions = 0,
+        textureUploads = 0,
+        warmTextures = 0;
+      gl.texSubImage2D = function (...args) {
+        textureUploads++;
+        return texSubImage2D.apply(this, args);
+      };
       gl.createBuffer = function () {
         createdBuffers++;
         return createBuffer.call(this);
@@ -122,12 +129,18 @@ try {
           p.angle = f * 0.02;
           p.x += (j % 2 ? 1 : -1) * 0.01;
           p.charge = (f % 30) / 30;
+          // Changing all health bars every frame catches combat-only texture
+          // uploads that a renderer fixture with constant HP cannot expose.
+          p.hp = 35 + ((f + j * 7) % 100);
         });
         const previousUploads = uploadBytes,
           previousCompositions = matrixCompositions;
         const start = performance.now();
         scene.render(state, "local", 1 / 60, true);
-        if (f === 10) warmBuffers = createdBuffers;
+        if (f === 10) {
+          warmBuffers = createdBuffers;
+          warmTextures = textureUploads;
+        }
         if (f >= 10)
           frames.push({
             ms: performance.now() - start,
@@ -139,6 +152,8 @@ try {
       }
       const before = { ...scene.renderer.info.memory };
       const steadyBuffers = createdBuffers - warmBuffers;
+      const steadyTextureUploads = textureUploads - warmTextures;
+      gl.texSubImage2D = texSubImage2D;
       const reusedAimBuffer =
         lineDistance === scene.aimLine.geometry.attributes.lineDistance;
       // Re-equipping, deaths/respawns and incoming players must not leak meshes/textures.
@@ -164,6 +179,7 @@ try {
         shadowCasters: [...scene.avatarBatches.batches.values()]
           .filter((b) => b.mesh.castShadow)
           .reduce((n, b) => n + b.mesh.count, 0),
+        bowVertices: scene.avatarLines.mesh.geometry.drawRange.count,
       };
       const settings = {
         dpr: scene.renderer.getPixelRatio(),
@@ -196,6 +212,7 @@ try {
         before,
         after,
         steadyBuffers,
+        steadyTextureUploads,
         reusedAimBuffer,
         frames,
         contextLost: scene.renderer.getContext().isContextLost(),
@@ -208,12 +225,18 @@ try {
     assert.equal(result.animation.heads, 120);
     assert.equal(result.animation.gems, 140);
     assert.equal(result.animation.rare, result.rareExpected);
+    assert.equal(result.animation.bowVertices, 16 * 40);
+    assert.equal(
+      result.steadyTextureUploads,
+      0,
+      "combat HP updates never re-upload name textures",
+    );
     assert.ok(
       result.animation.shadowCasters >= 32,
       "all head/body shadows survive instancing",
     );
     assert.ok(
-      result.frames.every((f) => f.calls < 160),
+      result.frames.every((f) => f.calls < 115),
       `bounded draw calls with 16 archers, 120 arrows and all 140 particles: ${JSON.stringify(result.frames)}`,
     );
     assert.ok(
@@ -254,9 +277,11 @@ try {
       frames: undefined,
       medianSubmissionMs: sorted[Math.floor(sorted.length / 2)],
       maxDrawCalls: Math.max(...result.frames.map((f) => f.calls)),
-      medianUploadBytes: result.frames.map((f) => f.uploadBytes)
+      medianUploadBytes: result.frames
+        .map((f) => f.uploadBytes)
         .sort((a, b) => a - b)[Math.floor(result.frames.length / 2)],
-      medianMatrixCompositions: result.frames.map((f) => f.matrixCompositions)
+      medianMatrixCompositions: result.frames
+        .map((f) => f.matrixCompositions)
         .sort((a, b) => a - b)[Math.floor(result.frames.length / 2)],
     };
     writeFileSync(

@@ -1,7 +1,20 @@
 name: Validate and publish
 on:
   push:
-    branches: [main, feature/cloudflare-arena-refresh, feature/team-progression, feature/render-performance, optimization/platform-safe-2026-10-21, fix/projectile-motion-bot-recovery, feature/forest-ranked-social, feature/bow-buff-effects, feature/kill-streak, feature/onehand-flow-performance]
+    branches:
+      [
+        main,
+        feature/cloudflare-arena-refresh,
+        feature/team-progression,
+        feature/render-performance,
+        optimization/platform-safe-2026-10-21,
+        fix/projectile-motion-bot-recovery,
+        feature/forest-ranked-social,
+        feature/bow-buff-effects,
+        feature/kill-streak,
+        feature/onehand-flow-performance,
+        optimization/frame-pacing-2026-10-23,
+      ]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
@@ -35,6 +48,10 @@ jobs:
         run: |
           npm run test:performance
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:performance
+          npm run test:player-labels
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:player-labels
+          npm run test:opaque-depth
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:opaque-depth
           npm run test:projectiles
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:projectiles
           npm run test:bow-buffs

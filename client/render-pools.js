@@ -1,4 +1,15 @@
 import * as THREE from "three";
+import { publishInstanceRange } from "./instance-updates.js";
+
+function prepareAvatarColors(mesh) {
+  // Keep the instancing-colour shader variant stable even while a buff-ring
+  // pool is empty. First use then updates data instead of compiling a variant.
+  mesh.instanceColor = new THREE.InstancedBufferAttribute(
+    new Float32Array(mesh.instanceMatrix.count * 3).fill(1),
+    3,
+  );
+  mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+}
 
 /** Keep the animated hierarchy, but submit matching parts in one draw.
  * Per-instance matrices/colors retain each archer's pose, skin and shadows.
@@ -31,6 +42,7 @@ export class AvatarBatches {
           this.capacity,
         );
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        prepareAvatarColors(mesh);
         mesh.castShadow = part.castShadow;
         mesh.receiveShadow = part.receiveShadow;
         mesh.frustumCulled = false;
@@ -54,6 +66,7 @@ export class AvatarBatches {
           old.instanceMatrix.count * 2,
         );
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        prepareAvatarColors(mesh);
         mesh.castShadow = old.castShadow;
         mesh.receiveShadow = old.receiveShadow;
         mesh.frustumCulled = false;
@@ -99,8 +112,8 @@ export class AvatarBatches {
       }
       mesh.count = count;
       if (count) {
-        mesh.instanceMatrix.needsUpdate = true;
-        if (colorsChanged) mesh.instanceColor.needsUpdate = true;
+        publishInstanceRange(mesh.instanceMatrix, count);
+        if (colorsChanged) publishInstanceRange(mesh.instanceColor, count);
       }
     }
   }
@@ -166,9 +179,9 @@ export class ArrowBatches {
       const head = this.heads[arrow.effect] || this.heads.normal;
       head.setMatrixAt(head.count++, this.dummy.matrix);
     }
-    this.shafts.instanceMatrix.needsUpdate = true;
+    publishInstanceRange(this.shafts.instanceMatrix, this.shafts.count);
     for (const mesh of this.headMeshes)
-      if (mesh.count) mesh.instanceMatrix.needsUpdate = true;
+      publishInstanceRange(mesh.instanceMatrix, mesh.count);
   }
 }
 
@@ -239,9 +252,9 @@ export class ParticleBatch {
       this.opacity.setX(i, source.material.opacity);
     }
     if (this.mesh.count) {
-      this.mesh.instanceMatrix.needsUpdate = true;
-      this.mesh.instanceColor.needsUpdate = true;
-      this.opacity.needsUpdate = true;
+      publishInstanceRange(this.mesh.instanceMatrix, this.mesh.count);
+      publishInstanceRange(this.mesh.instanceColor, this.mesh.count);
+      publishInstanceRange(this.opacity, this.mesh.count);
     }
   }
 }

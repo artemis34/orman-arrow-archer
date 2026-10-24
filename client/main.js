@@ -1,5 +1,6 @@
 import { EMOTES, EMOTE_RULES } from "../shared/emotes.js";
 import { setupEmotes } from "./emotes-ui.js";
+import { warmupRenderer } from "./renderer-warmup.js";
 import { PERK_SUMMARY } from "./perk-summary.js";
 import { setupPanels } from "./panels.js";
 import { bindAction } from "./ui.js";
@@ -1154,9 +1155,26 @@ controls.onNoTarget = () => toast("Hedef yok");
 addEventListener("resize", () =>
   transport?.updateView?.(scene.networkRadius()),
 );
-show("loading", false);
-show("lobby", true);
-requestAnimationFrame(frame);
+async function startPresentation() {
+  try {
+    // Create the real demo avatars, instance colours and shadow programs on
+    // the normal framebuffer, under the existing loading screen. Preparing
+    // hidden buff/shield/label variants here avoids compiling them mid-fight.
+    // This does not advance the world or connect a player to an online room.
+    scene.render(state, null, 0, false);
+    await warmupRenderer(scene.renderer, scene.scene, scene.camera);
+  } catch (error) {
+    // Shader diagnostics remain enabled. A failed optional warmup must never
+    // leave a supported browser stuck on the opening screen.
+    console.warn("Shader preparation could not finish", error);
+  } finally {
+    lastTime = performance.now();
+    show("loading", false);
+    show("lobby", true);
+    requestAnimationFrame(frame);
+  }
+}
+startPresentation();
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   navigator.serviceWorker
     .register(new URL("sw.js", document.baseURI))

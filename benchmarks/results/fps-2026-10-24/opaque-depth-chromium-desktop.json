@@ -1,0 +1,62 @@
+{
+  "comparisons": [
+    {
+      "x": 0,
+      "z": 0,
+      "changedPixels": 4,
+      "highDifferencePixels": 4,
+      "highDifferenceFraction": 0.00000390625,
+      "meanError": 0.0000166015625,
+      "maxError": 14
+    },
+    {
+      "x": 0.07,
+      "z": 0.07,
+      "changedPixels": 4,
+      "highDifferencePixels": 4,
+      "highDifferenceFraction": 0.00000390625,
+      "meanError": 0.00001171875,
+      "maxError": 14
+    },
+    {
+      "x": -12,
+      "z": 12,
+      "changedPixels": 16,
+      "highDifferencePixels": 16,
+      "highDifferenceFraction": 0.000015625,
+      "meanError": 0.000101318359375,
+      "maxError": 36
+    },
+    {
+      "x": -11.93,
+      "z": 12.07,
+      "changedPixels": 23,
+      "highDifferencePixels": 18,
+      "highDifferenceFraction": 0.000017578125,
+      "meanError": 0.00010498046875,
+      "maxError": 39
+    },
+    {
+      "x": 31,
+      "z": -29,
+      "changedPixels": 1,
+      "highDifferencePixels": 1,
+      "highDifferenceFraction": 9.765625e-7,
+      "meanError": 0.0000126953125,
+      "maxError": 32
+    },
+    {
+      "x": 31.07,
+      "z": -28.93,
+      "changedPixels": 2,
+      "highDifferencePixels": 2,
+      "highDifferenceFraction": 0.000001953125,
+      "meanError": 0.000036865234375,
+      "maxError": 44
+    }
+  ],
+  "earlyMeshes": 12,
+  "unchangedGeometryDepthAndShadows": true,
+  "glError": 0,
+  "contextLost": false
+}

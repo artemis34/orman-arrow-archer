@@ -33,6 +33,253 @@ test("a resting thumb is neutral and diagonal movement has a circular speed limi
   const diagonal = stickVector(80, -80, 38);
   assert.ok(Math.abs(Math.hypot(diagonal.x, diagonal.z) - 1) < 1e-9);
   assert.ok(Math.abs(diagonal.x + diagonal.z) < 1e-9);
+  for (const radius of [0, -1, NaN, Infinity])
+    assert.deepEqual(stickVector(20, -20, radius), { x: 0, z: 0 });
+});
+
+/** Run the real stick handlers without a browser; count synchronous layout reads. */
+function withSticks(check) {
+  const saved = new Map(
+    [
+      "document",
+      "addEventListener",
+      "ResizeObserver",
+      "innerWidth",
+      "innerHeight",
+    ].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
+  );
+  const listeners = new Map(),
+    observers = [],
+    listen = (type, fn) => {
+      if (!listeners.has(type)) listeners.set(type, []);
+      listeners.get(type).push(fn);
+    };
+  const event = (type, data = {}) => ({
+    type,
+    pointerId: 1,
+    pointerType: "touch",
+    clientX: 60,
+    clientY: 650,
+    timeStamp: 10,
+    preventDefault() {},
+    ...data,
+  });
+  const dispatch = (type, data) => {
+    const e = event(type, data);
+    for (const fn of listeners.get(type) || []) fn(e);
+  };
+  const pad = (width) => {
+    const local = new Map(),
+      captured = new Set(),
+      knob = { style: {} },
+      classes = new Set();
+    return {
+      width,
+      reads: 0,
+      knob,
+      captured,
+      classes,
+      style: { setProperty() {} },
+      classList: {
+        add: (name) => classes.add(name),
+        remove: (name) => classes.delete(name),
+      },
+      querySelector: () => knob,
+      getBoundingClientRect() {
+        this.reads++;
+        return { width: this.width };
+      },
+      addEventListener(type, fn) {
+        local.set(type, fn);
+      },
+      fire(type, data) {
+        local.get(type)?.(event(type, data));
+      },
+      setPointerCapture: (id) => captured.add(id),
+      hasPointerCapture: (id) => captured.has(id),
+      releasePointerCapture(id) {
+        captured.delete(id);
+        dispatch("lostpointercapture", { pointerId: id });
+      },
+    };
+  };
+  const move = pad(100),
+    aim = pad(200),
+    sound = [],
+    controls = Object.assign(Object.create(Controls.prototype), {
+      active: true,
+      oneHanded: false,
+      audio: { unlock() {}, play: (key) => sound.push(key) },
+      joy: { x: 0, z: 0 },
+      aimJoy: { x: 0, z: 0 },
+      stickResets: [],
+      floatingSticks: [],
+    });
+  try {
+    Object.assign(globalThis, {
+      document: { getElementById: (id) => (id === "move-stick" ? move : aim) },
+      addEventListener: listen,
+      ResizeObserver: class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
+        observe(el) {
+          this.el = el;
+        }
+      },
+      innerWidth: 390,
+      innerHeight: 844,
+    });
+    controls.stick("move-stick", false);
+    controls.stick("aim-stick", true);
+    check({
+      controls,
+      move,
+      aim,
+      dispatch,
+      sound,
+      resize: (el) => {
+        observers.find((o) => o.el === el).callback();
+      },
+    });
+  } finally {
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+}
+
+test("independent captured sticks keep their vectors without reading layout on pointer moves", () => {
+  withSticks(({ controls: c, move, aim, dispatch, sound }) => {
+    move.fire("pointerdown", { pointerId: 1, clientX: 60 });
+    aim.fire("pointerdown", { pointerId: 2, clientX: 300 });
+    assert.equal(move.reads, 1);
+    assert.equal(aim.reads, 1);
+    for (let i = 0; i < 120; i++) {
+      dispatch("pointermove", { pointerId: 1, clientX: 95 });
+      dispatch("pointermove", { pointerId: 2, clientX: 300, clientY: 580 });
+    }
+    assert.deepEqual(c.joy, { x: 1, z: 0 });
+    assert.deepEqual(c.aimJoy, { x: 0, z: -1 });
+    assert.equal(c.charge, true);
+    assert.deepEqual(sound, ["charge"]);
+    assert.equal(
+      move.reads,
+      1,
+      "120 move events use the gesture's cached size",
+    );
+    assert.equal(aim.reads, 1, "aim movement never measures after knob writes");
+    dispatch("pointerup", { pointerId: 1, clientX: 95 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    assert.deepEqual(c.aimJoy, { x: 0, z: -1 });
+    assert.equal(c.charge, true);
+    assert.equal(move.captured.size, 0);
+    dispatch("pointercancel", { pointerId: 2 });
+    assert.equal(c.charge, false);
+    assert.equal(c.cancelShot, true);
+    assert.deepEqual(c.aimJoy, { x: 0, z: 0 });
+    assert.equal(aim.captured.size, 0);
+    assert.equal(move.knob.style.transform, "");
+    assert.equal(aim.knob.style.transform, "");
+    dispatch("pointermove", { pointerId: 1, clientX: 180 });
+    dispatch("pointermove", { pointerId: 2, clientX: 380 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    assert.deepEqual(c.aimJoy, { x: 0, z: 0 });
+  });
+});
+
+test("pad size changes refresh active gestures and inactive settings apply at the next press", () => {
+  withSticks(({ controls: c, move, dispatch, resize }) => {
+    move.fire("pointerdown", { clientX: 60 });
+    dispatch("pointermove", { clientX: 95 });
+    assert.equal(c.joy.x, 1);
+    move.width = 200;
+    resize(move);
+    dispatch("pointermove", { clientX: 95 });
+    assert.ok(Math.abs(c.joy.x - 0.3902439024390244) < 1e-9);
+    assert.equal(move.reads, 2);
+    dispatch("lostpointercapture", { pointerId: 1 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    move.width = 50;
+    resize(move);
+    assert.equal(
+      move.reads,
+      2,
+      "inactive resizing needs no synchronous measurement",
+    );
+    move.fire("pointerdown", { pointerId: 3, clientX: 60 });
+    dispatch("pointermove", { pointerId: 3, clientX: 77.5 });
+    assert.equal(
+      c.joy.x,
+      1,
+      "the next gesture measures the newly selected size",
+    );
+    assert.equal(move.reads, 3);
+    c.stickResets.forEach((reset) => reset());
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    assert.equal(move.captured.size, 0);
+  });
+});
+
+test("floating sticks can share canvas capture without releasing the other finger", () => {
+  withSticks(({ controls: c, dispatch }) => {
+    const captured = new Set();
+    const canvas = {
+      setPointerCapture: (id) => captured.add(id),
+      hasPointerCapture: (id) => captured.has(id),
+      releasePointerCapture(id) {
+        captured.delete(id);
+        dispatch("lostpointercapture", { pointerId: id });
+      },
+    };
+    for (const [i, pointerId, clientX] of [
+      [0, 3, 60],
+      [1, 4, 300],
+    ])
+      c.floatingSticks[i].begin(
+        {
+          pointerId,
+          pointerType: "touch",
+          clientX,
+          clientY: 650,
+          timeStamp: 10,
+          preventDefault() {},
+        },
+        canvas,
+      );
+    assert.deepEqual(captured, new Set([3, 4]));
+    dispatch("pointermove", { pointerId: 3, clientX: 95 });
+    dispatch("pointermove", { pointerId: 4, clientX: 300, clientY: 580 });
+    dispatch("pointerup", { pointerId: 3, clientX: 95 });
+    assert.deepEqual(captured, new Set([4]));
+    assert.equal(c.charge, true);
+    assert.deepEqual(c.aimJoy, { x: 0, z: -1 });
+    dispatch("pointerup", { pointerId: 4, clientX: 300, clientY: 580 });
+    assert.equal(captured.size, 0);
+    assert.equal(c.charge, false);
+    assert.deepEqual(c.releasedAim, { x: 0, z: -1 });
+  });
+});
+
+test("unmeasurable pads stay neutral until ResizeObserver supplies their visible size", () => {
+  withSticks(({ controls: c, move, dispatch, resize }) => {
+    move.width = 0;
+    move.fire("pointerdown", { clientX: 60 });
+    dispatch("pointermove", { clientX: 95 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    assert.equal(move.knob.style.transform, "translate(0px,0px)");
+    move.width = 100;
+    resize(move);
+    dispatch("pointermove", { clientX: 95 });
+    assert.deepEqual(c.joy, { x: 1, z: 0 });
+    assert.equal(move.reads, 2);
+    move.width = NaN;
+    resize(move);
+    dispatch("pointermove", { clientX: 60 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+  });
 });
 
 function touchControls() {

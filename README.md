@@ -1,6 +1,8 @@
 # Wildbow · Archer.io
 
-Güncel geliştirme: [tek el varsayılanı, solak yerleşimi, düello ilerlemesi ve emojiler](docs/onehand-release.md) · [öncesi/sonrası performans ölçümleri](docs/onehand-performance.md) · [iOS ve ödül önerileri](docs/ios-retention-roadmap.md). Telefonda tek el, bilgisayarda WASD/fare varsayılandır; klasik düzen ayarlardan seçilebilir.
+Güncel geliştirme: [FPS/akıcılık düzeltmeleri, ölçümler ve yeni öneriler](docs/fps-optimization-2026-10-24.md). Grafik/efektler korunarak çizim çağrıları ve GPU yüklemeleri azaltılır; antrenmandaki 30 Hz hız salınımı giderilir.
+
+[Tek el, solak yerleşimi, düello ve emojiler](docs/onehand-release.md) · [önceki performans raporu](docs/onehand-performance.md) · [iOS ve ödül önerileri](docs/ios-retention-roadmap.md). Telefonda tek el, bilgisayarda WASD/fare varsayılandır; klasik düzen ayarlardan seçilebilir.
 
 Planlama: [geliştirme taslağı ve deneysel tek el modu](docs/development-roadmap.md) · [geliştirme öncesi kararlı sürüm yedeği](docs/stable-backup.md).
 

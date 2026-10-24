@@ -1,0 +1,143 @@
+{
+  "label": "phone",
+  "scenario": "fixture",
+  "root": "/workspace/orman-arrow-archer",
+  "seconds": 8.0997,
+  "frames": 51,
+  "fps": 6.296529501092633,
+  "medianFrameMs": 150,
+  "p95FrameMs": 283.39999999999964,
+  "slowFramesOver25Ms": 48,
+  "medianUploadBytes": 54752,
+  "medianDrawCalls": 106,
+  "metrics": {
+    "LayoutDuration": {
+      "before": 0,
+      "after": 0,
+      "delta": 0
+    },
+    "RecalcStyleDuration": {
+      "before": 0.000065,
+      "after": 0.00653,
+      "delta": 0.006465
+    },
+    "ScriptDuration": {
+      "before": 0.006096,
+      "after": 0.301222,
+      "delta": 0.295126
+    },
+    "TaskDuration": {
+      "before": 0.140985,
+      "after": 0.493259,
+      "delta": 0.352274
+    },
+    "JSHeapUsedSize": {
+      "before": 17631032,
+      "after": 26807980,
+      "delta": 9176948
+    }
+  },
+  "topCpu": [
+    [
+      "(idle) :0",
+      7802147
+    ],
+    [
+      "(program) :0",
+      218241
+    ],
+    [
+      "upload /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34743",
+      26266
+    ],
+    [
+      "disable :0",
+      18182
+    ],
+    [
+      "render /client/scene.js:760",
+      17960
+    ],
+    [
+      "draw :37",
+      15534
+    ],
+    [
+      "bufferSubData :0",
+      11136
+    ],
+    [
+      "getParameters /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:35492",
+      10685
+    ],
+    [
+      "publishInstanceRange /client/instance-updates.js:6",
+      9499
+    ],
+    [
+      "bindBuffer :0",
+      9382
+    ],
+    [
+      "updateMatrixWorld /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:8325",
+      8929
+    ],
+    [
+      "setFromEuler /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:1486",
+      7052
+    ],
+    [
+      "setProgram /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:40855",
+      6560
+    ],
+    [
+      "getProgram /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:40766",
+      5283
+    ],
+    [
+      "update /client/render-pools.js:87",
+      4607
+    ],
+    [
+      "convert /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:3400",
+      4538
+    ],
+    [
+      "arraysEqual /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34128",
+      4460
+    ],
+    [
+      "WebGLShadowMap.render /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:36553",
+      4097
+    ],
+    [
+      "flatten /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:34110",
+      3837
+    ],
+    [
+      "uniformMatrix4fv :0",
+      3764
+    ],
+    [
+      "anonymous :1",
+      3752
+    ],
+    [
+      "bindVertexArray :0",
+      3728
+    ],
+    [
+      "multiplyMatrices /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:6652",
+      3485
+    ],
+    [
+      "WebGLRenderer.renderBufferDirect /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:40314",
+      3298
+    ],
+    [
+      "compose /node_modules/.vite/deps/chunk-IT3TP6RZ.js?v=ac88f8c6:7082",
+      3228
+    ]
+  ],
+  "errors": []
+}
