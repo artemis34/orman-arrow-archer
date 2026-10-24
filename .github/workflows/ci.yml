@@ -15,6 +15,7 @@ on:
         feature/onehand-flow-performance,
         optimization/frame-pacing-2026-10-23,
         fix/live-frame-network-diagnostics,
+        feature/one-finger-controls,
       ]
     paths-ignore: ["**/*.md"]
   pull_request:
@@ -80,6 +81,8 @@ jobs:
           npm run test:interaction
           npm run test:motion
           npm run test:lobby
+          npm run test:one-finger
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:one-finger
           npm run test:forest
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
           npm run test:kill-streak

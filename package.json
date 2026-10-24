@@ -28,6 +28,7 @@
     "test:live": "node tests/live.smoke.js",
     "test:hud": "node tests/hud.smoke.js",
     "test:lobby": "node tests/lobby.browser.js",
+    "test:one-finger": "node tests/one-finger.browser.js",
     "test:expansion": "node tests/expansion.browser.js",
     "test:performance": "node tests/performance.browser.js",
     "test:player-labels": "node tests/player-label.browser.js",

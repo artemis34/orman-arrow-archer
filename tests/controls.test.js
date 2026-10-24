@@ -304,6 +304,128 @@ function touchControls() {
     },
   });
 }
+test("one-finger heal retries are bounded and classic/focus/help/guard never auto-heal", () => {
+  const c = touchControls();
+  c.oneHanded = c.autoHeal = true;
+  c.autoHealAt = -Infinity;
+  const me = { alive: true, hp: 40, maxHp: 150, healCd: 0, levelGuard: 0 };
+  assert.equal(c.sample(me, null).heal, true);
+  for (let i = 0; i < 60; i++) assert.equal(c.sample(me, null).heal, false);
+  for (const changes of [
+    { oneHanded: false },
+    { autoHeal: false },
+    { focused: false },
+    { active: false },
+  ]) {
+    Object.assign(
+      c,
+      {
+        oneHanded: true,
+        autoHeal: true,
+        focused: true,
+        active: true,
+        autoHealAt: -Infinity,
+      },
+      changes,
+    );
+    assert.equal(c.sample(me, null).heal, false);
+  }
+  Object.assign(c, {
+    oneHanded: true,
+    autoHeal: true,
+    focused: true,
+    active: true,
+    autoHealAt: -Infinity,
+  });
+  assert.equal(c.sample({ ...me, levelGuard: 2 }, null).heal, false);
+  c.heal = true;
+  c.autoHeal = false;
+  assert.equal(c.sample(me, null).heal, true, "the manual button still works");
+});
+
+test("overpull uses the movement direction once and consumes attempts during cooldown", () => {
+  withSticks(({ controls: c, move, dispatch }) => {
+    c.oneHanded = c.overpullDash = true;
+    c.latestMe = { alive: true, dashCd: 0, levelGuard: 0 };
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 95 });
+    assert.equal(c.dash, undefined);
+    dispatch("pointermove", { clientX: 135 });
+    assert.equal(c.dash, true);
+    assert.deepEqual(c.dashVector, { x: 1, z: 0 });
+    c.dash = false;
+    dispatch("pointermove", { clientX: 145 });
+    assert.equal(c.dash, false);
+    dispatch("pointermove", { clientX: 60 });
+    c.latestMe.dashCd = 1;
+    dispatch("pointermove", { clientX: 140 });
+    assert.equal(c.dash, false);
+    c.latestMe.dashCd = 0;
+    dispatch("pointermove", { clientX: 145 });
+    assert.equal(c.dash, false, "cooldown expiry cannot dodge a held finger");
+    dispatch("pointercancel");
+    move.fire("pointerdown", { pointerId: 3 });
+    dispatch("pointermove", { pointerId: 3, clientX: -20 });
+    assert.equal(c.dash, true);
+    assert.deepEqual(c.dashVector, { x: -1, z: 0 });
+  });
+});
+
+test("a fresh joystick gesture selects a card on release without walking or dodging", () => {
+  withSticks(({ controls: c, move, dispatch }) => {
+    let offer = "1:draw,speed,rear";
+    const picked = [],
+      preview = [];
+    c.oneHanded = c.overpullDash = true;
+    c.upgradeChoices = () => offer;
+    c.onUpgradeChoose = (index) => picked.push(index);
+    c.onUpgradePreview = (index) => preview.push(index);
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 140 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    assert.equal(c.dash, undefined);
+    assert.equal(preview.at(-1), 2);
+    dispatch("pointerup", { clientX: 140 });
+    assert.deepEqual(picked, [2]);
+    assert.equal(preview.at(-1), -1);
+    move.fire("pointerdown", { pointerId: 2 });
+    dispatch("pointermove", { pointerId: 2, clientX: 0 });
+    dispatch("pointermove", { pointerId: 2, clientX: 60 });
+    dispatch("pointerup", { pointerId: 2, clientX: 60 });
+    assert.deepEqual(picked, [2], "returning to centre cancels");
+    move.fire("pointerdown", { pointerId: 3 });
+    dispatch("pointermove", { pointerId: 3, clientY: 580 });
+    offer = "1:poison,speed,rear";
+    dispatch("pointerup", { pointerId: 3, clientY: 580 });
+    assert.deepEqual(
+      picked,
+      [2],
+      "rerolled cards cannot reuse the old gesture",
+    );
+    move.fire("pointerdown", { pointerId: 4 });
+    dispatch("pointermove", { pointerId: 4, clientY: 580 });
+    dispatch("pointercancel", { pointerId: 4, clientY: 580 });
+    assert.deepEqual(picked, [2], "pointer cancellation never chooses");
+  });
+});
+
+test("level up during an existing walking gesture cannot accidentally choose a card", () => {
+  withSticks(({ controls: c, move, dispatch }) => {
+    let offer = "";
+    const picked = [];
+    c.oneHanded = true;
+    c.upgradeChoices = () => offer;
+    c.onUpgradeChoose = (index) => picked.push(index);
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 100 });
+    offer = "1:draw,speed,rear";
+    dispatch("pointerup", { clientX: 100 });
+    assert.deepEqual(picked, []);
+    move.fire("pointerdown", { pointerId: 2 });
+    dispatch("pointerup", { pointerId: 2, clientY: 600 });
+    assert.deepEqual(picked, [1]);
+  });
+});
 test("touch walking faces movement instead of the old mouse position", () => {
   const c = touchControls();
   assert.equal(c.sample({ alive: true }, null).angle, 0);

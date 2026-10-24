@@ -1,0 +1,44 @@
+/* Three thumb directions, with the original tappable cards/keyboard fallback. */
+#joystick-card-hint {
+  display: none;
+}
+body.onehand #joystick-card-hint {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 3px 0;
+  color: #e0f4bd;
+  font-size: 11px;
+  line-height: 16px;
+  pointer-events: none;
+}
+body.onehand #joystick-card-hint span {
+  color: #d1dec4;
+  font-size: 10px;
+}
+body.onehand #upgrade-options button.stick-selected {
+  background: #446431;
+  border-color: #e2ff9c;
+  box-shadow: inset 0 0 0 2px #e2ff9c;
+}
+body.onehand #move-stick.card-picking {
+  border-color: #d4f394;
+  background: #213d2a80;
+}
+body.onehand #move-stick.card-picking .stick-knob {
+  border-color: #e2ff9c;
+  background: #c5e39966;
+}
+body.onehand #dash small,
+body.onehand #heal small {
+  font-size: 8px;
+}
+body.onehand #upgrade-options .perk-key {
+  font-size: 16px;
+  color: #e0f4bd;
+}
+@media (max-height: 500px) {
+  body.onehand #joystick-card-hint,
+  body.onehand #joystick-card-hint span {
+    font-size: 9px;
+  }
+}

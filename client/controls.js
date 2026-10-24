@@ -1,6 +1,11 @@
 import { selectTarget, aimedAngle, angleDelta } from "../shared/aim.js";
 import { RULES, clamp } from "../shared/config.js";
 import { TapDashDetector } from "./tap-dash.js";
+import {
+  OverpullDash,
+  automaticHealReady,
+  joystickCard,
+} from "./one-finger.js";
 /** A radial dead zone removes resting-thumb noise without snapping diagonals. */
 export function stickVector(dx, dz, radius) {
   if (!Number.isFinite(radius) || radius <= 0) return { x: 0, z: 0 };
@@ -35,6 +40,9 @@ export class Controls {
     this.autoFire = false;
     this.oneHanded = false;
     this.doubleTapDash = true;
+    this.overpullDash = true;
+    this.autoHeal = true;
+    this.autoHealAt = -Infinity;
     this.tapDash = new TapDashDetector();
     this.lastMoveJoy = { x: 0, z: 0 };
     this.dashVector = null;
@@ -228,6 +236,7 @@ export class Controls {
     this.charge = false;
     this.dash = false;
     this.heal = false;
+    this.autoHealAt = -Infinity;
     this.joy = { x: 0, z: 0 };
     this.aimJoy = { x: 0, z: 0 };
     for (const k of document.querySelectorAll(".stick-knob"))
@@ -239,6 +248,10 @@ export class Controls {
   setDoubleTapDash(enabled) {
     this.doubleTapDash = enabled !== false;
     this.tapDash.reset();
+  }
+  setOneFingerAssists({ overpull = true, autoHeal = true } = {}) {
+    this.overpullDash = overpull;
+    this.autoHeal = autoHeal;
   }
   setOneHanded(enabled) {
     this.reset();
@@ -255,6 +268,14 @@ export class Controls {
       startY = 0,
       radius = 0;
     let captureTarget = el;
+    const overpull = new OverpullDash();
+    let upgradeGesture = "",
+      selectedCard = -1;
+    const previewCard = (index) => {
+      if (selectedCard === index) return;
+      selectedCard = index;
+      this.onUpgradePreview?.(index);
+    };
     // Pointer moves can arrive faster than animation frames. Read layout only
     // when a gesture starts or the pad's actual size changes, never after each
     // knob/HUD write. Size observation also covers rotation and stick settings.
@@ -273,6 +294,15 @@ export class Controls {
         scale = l > radius ? radius / l : 1;
       const vector = stickVector(dx, dz, radius);
       knob.style.transform = `translate(${dx * scale}px,${dz * scale}px)`;
+      if (upgradeGesture) {
+        this.joy = { x: 0, z: 0 };
+        previewCard(
+          this.upgradeChoices?.() === upgradeGesture
+            ? joystickCard(dx, dz, radius)
+            : -1,
+        );
+        return;
+      }
       if (aim) {
         if (vector.x || vector.z) {
           this.aimJoy = vector;
@@ -283,6 +313,15 @@ export class Controls {
       } else {
         this.joy = vector;
         if (vector.x || vector.z) this.lastMoveJoy = { ...vector };
+        if (this.oneHanded && this.overpullDash && overpull.move(l, radius)) {
+          // Consume a pull even during cooldown; holding the edge never queues
+          // an unexpected dodge when the server's cooldown later expires.
+          const me = this.latestMe;
+          if (me?.alive && me.dashCd <= 0 && !(me.levelGuard > 0)) {
+            this.dash = true;
+            this.dashVector = { ...vector };
+          }
+        }
       }
     };
     const begin = (e, target = el) => {
@@ -296,6 +335,11 @@ export class Controls {
       this.audio.unlock();
       this.isTouch = true;
       dragged = false;
+      overpull.reset();
+      upgradeGesture =
+        !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
+      if (upgradeGesture) el.classList.add("card-picking");
+      selectedCard = -1;
       pressedAt = e.timeStamp;
       startX = e.clientX;
       startY = e.clientY;
@@ -320,9 +364,13 @@ export class Controls {
     const release = () => {
       const captured = pointer;
       pointer = null;
+      upgradeGesture = "";
+      overpull.reset();
+      previewCard(-1);
       if (captured !== null && captureTarget.hasPointerCapture(captured))
         captureTarget.releasePointerCapture(captured);
       el.classList.remove("floating-origin");
+      el.classList.remove("card-picking");
       knob.style.transform = "";
       if (aim) {
         this.charge = false;
@@ -332,7 +380,24 @@ export class Controls {
     this.stickResets.push(release);
     const end = (e) => {
       if (pointer === e.pointerId) {
-        if (!aim && this.oneHanded && this.doubleTapDash) {
+        const selecting = !!upgradeGesture;
+        // Cancellation/lost capture never confirms. Re-evaluate the release
+        // position and key so a changed/rerolled offer cannot select old cards.
+        if (
+          selecting &&
+          e.type === "pointerup" &&
+          this.active &&
+          this.focused !== false &&
+          this.upgradeChoices?.() === upgradeGesture
+        ) {
+          const card = joystickCard(
+            e.clientX - startX,
+            e.clientY - startY,
+            radius,
+          );
+          if (card >= 0) this.onUpgradeChoose?.(card);
+        }
+        if (!selecting && !aim && this.oneHanded && this.doubleTapDash) {
           const dash = this.tapDash.release({
             x: e.clientX,
             y: e.clientY,
@@ -455,13 +520,20 @@ export class Controls {
       angle,
       charge: active && this.charge,
       dash: active && this.dash,
-      heal: active && this.heal,
+      heal:
+        active &&
+        (this.heal ||
+          (this.oneHanded &&
+            this.autoHeal &&
+            automaticHealReady(me) &&
+            performance.now() - this.autoHealAt >= 1000)),
       quickShot: active && this.quickShot,
       // A blur/help reset must still cancel an existing draw while inactive.
       cancelShot: !!this.cancelShot,
       autoFire: active && this.autoFire && !!me?.alive,
       lockTarget: this.lockRequest,
     };
+    if (input.heal) this.autoHealAt = performance.now();
     this.dash = false;
     this.dashVector = null;
     this.heal = false;

@@ -33,6 +33,7 @@ import "./kill-streak.css";
 import "./compact-ui.css";
 import "./performance-monitor.css";
 import "./emotes.css";
+import "./one-finger.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -123,6 +124,10 @@ const progression = setupProgression({
     );
     scene.setQuality(preferences.get("wildbow-quality") || "balanced");
     controls.setDoubleTapDash(preferences.get("wildbow-doubletap") !== "false");
+    controls.setOneFingerAssists({
+      overpull: preferences.get("wildbow-overpull") !== "false",
+      autoHeal: preferences.get("wildbow-autoheal") !== "false",
+    });
     document.body.classList.toggle(
       "left-handed",
       preferences.get("wildbow-hand") === "left",
@@ -323,7 +328,7 @@ function setControls(oneHanded, persist = true) {
   text(
     "controls-hint",
     oneHanded
-      ? "Yönlendir, otomatik ateş et. Rakibe dokunarak kilitlen."
+      ? "Çek: yürü · Uzat: atıl · Can azalınca otomatik iyileş."
       : "İki joystick veya klavye ve fare ile kontrol sende.",
   );
   syncAutoFire();
@@ -380,6 +385,20 @@ bindAction($("upgrade-reminder"), () => {
   show("upgrades", !upgradesCollapsed);
   show("upgrade-reminder", upgradesCollapsed && !!choicesKey);
 });
+// UI actions use the same upgrade request as a card tap; no protocol change.
+controls.upgradeChoices = () =>
+  playing &&
+  choicesKey &&
+  !upgradesCollapsed &&
+  state?.players.find((p) => p.id === myId)?.alive
+    ? choicesKey
+    : "";
+controls.onUpgradePreview = (index) => {
+  for (const [i, card] of [...$("upgrade-options").children].entries())
+    card.classList.toggle("stick-selected", i === index);
+};
+controls.onUpgradeChoose = (index) =>
+  $("upgrade-options").children[index]?.click();
 function toast(message) {
   text("toast", message);
   show("toast", true);
@@ -799,6 +818,14 @@ function updateHud(current) {
   $("dash").classList.toggle("cooldown", me.dashCd > 0.05);
   text("heal-time", me.healCd > 0.05 ? me.healCd.toFixed(0) : "");
   $("heal").classList.toggle("cooldown", me.healCd > 0.05 || me.hp >= me.maxHp);
+  text(
+    "dash-label",
+    controls.oneHanded && controls.overpullDash ? "UZAT · ATIL" : "ATIL",
+  );
+  text(
+    "heal-label",
+    controls.oneHanded && controls.autoHeal ? "OTO · +25" : "+25 CAN",
+  );
   $("health-fill").classList.toggle("critical", me.hp < me.maxHp * 0.3);
   $("dash").disabled = $("heal").disabled = me.levelGuard > 0;
   $("hud").classList.toggle("guarded", me.levelGuard > 0);
@@ -956,7 +983,11 @@ function updateHud(current) {
           b = document.createElement("button");
         for (const [tag, cls, value] of [
           ["span", "perk-icon", u.icon],
-          ["span", "perk-key", `${i + 1}`],
+          [
+            "span",
+            "perk-key",
+            controls.oneHanded ? ["←", "↑", "→"][i] : `${i + 1}`,
+          ],
           ["strong", "perk-name", u.name],
           ["span", "perk-value", PERK_SUMMARY[key][0]],
           ["small", "perk-note", PERK_SUMMARY[key][1]],

@@ -271,6 +271,26 @@ export function setupProgression({ cloudflare, server, onSettings }) {
           false,
         ],
         [
+          "overpull",
+          "Tek el · joystick’i uzatınca atıl",
+          [
+            ["true", "Açık"],
+            ["false", "Kapalı"],
+          ],
+          "true",
+          false,
+        ],
+        [
+          "autoheal",
+          "Tek el · %35 canda otomatik +25 can",
+          [
+            ["true", "Açık"],
+            ["false", "Kapalı"],
+          ],
+          "true",
+          false,
+        ],
+        [
           "doubletap",
           "Çift dokunuşla atıl",
           [
