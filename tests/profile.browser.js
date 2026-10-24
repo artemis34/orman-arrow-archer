@@ -1,6 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import assert from "node:assert/strict";
+import { annotateFailure } from "./report.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const browser = await chromium.launch({
   headless: true,
@@ -16,14 +17,15 @@ const browser = await chromium.launch({
   ],
 });
 mkdirSync("/tmp/archer-validation", { recursive: true });
+let page;
+const errors = [];
 try {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
   });
-  const page = await context.newPage(),
-    errors = [];
+  page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible();
@@ -152,6 +154,37 @@ try {
   console.log(
     "PROFILE_BROWSER_OK real Cloudflare persistence, insufficient-balance rejection, SVG cosmetics, achievements and offline practice without caching API responses.",
   );
+} catch (error) {
+  if (page) {
+    const diagnostics = await page
+      .evaluate(() => {
+        const visible = (selector) => {
+          const element = document.querySelector(selector);
+          return Boolean(
+            element &&
+              element.getClientRects().length &&
+              getComputedStyle(element).visibility !== "hidden",
+          );
+        };
+        return {
+          documentState: document.readyState,
+          viewport: { width: innerWidth, height: innerHeight },
+          loadingVisible: visible("#loading"),
+          lobbyVisible: visible("#lobby"),
+          deathVisible: visible("#death"),
+          hudVisible: visible("#hud"),
+          join: document.querySelector("#join-status")?.textContent,
+          deathSummary: document.querySelector("#death-summary")?.textContent,
+        };
+      })
+      .catch((diagnosticError) => ({ unavailable: String(diagnosticError) }));
+    error.message += `\nProfile diagnostics: ${JSON.stringify({ url: page.url(), ...diagnostics, errors })}`;
+    await page
+      .screenshot({ path: "/tmp/archer-validation/profile-cloudflare-failure.png" })
+      .catch(() => {});
+  }
+  annotateFailure(error, "Cloudflare profile and offline practice browser");
+  throw error;
 } finally {
   await browser.close();
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { WebSocketTransport } from "../client/websocket.js";
+import { annotateFailure } from "./report.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const clients = [];
 async function until(check, message, timeout = 20000) {
@@ -53,6 +54,9 @@ try {
   console.log(
     "BATTLE_ROYALE_RUNTIME_OK: native WebSocket, 16 solo seats, countdown, live zone metadata, movement, late-entry rejection and new-round matchmaking.",
   );
+} catch (error) {
+  annotateFailure(error, "Cloudflare Battle Royale runtime");
+  throw error;
 } finally {
   for (const t of clients) t.close();
 }

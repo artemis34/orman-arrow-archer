@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { WebSocketTransport } from "../client/websocket.js";
 import { FORMATS } from "../shared/modes.js";
+import { annotateFailure } from "./report.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check, message) {
@@ -169,6 +170,9 @@ try {
   ).json();
   assert.match(allocation.room, /^t2-wildbow-/);
   console.log("MULTIMODE_CLOUDFLARE_OK");
+} catch (error) {
+  annotateFailure(error, "Cloudflare multimode and profile API");
+  throw error;
 } finally {
   for (const t of clients) t.close();
 }

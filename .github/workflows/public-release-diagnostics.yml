@@ -1,0 +1,43 @@
+name: Diagnose public Cloudflare release
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/cloudflare-release-smoke]
+permissions:
+  contents: read
+jobs:
+  public-checks:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Authoritative public rooms
+        run: npm run test:cloudflare
+      - name: Two public desktop and phone browsers
+        if: '!cancelled()'
+        run: npm run test:cloudflare:browser
+      - name: Public modes and profile APIs
+        if: '!cancelled()'
+        run: npm run test:multimode
+      - name: Public Battle Royale runtime
+        if: '!cancelled()'
+        run: npm run test:battle-royale:runtime
+      - name: Public browser profile and offline shell
+        if: '!cancelled()'
+        run: npm run test:profile
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-release-diagnostics
+          path: /tmp/archer-validation
+          if-no-files-found: ignore
