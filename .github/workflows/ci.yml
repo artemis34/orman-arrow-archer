@@ -46,6 +46,19 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm run build
+      - name: Validate single-finger upgrades and ability assists on Chrome and Safari
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm start > /tmp/one-finger-server.log 2>&1 &
+          controls_pid=$!
+          trap 'kill "$controls_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health; then break; fi
+            sleep 1
+          done
+          npm run test:one-finger
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:one-finger
       - name: Validate full-quality renderer budgets and resource reuse
         run: |
           npm run test:performance
@@ -81,8 +94,6 @@ jobs:
           npm run test:interaction
           npm run test:motion
           npm run test:lobby
-          npm run test:one-finger
-          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:one-finger
           npm run test:forest
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
           npm run test:kill-streak

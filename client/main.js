@@ -386,13 +386,16 @@ bindAction($("upgrade-reminder"), () => {
   show("upgrade-reminder", upgradesCollapsed && !!choicesKey);
 });
 // UI actions use the same upgrade request as a card tap; no protocol change.
-controls.upgradeChoices = () =>
-  playing &&
-  choicesKey &&
-  !upgradesCollapsed &&
-  state?.players.find((p) => p.id === myId)?.alive
-    ? choicesKey
+controls.upgradeChoices = () => {
+  const me = state?.players.find((p) => p.id === myId);
+  return playing &&
+    choicesKey &&
+    !upgradesCollapsed &&
+    me?.alive &&
+    me.choices.length
+    ? `${choicesKey}:${me.level}:${state.match?.round || 0}`
     : "";
+};
 controls.onUpgradePreview = (index) => {
   for (const [i, card] of [...$("upgrade-options").children].entries())
     card.classList.toggle("stick-selected", i === index);
@@ -969,7 +972,7 @@ function updateHud(current) {
   }
   const ck =
     me.alive && me.choices.length
-      ? `${me.pending}:${me.choices.join(",")}`
+      ? `${me.level}:${me.pending}:${controls.oneHanded}:${me.choices.join(",")}`
       : "";
   if (ck !== choicesKey) {
     choicesKey = ck;
