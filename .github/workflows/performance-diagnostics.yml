@@ -7,6 +7,7 @@ on:
       [
         benchmarks/runtime-diagnostics.js,
         .github/workflows/performance-diagnostics.yml,
+        client/render-cadence.js,
       ]
 permissions:
   contents: read
