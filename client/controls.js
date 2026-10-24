@@ -338,7 +338,10 @@ export class Controls {
       overpull.reset();
       upgradeGesture =
         !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
-      if (upgradeGesture) el.classList.add("card-picking");
+      if (upgradeGesture) {
+        el.classList.add("card-picking");
+        this.tapDash?.reset();
+      }
       selectedCard = -1;
       pressedAt = e.timeStamp;
       startX = e.clientX;

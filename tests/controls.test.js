@@ -378,9 +378,16 @@ test("a fresh joystick gesture selects a card on release without walking or dodg
       preview = [];
     c.oneHanded = c.overpullDash = true;
     c.upgradeChoices = () => offer;
+    let tapResets = 0;
+    c.tapDash = { reset: () => tapResets++ };
     c.onUpgradeChoose = (index) => picked.push(index);
     c.onUpgradePreview = (index) => preview.push(index);
     move.fire("pointerdown");
+    assert.equal(
+      tapResets,
+      1,
+      "a previous walk tap cannot chain across card selection into a dodge",
+    );
     dispatch("pointermove", { clientX: 140 });
     assert.deepEqual(c.joy, { x: 0, z: 0 });
     assert.equal(c.dash, undefined);
