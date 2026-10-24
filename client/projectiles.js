@@ -1,5 +1,6 @@
 import { clamp, RULES } from "../shared/config.js";
 import { segmentFraction } from "../shared/spatial.js";
+import { PresentationClock } from "./presentation-clock.js";
 
 const stamp = (snapshot) =>
   Number.isFinite(snapshot.state.time)
@@ -13,40 +14,24 @@ const turn = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
 /** Display only. Never produces hits, changes authority, or adds wire fields. */
 export class ProjectilePresentation {
+  constructor() {
+    this.clock = new PresentationClock({
+      delay: 100,
+      maxDelay: 250,
+      // Preserve the existing arrow clock's hold when a synthetic/replayed
+      // clock goes backward. Browser performance.now itself is monotonic.
+      resetOnBackward: false,
+    });
+  }
+  get time() {
+    return this.clock.time;
+  }
   view(snapshots, now, obstacles = []) {
     const latest = snapshots.at(-1);
     if (!latest) return [];
-    const match = latest.state.match;
-    const epoch = match ? `${match.round}:${match.phase}` : "arena";
-    // A rematch/round must not borrow projectiles from its predecessor.
-    let start = snapshots.length - 1;
-    while (start > 0) {
-      const other = snapshots[start - 1].state.match;
-      if ((other ? `${other.round}:${other.phase}` : "arena") !== epoch) break;
-      start--;
-    }
-    let offset = Infinity;
-    for (let i = start; i < snapshots.length; i++)
-      offset = Math.min(offset, snapshots[i].at - stamp(snapshots[i]));
-    const target = now - offset - 100;
-    const elapsed = now - this.at;
-    if (
-      this.time === undefined ||
-      this.epoch !== epoch ||
-      stamp(latest) < this.latestTime ||
-      elapsed > 250
-    )
-      this.time = target;
-    else {
-      // Follow simulation time, not individual packet arrival gaps. Correct
-      // slow clock drift gradually, without a freeze/jump on every snapshot.
-      const advance = Math.max(0, elapsed);
-      const next = this.time + advance;
-      this.time = next + clamp(target - next, -advance * 0.1, advance * 0.1);
-    }
-    this.at = now;
-    this.epoch = epoch;
-    this.latestTime = stamp(latest);
+    // The same measured-rate clock as remote movement keeps slow authority or
+    // packet bursts from repeatedly draining the arrow interpolation buffer.
+    const { start } = this.clock.sample(snapshots, now);
     if (this.time < stamp(snapshots[start])) return [];
     let a = latest,
       b = latest;

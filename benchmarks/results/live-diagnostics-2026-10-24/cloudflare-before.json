@@ -1,0 +1,67 @@
+{
+  "label": "current-production",
+  "base": "https://orman-arrow-archer.cangunes1995.workers.dev",
+  "measuredAt": "2026-10-24T16:55:56.716Z",
+  "seconds": 45,
+  "hardware": "Headless Chromium, SwiftShader software GPU; not a physical iPhone",
+  "clientAsset": "./assets/index-D84ad80y.js",
+  "render": {
+    "frames": 241,
+    "fps": 5.322640739492221,
+    "frameMs": {
+      "count": 240,
+      "median": 173.20000000001164,
+      "p95": 320.70000000001164,
+      "max": 483.9000000000233
+    },
+    "jankOver50ms": 226,
+    "longTasksMs": {
+      "count": 0,
+      "median": null,
+      "p95": null,
+      "max": null
+    }
+  },
+  "browserNetwork": {
+    "snapshots": 691,
+    "arrivalHz": 15.165706271004131,
+    "simulationSpeed": 1.0110470847336088,
+    "inferredTickHz": 30.331412542008263,
+    "intervalMs": {
+      "count": 690,
+      "median": 65.90252999999939,
+      "p95": 72.45887099999891,
+      "max": 147.19359199999963
+    },
+    "gapsOver150ms": 0,
+    "rttMs": {
+      "count": 5,
+      "median": 12.82471799999621,
+      "p95": 14.244541000000027,
+      "max": 15.986245000000054
+    },
+    "population": 8
+  },
+  "rawSocket": {
+    "snapshots": 682,
+    "arrivalHz": 15.156047461862075,
+    "simulationSpeed": 1.0104031641241384,
+    "inferredTickHz": 30.31209492372415,
+    "intervalMs": {
+      "count": 681,
+      "median": 65.79066599999896,
+      "p95": 70.22310700000162,
+      "max": 101.38812099999632
+    },
+    "gapsOver150ms": 0,
+    "rttMs": {
+      "count": 23,
+      "median": 11.281374999998661,
+      "p95": 15.10059099999853,
+      "max": 72.8903399999981
+    },
+    "population": 8
+  },
+  "welcome": true,
+  "errors": []
+}

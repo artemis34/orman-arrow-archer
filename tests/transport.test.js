@@ -16,6 +16,7 @@ import {
 function harness() {
   const socket = new EventEmitter();
   socket.disconnect = () => {};
+  socket.timeout = () => ({ emit() {} });
   const t = new SocketTransport(
     "http://example.test",
     () => {},
@@ -422,4 +423,66 @@ test("explicit cancellation also settles a pending Socket.IO join", async () => 
   transport.close();
   await assert.rejects(connecting, /Bağlantı durduruldu/);
   assert.equal(socket.listenerCount("welcome"), 0);
+});
+
+test("Socket.IO RTT probes do not overlap and late acknowledgements cannot refresh a newer or closed session", async (context) => {
+  let now = 100;
+  context.mock.method(performance, "now", () => now);
+  context.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+  const socket = new EventEmitter(),
+    acknowledgements = [];
+  socket.disconnect = () => {};
+  socket.timeout = (milliseconds) => ({
+    emit(type, acknowledge) {
+      assert.equal(milliseconds, 3000);
+      assert.equal(type, "latency");
+      acknowledgements.push(acknowledge);
+    },
+  });
+  const transport = new SocketTransport(
+    "http://example.test",
+    () => {},
+    () => {},
+    {
+      createSocket: () => socket,
+    },
+  );
+  try {
+    assert.equal(transport.ping, null);
+    assert.equal(transport.pingMeasuredAt, null);
+    const connecting = transport.connect("RTT", 0);
+    socket.emit("welcome", { id: "me", obstacles: [] });
+    await connecting;
+    assert.equal(acknowledgements.length, 1, "first measurement is immediate");
+    now = 3100;
+    context.mock.timers.tick(3000);
+    assert.equal(acknowledgements.length, 1, "pending probe prevents overlap");
+    acknowledgements[0](new Error("timed out"));
+    assert.equal(transport.pingMeasuredAt, null);
+    now = 6100;
+    context.mock.timers.tick(3000);
+    assert.equal(acknowledgements.length, 2);
+    now = 6120;
+    acknowledgements[0]();
+    assert.equal(
+      transport.pingMeasuredAt,
+      null,
+      "late old acknowledgement is ignored",
+    );
+    now = 6150;
+    acknowledgements[1]();
+    assert.equal(transport.ping, 50);
+    assert.equal(transport.pingMeasuredAt, 6150);
+    now = 9100;
+    context.mock.timers.tick(3000);
+    assert.equal(acknowledgements.length, 3);
+    transport.close();
+    now = 9140;
+    acknowledgements[2]();
+    context.mock.timers.tick(6000);
+    assert.equal(transport.pingMeasuredAt, 6150);
+    assert.equal(acknowledgements.length, 3);
+  } finally {
+    transport.close();
+  }
 });

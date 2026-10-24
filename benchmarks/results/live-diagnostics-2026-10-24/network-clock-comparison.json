@@ -1,0 +1,345 @@
+{
+  "baseline": "3d07703832ceccccb3fc8b58bb4d8117d6712cc0",
+  "method": {
+    "kind": "deterministic presentation-only simulation; not a production server or device FPS benchmark",
+    "durationMs": 8000,
+    "measureAfterMs": 1000,
+    "framesPerSecond": 60,
+    "snapshotBuffer": 8,
+    "trajectorySpeedSimulationUnitsPerSecond": 3,
+    "orderedPackets": true,
+    "note": "lowFPS scenario uses12 displayframes/s; noauthoritativephysics/hits areadvanced by display"
+  },
+  "scenarios": [
+    {
+      "id": "15Hzsteady",
+      "before": {
+        "name": "15Hzsteady",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "15Hzsteady",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "rate": 1,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    },
+    {
+      "id": "15Hz70msjitter",
+      "before": {
+        "name": "15Hz70msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.049999999999993605,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "15Hz70msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.049999999999993605,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04999999999999716,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "rate": 1,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    },
+    {
+      "id": "15Hz150msjitter",
+      "before": {
+        "name": "15Hz150msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.029999999999997584,
+          "max": 0.07000000000000917,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 16.94510739856802,
+          "backward": 0,
+          "min": 0,
+          "max": 0.2950000000000017,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "15Hz150msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04499999999999815,
+          "max": 0.05000000000000249,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.03999999999999826,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "rate": 1,
+        "delay": 231.6666666666676,
+        "arrowDelay": 231.6666666666676
+      }
+    },
+    {
+      "id": "15Hz200msjitter",
+      "before": {
+        "name": "15Hz200msjitter",
+        "arrow": {
+          "frozenPercent": 12.171837708830548,
+          "backward": 0,
+          "min": 0,
+          "max": 0.22000000000000952,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 29.116945107398568,
+          "backward": 0,
+          "min": 0,
+          "max": 0.44500000000000384,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "15Hz200msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04499999999999815,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0.7159904534606205,
+          "backward": 0,
+          "min": 0,
+          "max": 0.2000000000000033,
+          "n": 419
+        },
+        "rate": 1,
+        "delay": 250,
+        "arrowDelay": 250
+      }
+    },
+    {
+      "id": "12.5HznoNetworkJitter",
+      "before": {
+        "name": "12.5HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 70.64439140811456,
+          "backward": 0,
+          "min": 0,
+          "max": 0.20000000000001616,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 78.99761336515513,
+          "backward": 0,
+          "min": 0,
+          "max": 0.20000000000000284,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "12.5HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04166666666666252,
+          "max": 0.041666666666671404,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.041666666666660745,
+          "max": 0.041666666666671404,
+          "n": 419
+        },
+        "rate": 0.8333333333333333,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    },
+    {
+      "id": "10HznoNetworkJitter",
+      "before": {
+        "name": "10HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 83.29355608591885,
+          "backward": 0,
+          "min": 0,
+          "max": 0.2000000000000135,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 83.29355608591885,
+          "backward": 0,
+          "min": 0,
+          "max": 0.20000000000000107,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "10HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.029999999999997584,
+          "max": 0.03333333333333677,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.029999999999999805,
+          "max": 0.03333333333333677,
+          "n": 419
+        },
+        "rate": 0.6666666666666665,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    },
+    {
+      "id": "14HznoNetworkJitter",
+      "before": {
+        "name": "14HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04499999999999549,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.0449999999999946,
+          "max": 0.05000000000000426,
+          "n": 419
+        }
+      },
+      "after": {
+        "name": "14HznoNetworkJitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.04499999999999549,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.0449999999999946,
+          "max": 0.05000000000000426,
+          "n": 419
+        },
+        "rate": 1,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    },
+    {
+      "id": "lowFPS15Hz70msjitter",
+      "before": {
+        "name": "lowFPS15Hz70msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.24999999999999467,
+          "max": 0.25000000000000355,
+          "n": 83
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.24999999999999645,
+          "max": 0.25000000000000355,
+          "n": 83
+        }
+      },
+      "after": {
+        "name": "lowFPS15Hz70msjitter",
+        "arrow": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.24999999999999467,
+          "max": 0.25000000000000355,
+          "n": 83
+        },
+        "player": {
+          "frozenPercent": 0,
+          "backward": 0,
+          "min": 0.24999999999999645,
+          "max": 0.25000000000000355,
+          "n": 83
+        },
+        "rate": 1,
+        "delay": 125,
+        "arrowDelay": 100
+      }
+    }
+  ],
+  "limits": {
+    "normalArrowDelayMs": 100,
+    "normalRemoteDelayMs": 125,
+    "maxConfiguredJitterDelayMs": 250,
+    "jitterTriggerExcessMs": 95,
+    "timingHistory": 16,
+    "extrapolationMsUnchanged": 100,
+    "rateRecoveryTestMaxLagMs": 245,
+    "authorityAndWireUntouched": true
+  }
+}

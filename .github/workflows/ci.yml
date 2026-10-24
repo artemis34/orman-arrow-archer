@@ -14,6 +14,7 @@ on:
         feature/kill-streak,
         feature/onehand-flow-performance,
         optimization/frame-pacing-2026-10-23,
+        fix/live-frame-network-diagnostics,
       ]
     paths-ignore: ["**/*.md"]
   pull_request:
@@ -47,6 +48,7 @@ jobs:
       - name: Validate full-quality renderer budgets and resource reuse
         run: |
           npm run test:performance
+          node tests/performance-monitor.browser.js
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:performance
           npm run test:player-labels
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:player-labels

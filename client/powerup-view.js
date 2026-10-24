@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { POWERUPS, POWERUP_RULES } from "../shared/powerups.js";
+import { publishInstanceRange } from "./instance-updates.js";
 
 function paint(geometry, color) {
   const rgb = new THREE.Color(color),
@@ -191,8 +192,8 @@ export class PowerupView {
     this.gems.visible = this.beams.visible = live > 0;
     this.rings.material.opacity = 0.72 + Math.sin(time * 3) * 0.1;
     for (const mesh of this.batches) {
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.instanceColor.needsUpdate = true;
+      publishInstanceRange(mesh.instanceMatrix, mesh.count);
+      publishInstanceRange(mesh.instanceColor, mesh.count);
     }
   }
 }

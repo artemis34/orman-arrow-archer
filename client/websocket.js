@@ -31,6 +31,7 @@ export class WebSocketTransport extends NetworkTransport {
     this.onProgress = onProgress;
     this.decoder = new SnapshotDecoder();
     this.inputBatch = [];
+    this.pingAt = null;
   }
   connect(name, skin, options = {}) {
     return new Promise((resolve, reject) => {
@@ -133,16 +134,34 @@ export class WebSocketTransport extends NetworkTransport {
             this.room = packet.data.room;
             this.binary = packet.data.protocol === PROTOCOL;
             resolve(packet.data);
-            this.pingTimer = setInterval(() => {
+            const measure = () => {
+              if (
+                this.closed ||
+                this.ws?.readyState !== 1 ||
+                this.pingAt !== null
+              )
+                return;
               this.pingAt = performance.now();
               this.send("ping");
-            }, 10000);
+            };
+            measure();
+            this.pingTimer = setInterval(measure, 3000);
           } else if (packet.type === "state" && ready)
             this.acceptState(packet.data);
           else if (packet.type === "profile") this.onProfile?.(packet.data);
-          else if (packet.type === "pong")
-            this.ping = Math.round(performance.now() - this.pingAt);
-          else if (packet.type === "full" || packet.type === "error") {
+          else if (packet.type === "pong" && ready && this.pingAt !== null) {
+            const now = performance.now(),
+              elapsed = now - this.pingAt;
+            this.pingAt = null;
+            // Legacy pong packets have no request ID. Keep one outstanding
+            // request until its reply/close so a late pong can never be timed
+            // against a newer probe. Reject an excessively delayed sample;
+            // the next scheduled probe can then obtain a fresh measurement.
+            if (Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= 10000) {
+              this.ping = Math.round(elapsed);
+              this.pingMeasuredAt = now;
+            }
+          } else if (packet.type === "full" || packet.type === "error") {
             if (!ready)
               fail(
                 packet.type === "full"
@@ -215,6 +234,7 @@ export class WebSocketTransport extends NetworkTransport {
     reject?.(error);
     clearTimeout(this.connectTimer);
     clearInterval(this.pingTimer);
+    this.pingAt = null;
     this.abort?.abort();
     this.inputBatch.length = 0;
     if (this.ws && this.ws.readyState < 2) {

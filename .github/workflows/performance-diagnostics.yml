@@ -3,7 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches: [fix/live-frame-network-diagnostics, main]
-    paths: [benchmarks/runtime-diagnostics.js, .github/workflows/performance-diagnostics.yml]
+    paths:
+      [
+        benchmarks/runtime-diagnostics.js,
+        .github/workflows/performance-diagnostics.yml,
+      ]
 permissions:
   contents: read
 jobs:
@@ -20,6 +24,23 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Wait for this main client before measuring
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:cloudflare
+          read_asset='const fs=require("node:fs");const html=fs.readFileSync(process.argv[1],"utf8");const src=html.match(/<script[^>]*src="([^"]+\.js)"/);if(!src)process.exit(1);console.log(src[1].split("/").at(-1));'
+          expected=$(node -e "$read_asset" dist-cloudflare/index.html)
+          matched=false
+          for attempt in {1..36}; do
+            if curl --fail --silent https://orman-arrow-archer.cangunes1995.workers.dev/ -o /tmp/diagnostics-live.html; then
+              actual=$(node -e "$read_asset" /tmp/diagnostics-live.html || true)
+              if test "$actual" = "$expected"; then matched=true; break; fi
+            fi
+            sleep 5
+          done
+          test "$matched" = true
       - name: Measure current production without changing its deployment
         run: node benchmarks/runtime-diagnostics.js --base=https://orman-arrow-archer.cangunes1995.workers.dev --seconds=45 --label=current-production
       - uses: actions/upload-artifact@v4

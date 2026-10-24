@@ -106,7 +106,10 @@ export class NetworkTransport {
     this.seq = 0;
     this.pending = [];
     this.snapshots = [];
-    this.ping = 0;
+    // A connection is not a zero-latency sample. The diagnostic HUD can show
+    // pending/stale measurements separately from actual RTT.
+    this.ping = null;
+    this.pingMeasuredAt = null;
     this.predicted = null;
     this.previousPrediction = null;
     this.lastInput = null;
@@ -318,6 +321,10 @@ export class SocketTransport extends NetworkTransport {
     this.url = url;
   }
   connect(name, skin, options = {}) {
+    this.closed = false;
+    this.ping = null;
+    this.pingMeasuredAt = null;
+    this.pingProbe = null;
     return new Promise((resolve, reject) => {
       let ready = false;
       this.rejectConnect = reject;
@@ -338,18 +345,35 @@ export class SocketTransport extends NetworkTransport {
         this.socket.emit("join", { name, skin, ...options }),
       );
       this.socket.on("welcome", (data) => {
+        if (this.closed || ready) return;
         clearTimeout(timer);
         ready = true;
         this.rejectConnect = null;
         this.id = data.id;
         this.obstacles = data.obstacles;
         resolve(data);
-        this.pingTimer = setInterval(() => {
-          const start = performance.now();
+        const measure = () => {
+          if (this.closed || this.pingProbe) return;
+          const probe = { at: performance.now() };
+          this.pingProbe = probe;
           this.socket.timeout(3000).emit("latency", (error) => {
-            if (!error) this.ping = Math.round(performance.now() - start);
+            if (this.closed || this.pingProbe !== probe) return;
+            this.pingProbe = null;
+            const now = performance.now(),
+              elapsed = now - probe.at;
+            if (
+              !error &&
+              Number.isFinite(elapsed) &&
+              elapsed >= 0 &&
+              elapsed <= 3000
+            ) {
+              this.ping = Math.round(elapsed);
+              this.pingMeasuredAt = now;
+            }
           });
-        }, 2000);
+        };
+        measure();
+        this.pingTimer = setInterval(measure, 3000);
       });
       this.socket.on("state", (state) => this.acceptState(state));
       this.socket.on("full", () => {
@@ -367,8 +391,10 @@ export class SocketTransport extends NetworkTransport {
         }
       });
       this.socket.on("disconnect", () => {
-        if (ready) this.onDisconnect();
-        else {
+        if (ready) {
+          this.close();
+          this.onDisconnect();
+        } else {
           clearTimeout(timer);
           this.close(
             new Error("Sunucu bağlantıyı kapattı. Tekrar deneyebilirsin."),
@@ -381,6 +407,8 @@ export class SocketTransport extends NetworkTransport {
     this.socket.emit(type, data);
   }
   close(error = new Error("Bağlantı durduruldu. Tekrar oynayabilirsin.")) {
+    this.closed = true;
+    this.pingProbe = null;
     const reject = this.rejectConnect;
     this.rejectConnect = null;
     reject?.(error);

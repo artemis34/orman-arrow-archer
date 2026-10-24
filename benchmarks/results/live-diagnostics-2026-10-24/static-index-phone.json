@@ -1,0 +1,207 @@
+{
+  "shippedEarlyMeshes": 12,
+  "comparisons": [
+    {
+      "x": 0,
+      "z": 0,
+      "changedPixels": 0,
+      "highDifferencePixels": 0,
+      "highDifferenceFraction": 0,
+      "meanError": 0,
+      "maxError": 0
+    },
+    {
+      "x": 0.07,
+      "z": 0.07,
+      "changedPixels": 0,
+      "highDifferencePixels": 0,
+      "highDifferenceFraction": 0,
+      "meanError": 0,
+      "maxError": 0
+    },
+    {
+      "x": -12,
+      "z": 12,
+      "changedPixels": 2,
+      "highDifferencePixels": 2,
+      "highDifferenceFraction": 0.0000060760724267833275,
+      "meanError": 0.00006227974237452911,
+      "maxError": 32
+    },
+    {
+      "x": -11.93,
+      "z": 12.07,
+      "changedPixels": 0,
+      "highDifferencePixels": 0,
+      "highDifferenceFraction": 0,
+      "meanError": 0,
+      "maxError": 0
+    },
+    {
+      "x": 31,
+      "z": -29,
+      "changedPixels": 0,
+      "highDifferencePixels": 0,
+      "highDifferenceFraction": 0,
+      "meanError": 0,
+      "maxError": 0
+    },
+    {
+      "x": 31.07,
+      "z": -28.93,
+      "changedPixels": 1,
+      "highDifferencePixels": 1,
+      "highDifferenceFraction": 0.0000030380362133916637,
+      "meanError": 0.000037215943614047877,
+      "maxError": 31
+    }
+  ],
+  "indexedComparisons": [
+    {
+      "x": 0,
+      "z": 0,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 72,
+      "expandedCalls": 72,
+      "indexedTriangles": 27614,
+      "expandedTriangles": 27614
+    },
+    {
+      "x": 0.07,
+      "z": 0.07,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 72,
+      "expandedCalls": 72,
+      "indexedTriangles": 27614,
+      "expandedTriangles": 27614
+    },
+    {
+      "x": -12,
+      "z": 12,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 70,
+      "expandedCalls": 70,
+      "indexedTriangles": 27657,
+      "expandedTriangles": 27657
+    },
+    {
+      "x": -11.93,
+      "z": 12.07,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 70,
+      "expandedCalls": 70,
+      "indexedTriangles": 27657,
+      "expandedTriangles": 27657
+    },
+    {
+      "x": 31,
+      "z": -29,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 65,
+      "expandedCalls": 65,
+      "indexedTriangles": 27570,
+      "expandedTriangles": 27570
+    },
+    {
+      "x": 31.07,
+      "z": -28.93,
+      "pixels": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "shadows": {
+        "changedPixels": 0,
+        "highDifferencePixels": 0,
+        "highDifferenceFraction": 0,
+        "meanError": 0,
+        "maxError": 0
+      },
+      "indexedCalls": 65,
+      "expandedCalls": 65,
+      "indexedTriangles": 27570,
+      "expandedTriangles": 27570
+    }
+  ],
+  "indexedGeometry": {
+    "vertices": 51631,
+    "triangles": 23236,
+    "bytes": 1340160
+  },
+  "expandedGeometry": {
+    "vertices": 69708,
+    "triangles": 23236,
+    "bytes": 1672992
+  },
+  "earlyMeshes": 12,
+  "unchangedGeometryDepthAndShadows": true,
+  "glError": 0,
+  "contextLost": false
+}

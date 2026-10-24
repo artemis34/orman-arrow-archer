@@ -9,6 +9,8 @@ import { usesCloudflare } from "./network-mode.js";
 import { selectTarget } from "../shared/aim.js";
 import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
+import { setupPerformanceMonitor } from "./performance-monitor.js";
+import { RenderCadence } from "./render-cadence.js";
 import { controlModeFor, saveControlMode } from "./control-preferences.js";
 import { setupProgression } from "./progression.js";
 import { FORMATS, TEAMS, formatKey } from "../shared/modes.js";
@@ -29,6 +31,7 @@ import "./expansion.css";
 import "./social.css";
 import "./kill-streak.css";
 import "./compact-ui.css";
+import "./performance-monitor.css";
 import "./emotes.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
@@ -88,6 +91,11 @@ let playing = false,
   joining = false,
   joiningTransport = null,
   guardWasActive = false;
+const performanceMonitor = setupPerformanceMonitor({
+  parent: document.querySelector(".arena-map"),
+  enabled: preferences.get("wildbow-performance") === "true",
+});
+const renderCadence = new RenderCadence();
 const emotes = setupEmotes({
   send: (key) => transport?.emote(key),
   canSend: () =>
@@ -110,6 +118,9 @@ const progression = setupProgression({
   cloudflare,
   server: () => $("server-url").value || location.origin,
   onSettings: () => {
+    performanceMonitor.setEnabled(
+      preferences.get("wildbow-performance") === "true",
+    );
     scene.setQuality(preferences.get("wildbow-quality") || "balanced");
     controls.setDoubleTapDash(preferences.get("wildbow-doubletap") !== "false");
     document.body.classList.toggle(
@@ -574,6 +585,7 @@ async function join() {
     transport = candidate;
     myId = welcome.id;
     playing = true;
+    performanceMonitor.reset();
     resultKey = "";
     controls.active = true;
     controls.reset();
@@ -618,6 +630,7 @@ function leave() {
   emotes.reset();
   audio.stopAll();
   playing = false;
+  performanceMonitor.reset();
   controls.active = false;
   controls.reset();
   transport?.close();
@@ -833,9 +846,17 @@ function updateHud(current) {
             ? `${buff.icon} ${buff.description} · ${Math.ceil(me.buffTime)}s`
             : "İZİNİ BIRAK",
   );
-  $("connection").title = transport.online
-    ? `Gecikme: ${transport.ping} ms`
-    : "Botlarla antrenman";
+  const measuredPing =
+    Number.isFinite(transport.ping) &&
+    transport.ping >= 0 &&
+    Number.isFinite(transport.pingMeasuredAt);
+  $("connection").title = !transport.online
+    ? "Botlarla antrenman"
+    : !measuredPing
+      ? "Gecikme ölçülüyor…"
+      : performance.now() - transport.pingMeasuredAt > 15000
+        ? `Son gecikme: ${transport.ping} ms · Eski ölçüm`
+        : `Gecikme: ${transport.ping} ms`;
   const ranking = [...(current.roster || current.players)].sort((a, b) =>
     match ? (b.matchPoints || 0) - (a.matchPoints || 0) : b.score - a.score,
   );
@@ -1104,8 +1125,15 @@ function updateHud(current) {
 }
 function frame(now) {
   requestAnimationFrame(frame);
-  if (document.hidden || (!playing && now - lastTime < 1000 / 30)) return;
-  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  if (document.hidden) {
+    renderCadence.reset();
+    lastTime = now;
+    return;
+  }
+  // Keep full visual quality without submitting 120/144 GPU frames for the
+  // same 30 Hz world. Input networking has its independent timer below.
+  if (!renderCadence.due(now, playing ? 60 : 30)) return;
+  const dt = Math.max(0, Math.min((now - lastTime) / 1000, 0.1));
   lastTime = now;
   // Background mobile tabs stop sending input, allowing abandoned Cloudflare
   // sessions to expire instead of leaving a bot arena running indefinitely.
@@ -1139,11 +1167,17 @@ function frame(now) {
         )
       : null;
   scene.render(view, myId, dt, playing, target?.id);
+  if (playing) performanceMonitor.frame(now, transport);
   if (playing && now - hudAt > 90) {
     updateHud(state);
     hudAt = now;
   }
 }
+document.addEventListener("visibilitychange", () => {
+  performanceMonitor.reset();
+  renderCadence.reset();
+  lastTime = performance.now();
+});
 // Network input must keep its cadence even when rendering is slow. Otherwise a
 // busy mobile GPU can trigger the authority's stale-input watchdog mid-draw.
 setInterval(() => {

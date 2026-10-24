@@ -281,6 +281,16 @@ export function setupProgression({ cloudflare, server, onSettings }) {
           false,
         ],
         [
+          "performance",
+          "FPS / ping göstergesi",
+          [
+            ["false", "Kapalı"],
+            ["true", "Açık"],
+          ],
+          "false",
+          false,
+        ],
+        [
           "quality",
           "Görüntü",
           [

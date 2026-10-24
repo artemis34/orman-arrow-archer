@@ -3,6 +3,7 @@ import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
 import { AvatarBatches, ArrowBatches, ParticleBatch } from "./render-pools.js";
 import { AvatarLines } from "./avatar-lines.js";
+import { publishInstanceRange } from "./instance-updates.js";
 import { createPlayerLabel } from "./player-label.js";
 import { prioritizeStaticOccluders } from "./static-occluders.js";
 import * as THREE from "three";
@@ -317,8 +318,7 @@ export class ArenaScene {
           cast: o.castShadow,
           geometries: [],
         });
-      let geometry = o.geometry.clone();
-      if (geometry.index) geometry = geometry.toNonIndexed();
+      const geometry = o.geometry.clone();
       geometry.deleteAttribute("uv");
       geometry.applyMatrix4(o.matrixWorld);
       batches.get(key).geometries.push(geometry);
@@ -329,6 +329,19 @@ export class ArenaScene {
     });
     group.clear();
     for (const entry of batches.values()) {
+      if (entry.geometries.some((geometry) => geometry.index)) {
+        for (const geometry of entry.geometries) {
+          if (geometry.index) continue;
+          // Preserve every existing vertex/normal and triangle in its original
+          // order. Only mixed batches need a sequential index: wholly
+          // non-indexed props retain their previous buffers without overhead.
+          const count = geometry.attributes.position.count;
+          const indices =
+            count > 65535 ? new Uint32Array(count) : new Uint16Array(count);
+          for (let i = 0; i < count; i++) indices[i] = i;
+          geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+        }
+      }
       const merged = mergeGeometries(entry.geometries);
       if (!merged) continue;
       const mesh = new THREE.Mesh(merged, entry.material);
@@ -973,10 +986,11 @@ export class ArenaScene {
         m.updateMatrix();
         this.gems.setMatrixAt(i, m.matrix);
       }
-      this.gems.instanceMatrix.needsUpdate = true;
-      if (gemColorsChanged) this.gems.instanceColor.needsUpdate = true;
+      publishInstanceRange(this.gems.instanceMatrix, this.gems.count);
+      if (gemColorsChanged)
+        publishInstanceRange(this.gems.instanceColor, this.gems.count);
       this.rareHalos.count = rareCount;
-      this.rareHalos.instanceMatrix.needsUpdate = true;
+      publishInstanceRange(this.rareHalos.instanceMatrix, rareCount);
       const objective = state.objective;
       this.shrine.visible =
         !!objective && (objective.active || objective.remaining <= 10);

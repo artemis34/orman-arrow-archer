@@ -70,6 +70,26 @@ try {
         ...scene.staticGroup.children,
         ...scene.worldGroup.children,
       ];
+      const indexedGeometries = statics.map((mesh) => mesh.geometry);
+      // Expanding the shipped indices recreates the old GPU face stream. Node
+      // coverage separately compares pre-merge transforms and exact attributes.
+      const expandedGeometries = indexedGeometries.map((geometry) =>
+        geometry.index ? geometry.toNonIndexed() : geometry.clone(),
+      );
+      const geometryStats = (geometries) =>
+        geometries.reduce(
+          (result, geometry) => {
+            result.vertices += geometry.attributes.position.count;
+            result.triangles +=
+              (geometry.index?.count ?? geometry.attributes.position.count) / 3;
+            result.bytes += Object.values(geometry.attributes).reduce(
+              (sum, attribute) => sum + attribute.array.byteLength,
+              geometry.index?.array.byteLength || 0,
+            );
+            return result;
+          },
+          { vertices: 0, triangles: 0, bytes: 0 },
+        );
       const shippedEarlyMeshes = statics.filter(
         (mesh) => mesh.renderOrder === -1,
       ).length;
@@ -93,7 +113,45 @@ try {
         );
         return data;
       };
+      const shadowPixels = () => {
+        const target = scene.sun.shadow.map;
+        const data = new Uint8Array(target.width * target.height * 4);
+        scene.renderer.readRenderTargetPixels(
+          target,
+          0,
+          0,
+          target.width,
+          target.height,
+          data,
+        );
+        return data;
+      };
+      const difference = (reference, current) => {
+        let changed = 0,
+          highDifference = 0,
+          sum = 0,
+          max = 0;
+        for (let i = 0; i < current.length; i += 4) {
+          let error = 0;
+          for (let c = 0; c < 4; c++) {
+            const delta = Math.abs(current[i + c] - reference[i + c]);
+            sum += delta;
+            error = Math.max(error, delta);
+          }
+          if (error) changed++;
+          if (error > 4) highDifference++;
+          max = Math.max(max, error);
+        }
+        return {
+          changedPixels: changed,
+          highDifferencePixels: highDifference,
+          highDifferenceFraction: highDifference / (current.length / 4),
+          meanError: sum / current.length,
+          maxError: max,
+        };
+      };
       const comparisons = [];
+      const indexedComparisons = [];
       for (const [x, z] of [
         [0, 0],
         [0.07, 0.07],
@@ -115,34 +173,40 @@ try {
         prioritizeStaticOccluders(scene.staticGroup);
         prioritizeStaticOccluders(scene.worldGroup, scene.forestMats.trail);
         const current = pixels();
-        let changed = 0,
-          highDifference = 0,
-          sum = 0,
-          max = 0;
-        for (let i = 0; i < current.length; i += 4) {
-          let difference = 0;
-          for (let c = 0; c < 4; c++) {
-            const d = Math.abs(current[i + c] - reference[i + c]);
-            sum += d;
-            difference = Math.max(difference, d);
-          }
-          if (difference) changed++;
-          if (difference > 4) highDifference++;
-          max = Math.max(max, difference);
-        }
         comparisons.push({
           x,
           z,
-          changedPixels: changed,
-          highDifferencePixels: highDifference,
-          highDifferenceFraction: highDifference / (innerWidth * innerHeight),
-          meanError: sum / current.length,
-          maxError: max,
+          ...difference(reference, current),
         });
+        const currentShadow = shadowPixels();
+        const indexedCalls = scene.renderer.info.render.calls;
+        const indexedTriangles = scene.renderer.info.render.triangles;
+        for (let i = 0; i < statics.length; i++)
+          statics[i].geometry = expandedGeometries[i];
+        const expanded = pixels();
+        const expandedShadow = shadowPixels();
+        indexedComparisons.push({
+          x,
+          z,
+          pixels: difference(expanded, current),
+          shadows: difference(expandedShadow, currentShadow),
+          indexedCalls,
+          expandedCalls: scene.renderer.info.render.calls,
+          indexedTriangles,
+          expandedTriangles: scene.renderer.info.render.triangles,
+        });
+        for (let i = 0; i < statics.length; i++)
+          statics[i].geometry = indexedGeometries[i];
       }
+      const indexedGeometry = geometryStats(indexedGeometries);
+      const expandedGeometry = geometryStats(expandedGeometries);
+      for (const geometry of expandedGeometries) geometry.dispose();
       return {
         shippedEarlyMeshes,
         comparisons,
+        indexedComparisons,
+        indexedGeometry,
+        expandedGeometry,
         earlyMeshes: statics.filter((m) => m.renderOrder === -1).length,
         unchangedGeometryDepthAndShadows: originalSettings.every(
           ([m, depth, shadow, vertices]) =>
@@ -168,6 +232,17 @@ try {
       assert.ok(sample.meanError < 0.05, JSON.stringify(sample));
       assert.ok(sample.highDifferenceFraction < 0.0002, JSON.stringify(sample));
     }
+    assert.equal(
+      result.indexedGeometry.triangles,
+      result.expandedGeometry.triangles,
+    );
+    assert.ok(result.indexedGeometry.bytes < result.expandedGeometry.bytes);
+    for (const sample of result.indexedComparisons) {
+      assert.equal(sample.pixels.changedPixels, 0, JSON.stringify(sample));
+      assert.equal(sample.shadows.changedPixels, 0, JSON.stringify(sample));
+      assert.equal(sample.indexedCalls, sample.expandedCalls);
+      assert.equal(sample.indexedTriangles, sample.expandedTriangles);
+    }
     assert.equal(result.glError, 0);
     assert.equal(result.contextLost, false);
     assert.deepEqual(errors, []);
@@ -177,7 +252,10 @@ try {
     await page.close();
   }
 } catch (error) {
-  annotateFailure(error, "Opaque occluder pixel regression");
+  annotateFailure(
+    error,
+    "Static scene geometry, shadow and occluder regression",
+  );
   throw error;
 } finally {
   await browser.close();

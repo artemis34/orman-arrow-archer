@@ -279,3 +279,79 @@ test("malformed welcome fails visibly instead of clearing the only connection de
   await assert.rejects(connecting, /geçerli bir oyuncu yanıtı/);
   assert.equal(f.transport.closed, true);
 });
+
+test("native RTT starts pending, probes immediately and ignores unsolicited or duplicate pongs", async (context) => {
+  let now = 100;
+  context.mock.method(performance, "now", () => now);
+  context.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+  const f = fixture();
+  try {
+    assert.equal(f.transport.ping, null);
+    assert.equal(f.transport.pingMeasuredAt, null);
+    const connecting = f.transport.connect("RTT", 0);
+    f.ws.message({ type: "pong" });
+    assert.equal(f.transport.ping, null, "a pre-welcome pong is not a sample");
+    welcome(f.ws);
+    await connecting;
+    assert.equal(f.ws.sent.filter((p) => p.type === "ping").length, 1);
+    now = 180;
+    f.ws.message({ type: "pong" });
+    assert.equal(f.transport.ping, 80);
+    assert.equal(f.transport.pingMeasuredAt, 180);
+    now = 200;
+    f.ws.message({ type: "pong" });
+    assert.equal(f.transport.pingMeasuredAt, 180, "duplicate pong is ignored");
+    context.mock.timers.tick(2999);
+    assert.equal(f.ws.sent.filter((p) => p.type === "ping").length, 1);
+    now = 3180;
+    context.mock.timers.tick(1);
+    assert.equal(f.ws.sent.filter((p) => p.type === "ping").length, 2);
+    f.transport.close();
+    now = 3250;
+    f.ws.message({ type: "pong" });
+    context.mock.timers.tick(9000);
+    assert.equal(
+      f.transport.pingMeasuredAt,
+      180,
+      "closed sockets cannot refresh RTT",
+    );
+    assert.equal(f.ws.sent.filter((p) => p.type === "ping").length, 2);
+  } finally {
+    f.transport.close();
+  }
+});
+
+test("legacy no-ID pongs never overlap probes or turn a timed-out reply into a fresh RTT", async (context) => {
+  let now = 0;
+  context.mock.method(performance, "now", () => now);
+  context.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+  const f = fixture();
+  try {
+    const connecting = f.transport.connect("Delayed RTT", 0);
+    welcome(f.ws);
+    await connecting;
+    now = 12000;
+    context.mock.timers.tick(12000);
+    assert.equal(
+      f.ws.sent.filter((p) => p.type === "ping").length,
+      1,
+      "an unanswered request keeps its identity despite intervening intervals",
+    );
+    f.ws.message({ type: "pong" });
+    assert.equal(
+      f.transport.ping,
+      null,
+      "an excessively delayed pong is rejected",
+    );
+    assert.equal(f.transport.pingMeasuredAt, null);
+    now = 15000;
+    context.mock.timers.tick(3000);
+    assert.equal(f.ws.sent.filter((p) => p.type === "ping").length, 2);
+    now = 15045;
+    f.ws.message({ type: "pong" });
+    assert.equal(f.transport.ping, 45);
+    assert.equal(f.transport.pingMeasuredAt, 15045);
+  } finally {
+    f.transport.close();
+  }
+});

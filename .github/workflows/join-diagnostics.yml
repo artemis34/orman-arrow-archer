@@ -7,6 +7,7 @@ on:
         feature/compact-lobby-touch-zone,
         feature/onehand-flow-performance,
         optimization/frame-pacing-2026-10-23,
+        fix/live-frame-network-diagnostics,
         main,
       ]
     paths:
@@ -16,6 +17,10 @@ on:
         client/transport.js,
         client/network-mode.js,
         client/controls.js,
+        client/performance-monitor.js,
+        client/performance-monitor.css,
+        client/render-cadence.js,
+        tests/performance-monitor.browser.js,
         client/progression.js,
         client/community-ui.js,
         client/emotes.css,
@@ -65,6 +70,7 @@ jobs:
           npm run test:forest
           npm run test:battle-royale
           npm run test:hud
+          node tests/performance-monitor.browser.js
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:lobby
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:forest
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:battle-royale
