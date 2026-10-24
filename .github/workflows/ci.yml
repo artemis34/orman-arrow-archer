@@ -327,6 +327,7 @@ jobs:
       - run: npm ci
       - run: npm run build:cloudflare
       - name: Wait for Cloudflare GitHub deployment to serve this client build
+        id: deployed
         shell: bash
         run: |
           set -euo pipefail
@@ -348,13 +349,20 @@ jobs:
           echo "### Verified Cloudflare release" >> "$GITHUB_STEP_SUMMARY"
           echo "$CLOUDFLARE_TEST_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "Client asset: $expected_asset" >> "$GITHUB_STEP_SUMMARY"
-      - name: Play public Cloudflare multiplayer on desktop and phone
-        run: |
-          npm run test:cloudflare
-          npm run test:cloudflare:browser
-          npm run test:multimode
-          npm run test:battle-royale:runtime
-          npm run test:profile
+      - name: Check public authoritative rooms
+        run: npm run test:cloudflare
+      - name: Play public multiplayer on desktop and phone
+        if: "!cancelled() && steps.deployed.conclusion == 'success'"
+        run: npm run test:cloudflare:browser
+      - name: Check public modes and profile APIs
+        if: "!cancelled() && steps.deployed.conclusion == 'success'"
+        run: npm run test:multimode
+      - name: Check public Battle Royale runtime
+        if: "!cancelled() && steps.deployed.conclusion == 'success'"
+        run: npm run test:battle-royale:runtime
+      - name: Check public profile browser and offline shell
+        if: "!cancelled() && steps.deployed.conclusion == 'success'"
+        run: npm run test:profile
       - uses: actions/upload-artifact@v4
         if: always()
         with:

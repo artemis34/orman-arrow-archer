@@ -11,3 +11,10 @@ export function annotateFailure(error, title) {
     .replaceAll("\n", "%0A");
   console.error(`::error title=${title}::${message}`);
 }
+
+// EventTarget callbacks and module-level failures can escape a test's try/catch.
+// Observe them without intercepting Node's normal error/exit behavior.
+if (process.env.GITHUB_ACTIONS === "true")
+  process.on("uncaughtExceptionMonitor", (error) =>
+    annotateFailure(error, "Uncaught runtime test failure"),
+  );
