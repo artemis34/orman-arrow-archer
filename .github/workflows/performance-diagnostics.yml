@@ -6,6 +6,7 @@ on:
     paths:
       [
         benchmarks/runtime-diagnostics.js,
+        benchmarks/network-diagnostics.js,
         .github/workflows/performance-diagnostics.yml,
         client/render-cadence.js,
       ]
@@ -25,6 +26,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Compare edge and room latency without rendering
+        env:
+          CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
+        run: node benchmarks/network-diagnostics.js
       - name: Wait for this main client before measuring
         if: github.ref == 'refs/heads/main'
         shell: bash
@@ -48,4 +53,6 @@ jobs:
         if: always()
         with:
           name: runtime-measurements
-          path: /tmp/archer-validation/runtime-diagnostics.*
+          path: |
+            /tmp/archer-validation/runtime-diagnostics.*
+            /tmp/archer-validation/network-diagnostics.json
