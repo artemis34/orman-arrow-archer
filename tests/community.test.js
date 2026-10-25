@@ -248,3 +248,118 @@ test("a lost stats acknowledgement retries the same receipt instead of counting 
   assert.equal(profile.stats.hits, 3);
   assert.equal(s.pendingActivity, null);
 });
+
+test("global presence counts real sessions across rooms, expires leases and rejects public spoofing", async (t) => {
+  const p = platform();
+  t.after(() => p.close());
+  for (const [room, count] of [
+    ["br:a", 3],
+    ["arena:b", 2],
+  ])
+    await community(p.env, "/presence", { room, count, instance: "current" });
+  assert.equal(
+    (await (await call(p.env, "/api/presence", tokenA)).json()).online,
+    5,
+  );
+  await community(p.env, "/presence", {
+    room: "br:a",
+    count: 0,
+    instance: "old",
+  });
+  assert.equal((await (await community(p.env, "/presence")).json()).online, 5);
+  await community(p.env, "/presence", {
+    room: "br:a",
+    count: 0,
+    instance: "current",
+  });
+  assert.equal((await (await community(p.env, "/presence")).json()).online, 2);
+  assert.equal(
+    (await call(p.env, "/api/presence", tokenA, { room: "fake", count: 32 }))
+      .status,
+    405,
+  );
+  p.hubContext.storage.sql.exec("UPDATE presence SET expires=0");
+  assert.equal((await (await community(p.env, "/presence")).json()).online, 0);
+});
+
+test("ranked BR awards verified results with opposing humans but a lone human cannot farm bot RP", async (t) => {
+  const p = platform();
+  t.after(() => p.close());
+  for (const count of [1, 2]) {
+    const room = new ArenaRoom(p.context(), p.env);
+    room.world = new World({ bots: 0, mode: createMode("brranked") });
+    room.world.mode.countdown = 0;
+    const ids = [await profileId(tokenA), await profileId(tokenB)];
+    for (let i = 0; i < count; i++) {
+      room.world.addPlayer("human" + i);
+      room.sessions.set(
+        { send() {} },
+        {
+          id: "human" + i,
+          profileId: ids[i],
+          joined: true,
+          joinedAt: 0,
+          activity: { kills: 0, hits: 0, assists: 0, objectives: 0 },
+        },
+      );
+    }
+    room.world.addPlayer("bot", "Bot", 0, true);
+    room.world.step();
+    room.world.gain = () => {};
+    room.world.time = 60;
+    room.rankedParticipants = new Map(
+      [...room.sessions.values()].map((s) => [s.id, s.profileId]),
+    );
+    for (const player of room.world.players.values())
+      if (player.id !== "human0") {
+        player.spawnShield = player.levelGuard = 0;
+        room.world.damage(player, 9999, "human0");
+      }
+    room.world.mode.finish(room.world);
+    room.rewardRound();
+    await p.drain();
+    const a = (await (await call(p.env, "/api/profile", tokenA)).json())
+      .profile;
+    assert.equal(a.ranked.matches, count === 1 ? 0 : 1);
+    assert.equal(a.ranked.points, count === 1 ? 0 : 25);
+  }
+});
+
+test("leaving ranked BR records one loss without terminating the other players match", async (t) => {
+  const p = platform();
+  t.after(() => p.close());
+  const room = new ArenaRoom(p.context(), p.env);
+  room.world = new World({ bots: 0, mode: createMode("brranked") });
+  room.world.mode.countdown = 0;
+  const ids = [await profileId(tokenA), await profileId(tokenB)],
+    sockets = [{ send() {} }, { send() {} }];
+  sockets.forEach((ws, i) => {
+    room.world.addPlayer("p" + i);
+    room.sessions.set(ws, {
+      id: "p" + i,
+      joined: true,
+      joinedAt: 0,
+      profileId: ids[i],
+      activity: { kills: 0, hits: 0, assists: 0, objectives: 0 },
+    });
+  });
+  room.world.addPlayer("bot", "Bot", 0, true);
+  room.world.step();
+  room.rankedParticipants = new Map([
+    ["p0", ids[0]],
+    ["p1", ids[1]],
+  ]);
+  room.world.time = 20;
+  room.remove(sockets[0]);
+  await p.drain();
+  assert.equal(room.world.mode.phase, "playing");
+  const a = (await (await call(p.env, "/api/profile", tokenA)).json()).profile;
+  assert.equal(a.ranked.matches, 1);
+  room.remove(sockets[0]);
+  await p.drain();
+  assert.equal(
+    (await (await call(p.env, "/api/profile", tokenA)).json()).profile.ranked
+      .matches,
+    1,
+  );
+});

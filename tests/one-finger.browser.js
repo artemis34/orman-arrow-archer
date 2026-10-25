@@ -68,9 +68,24 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${base}/?server=http://127.0.0.1:${http.address().port}`);
   await expect(page.locator("#lobby")).toBeVisible();
+  await expect(
+    page.locator('#match-format option[value="ranked"]'),
+  ).toHaveCount(0);
+  await page.locator("#match-format").selectOption("duel");
+  await expect(page.locator("#ranked-entry")).toBeVisible();
+  await page.locator("#ranked-toggle").check();
+  await page.locator("#match-format").selectOption("brduo");
+  await expect(page.locator("#ranked-toggle")).toBeChecked();
+  await page.locator("#ranked-toggle").uncheck();
+  await page.locator("#match-format").selectOption("arena");
+  await expect(page.locator("#ranked-entry")).toBeHidden();
   await page.locator("#online-mode").tap();
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
+  await expect(page.locator("#first-game-tutorial")).toBeVisible();
+  await page.locator("#tutorial-skip").tap();
+  await expect(page.locator("#dash")).toBeHidden();
+  await expect(page.locator("#heal")).toBeHidden();
   await expect.poll(() => !!actor?.input.autoFire).toBe(true);
   const cdp = engine === "chromium" ? await context.newCDPSession(page) : null;
   // Chromium uses genuine touch input; WebKit exercises the same captured
@@ -124,6 +139,8 @@ try {
   await move(230);
   await expect.poll(() => actor.x - initial).toBeGreaterThan(0.3);
   assert.equal(actions.filter((a) => a.dash).length, 0);
+  await move(250);
+  await expect(page.locator("#dash-target")).toBeVisible();
   await move(285);
   await expect.poll(() => actions.filter((a) => a.dash).length).toBe(1);
   // Do not queue an automatic dodge when cooldown finishes under a held finger.
@@ -136,7 +153,14 @@ try {
   await start();
   await move(230);
   await offer();
+  await move(235); // rebase the already held finger into selection
+  await move(235, 665);
+  await expect.poll(() => actor.upgrades.draw || 0).toBe(1);
+  await expect(page.locator("#upgrades")).toBeHidden();
+  await move(250, 665); // same captured finger resumes movement
+  await expect.poll(() => actor.input.x).toBeGreaterThan(0);
   await end();
+  await offer();
   assert.equal(actor.pending, 1);
   for (const [width, height] of [
     [390, 844],

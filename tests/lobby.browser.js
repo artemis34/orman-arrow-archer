@@ -167,28 +167,20 @@ try {
     [568, 320],
   ]) {
     await page.setViewportSize({ width, height });
-    const actions = await page.locator(".arena-actions").boundingBox();
-    const emoji = await page.locator("#emote-toggle").boundingBox();
-    assert.ok(actions.x < width / 2, "one-hand left layout mirrors actions");
-    assert.ok(emoji.x < width / 2, "emoji follows the preferred hand");
+    await expect(page.locator(".arena-actions")).toBeHidden();
+    await expect(page.locator("#emote-controls")).toBeHidden();
     for (const selector of [
-      "#dash",
-      "#heal",
       "#move-stick",
       ".arena-vitals",
       "#map-toggle",
       "#kill-streak",
     ]) {
       const box = await page.locator(selector).boundingBox();
-      const overlap =
-        Math.min(box.x + box.width, emoji.x + emoji.width) >
-          Math.max(box.x, emoji.x) &&
-        Math.min(box.y + box.height, emoji.y + emoji.height) >
-          Math.max(box.y, emoji.y);
-      assert.equal(
-        overlap,
-        false,
-        `${width}×${height}: emoji does not cover ${selector}`,
+      assert.ok(
+        box.x >= 0 &&
+          box.y >= 0 &&
+          box.x + box.width <= width + 1 &&
+          box.y + box.height <= height + 1,
       );
     }
   }
@@ -236,16 +228,7 @@ try {
     const move = await page.locator("#move-stick").boundingBox();
     assert.ok(Math.abs(move.x + move.width / 2 - width / 2) < 1);
     const controls = [move];
-    for (const id of ["dash", "heal"]) {
-      const r = await page.locator(`#${id}`).boundingBox();
-      assert.ok(
-        r.x >= 0 &&
-          r.y >= 0 &&
-          r.x + r.width <= width + 1 &&
-          r.y + r.height <= height + 1,
-      );
-      controls.push(r);
-    }
+
     for (let i = 0; i < controls.length; i++)
       for (let j = i + 1; j < controls.length; j++) {
         const a = controls[i],

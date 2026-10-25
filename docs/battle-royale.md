@@ -1,38 +1,36 @@
-# Solo Battle Royale
+# Battle Royale ve dereceli karşılaşmalar
 
-Choose **Battle Royale · Herkes tek** under Karşılaşma. Both multiplayer and
-practice use the same authoritative `BattleRoyale` rules. Capacity is 16; empty
-waiting-room seats are filled with bots. There are no teams or same-round
-respawns. A 12-second preparation countdown lets more humans join; a full human
-roster starts immediately. Active rounds reject late joins, and quick matchmaking
-allocates another waiting room instead. Disconnects never spawn replacements
-during combat.
+Solo BR 32 oyuncu; ikili BR 16 takım × 2 oyuncu. Boş hazırlık koltukları botlarla
+tamamlanır. İnsanlar botların yerini alır; maç başladıktan sonra yeni giriş veya
+boşalan koltuğa bot eklenmesi yoktur. Hazırlık 12 saniye, tam insan kadrosu
+hazırsa hemen başlangıçtır. Var olan 84 × 84 harita, grafik ve daralan alan
+korunur: 20 saniye hazırlık, 60 → 42 → 28 → 16 → 7 → 0 yarıçapları ve
+5 / 8 / 12 / 18 / 30 saniyelik fırtına hasarı.
 
-The initial safe circle (radius 60) covers all corners of the existing 84-unit
-square map. After 20 seconds it contracts smoothly through radii
-60 → 42 → 28 → 16 → 7 → 0, in five 35-second stages. Outside damage ticks once per
-second on the authority (5 / 8 / 12 / 18 / 30 damage for successive stages).
-Existing spawn and level-selection protection still apply. The final storm also
-damages the exact centre; a simultaneous final elimination is a draw. Bots use
-their existing cover navigation to head into the safe circle.
+Solo oyuncu elenince dönmez. İkilide takım arkadaşı hayattaysa 15 saniyenin
+sonunda, onun yakınındaki uygun bir noktada otomatik doğar. Seviye ve ekipman
+normal yeniden doğuşta olduğu gibi sıfırlanır. İki takım üyesi de ölürse dönüş
+yoktur. Son kalan takım kazanır; iki üye aynı takım sıralamasını alır.
 
-The last survivor wins, regardless of kill score. Results list survival placement;
-profile victory rewards use the survivor ID. Between rounds, all participants
-reset to level 1, the circle resets, and departed seats can be replenished. Normal
-arena, team, duel and ranked rules remain unchanged.
+Ayrı Ranked menü satırı kaldırılmıştır. Düello, solo BR ve ikili BR için
+**Dereceli** kutusu kullanılır. Eski `ranked` format kimliği eski bağlantıların ve
+istemcilerin 1v1 uyumluluğu için sunucuda korunur. BR için `brranked` ve
+`brduoranked` kullanılır. Dereceli maçlar doğrulanmış profil ve eşleştirme bileti
+ister. RP yalnızca en az iki farklı gerçek profil varsa, ikilide bu profiller en
+az iki farklı takımda başladıysa verilir. Tek insan + botlar RP üretmez.
+Dereceli BR'den ayrılmak diğer oyuncuların maçını bitirmez; uygun katılımcıya
+tekil makbuzla yenilgi kaydedilir. Ödüller hâlâ sadece sunucudan yazılır.
 
-The existing protocol version, input flags and player tuples are unchanged.
-Optional `match.zone` metadata contains `x`, `z`, `radius`, `damage`, `shrinking`
-and `remaining` (initial safe-time countdown). `match.survivors`, `match.winnerId`
-and result-row `placement` supply the rest of the UI. Native clients should draw
-this state; they must not compute authoritative storm damage. The web view uses
-two reused meshes and adds the circle to the existing minimap/status display.
+Opsiyonel match metadata: `zone`, `survivors`, `winnerId`, `winnerTeam`,
+`survivingTeams`, `reviveDelay` ve sonuç satırı `placement`. v2 oyuncu tuple'ları
+ve giriş bayrakları değişmez; yerel/Swift istemcileri bunları sunucudan okur.
 
-Validation:
+Düello elmas hatası: boşalan sabit noktaların saniyede çok kez doldurulması
+engellenir. Normal noktalar 8 sn, nadir noktalar 45 sn bekler. Oyuncu 2,5 birim
+mesafedeyken aynı yerde yeniden elmas çıkmaz. Paraşütlü ikmalin ayrı zamanlaması
+korunur; ölüm kristalleri de sabit nokta yenileme sayılmaz.
 
-- `npm test`: waiting/start, FFA targeting, late joins, no respawn/refill, shrinking
-  and storm ticks, survivor-based winner, draw, rematch and binary round trip.
-- `npm run test:battle-royale`: two browser clients, storm UI/damage, short ability
-  cards, winner placement and rematch (Chromium and `PLAYWRIGHT_ENGINE=webkit`).
-- `npm run test:multimode`: the real Durable Object runtime, including a full
-  16-human BR roster, capacity enforcement and room cleanup.
+Online sayaç botları saymaz. Menü `/api/presence` üzerinden 30 sn'de bir toplamı
+okur; oynarken ek sayaç sorgusu yapılmaz. Odalar katılım/ayrılmada ve 30 sn'de bir
+özel Community binding'ine bildirir. Çöken odaların bildirimi 90 sn'de zaman aşar.
+İstemci varlık sayısını yazamaz. Arena menüsünde insan/bot sayıları ayrıca vardır.

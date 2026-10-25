@@ -350,7 +350,7 @@ test("overpull uses the movement direction once and consumes attempts during coo
     move.fire("pointerdown");
     dispatch("pointermove", { clientX: 95 });
     assert.equal(c.dash, undefined);
-    dispatch("pointermove", { clientX: 135 });
+    dispatch("pointermove", { clientX: 150 });
     assert.equal(c.dash, true);
     assert.deepEqual(c.dashVector, { x: 1, z: 0 });
     c.dash = false;
@@ -581,4 +581,33 @@ test("diagonal joystick directions match the tilted camera on portrait and lands
   } finally {
     [globalThis.innerWidth, globalThis.innerHeight] = previous;
   }
+});
+
+test("a held walking finger can enter cards and confirm by dwell, then resume without lifting", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  withSticks(({ controls: c, move, dispatch }) => {
+    let offer = "";
+    const picks = [];
+    c.oneHanded = true;
+    c.upgradeChoices = () => offer;
+    c.onUpgradeChoose = (i) => {
+      picks.push(i);
+      offer = "";
+    };
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 100 });
+    offer = "1:speed,draw,rear";
+    dispatch("pointermove", { clientX: 105 });
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    dispatch("pointermove", { clientX: 145 });
+    t.mock.timers.tick(599);
+    assert.deepEqual(picks, []);
+    t.mock.timers.tick(1);
+    assert.deepEqual(picks, [2]);
+    dispatch("pointermove", { clientX: 170 });
+    assert.ok(c.joy.x > 0);
+    assert.equal(move.captured.size, 1);
+    dispatch("pointerup", { clientX: 170 });
+    assert.deepEqual(picks, [2]);
+  });
 });

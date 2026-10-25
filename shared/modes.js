@@ -2,11 +2,36 @@
 export const FORMATS = Object.freeze({
   arena: { name: "Serbest arena", capacity: 16, teams: 0, duration: 0 },
   br: {
-    name: "Battle Royale",
-    capacity: 16,
+    name: "Battle Royale · Solo",
+    capacity: 32,
     teams: 0,
     duration: 210,
     battleRoyale: true,
+  },
+  brduo: {
+    name: "Battle Royale · İkili",
+    capacity: 32,
+    teams: 16,
+    duration: 210,
+    battleRoyale: true,
+    reviveDelay: 15,
+  },
+  brranked: {
+    name: "Battle Royale · Solo dereceli",
+    capacity: 32,
+    teams: 0,
+    duration: 210,
+    battleRoyale: true,
+    ranked: true,
+  },
+  brduoranked: {
+    name: "Battle Royale · İkili dereceli",
+    capacity: 32,
+    teams: 16,
+    duration: 210,
+    battleRoyale: true,
+    reviveDelay: 15,
+    ranked: true,
   },
   round: { name: "Süreli arena", capacity: 16, teams: 0, duration: 240 },
   duel: {
@@ -41,6 +66,16 @@ export const TEAMS = Object.freeze([
   { name: "Turuncu", color: "#ffb579", symbol: "⬟" },
   { name: "Turkuaz", color: "#78e3d7", symbol: "◇" },
   { name: "Pembe", color: "#f5a4d3", symbol: "✚" },
+  ...[
+    "#bdd68a",
+    "#a8bfff",
+    "#edc4a5",
+    "#97d3b8",
+    "#d5b6ee",
+    "#ffc18f",
+    "#b6d6df",
+    "#efb0ba",
+  ].map((color, i) => ({ name: `Takım ${i + 9}`, color, symbol: `${i + 9}` })),
 ]);
 export const formatKey = (value) =>
   typeof value === "string" && Object.hasOwn(FORMATS, value) ? value : "arena";
@@ -213,14 +248,15 @@ export class TeamDeathmatch extends RoundMode {
  * The initial circle covers every corner of the existing 84 × 84 arena.
  */
 export class BattleRoyale extends RoundMode {
-  constructor({ countdown = 12 } = {}) {
-    super("br");
+  constructor({ countdown = 12, key = "br" } = {}) {
+    super(key);
     this.countdown = countdown;
     this.startAt = 0;
     this.startedAt = 0;
     this.nextStormAt = 0;
     this.eliminations = new Map();
     this.winnerId = null;
+    this.winnerTeam = null;
     this.zone = {
       x: 0,
       z: 0,
@@ -235,6 +271,21 @@ export class BattleRoyale extends RoundMode {
   }
   get canRespawn() {
     return this.phase === "waiting";
+  }
+  canRevive(world, player) {
+    return !!(
+      this.rules.reviveDelay &&
+      this.phase === "playing" &&
+      [...world.players.values()].some(
+        (p) => p.id !== player.id && p.team === player.team && p.alive,
+      )
+    );
+  }
+  aliveSides(world) {
+    const alive = [...world.players.values()].filter((p) => p.alive);
+    return this.rules.teams
+      ? new Set(alive.map((p) => p.team)).size
+      : alive.length;
   }
   onElimination(world, attacker, target) {
     super.onElimination(world, attacker, target);
@@ -255,9 +306,26 @@ export class BattleRoyale extends RoundMode {
   }
   finish(world) {
     const alive = [...world.players.values()].filter((p) => p.alive);
-    this.winnerId = alive.length === 1 ? alive[0].id : null;
+    this.winnerTeam =
+      this.rules.teams && this.aliveSides(world) === 1 ? alive[0].team : null;
+    this.winnerId =
+      alive.length === 1 || this.winnerTeam != null
+        ? alive[0]?.id || null
+        : null;
     super.finish(world);
     this.results.sort((a, b) => {
+      if (this.rules.teams) {
+        if (a.team === b.team) return a.id.localeCompare(b.id);
+        if (a.team === this.winnerTeam) return -1;
+        if (b.team === this.winnerTeam) return 1;
+        const death = (team) =>
+          Math.max(
+            ...[...world.players.values()]
+              .filter((p) => p.team === team)
+              .map((p) => this.eliminations.get(p.id) ?? Infinity),
+          );
+        return death(b.team) - death(a.team) || a.team - b.team;
+      }
       if (a.id === this.winnerId) return -1;
       if (b.id === this.winnerId) return 1;
       return (
@@ -265,8 +333,9 @@ export class BattleRoyale extends RoundMode {
           (this.eliminations.get(a.id) ?? Infinity) || b.kills - a.kills
       );
     });
+    const teams = [...new Set(this.results.map((p) => p.team))];
     this.results.forEach((row, i) => {
-      row.placement = i + 1;
+      row.placement = this.rules.teams ? teams.indexOf(row.team) + 1 : i + 1;
     });
   }
   step(world) {
@@ -281,13 +350,14 @@ export class BattleRoyale extends RoundMode {
       world.resetRound();
       this.eliminations.clear();
       this.winnerId = null;
+      this.winnerTeam = null;
       this.phase = "playing";
       this.startedAt = world.time;
       this.endAt = world.time + this.duration;
       this.nextStormAt = world.time + 1;
     } else if (this.phase === "playing") {
       const alive = [...world.players.values()].filter((p) => p.alive);
-      if (alive.length <= 1) {
+      if (this.aliveSides(world) <= 1) {
         this.finish(world);
         return;
       }
@@ -299,8 +369,7 @@ export class BattleRoyale extends RoundMode {
             Math.hypot(p.x - this.zone.x, p.z - this.zone.z) >= this.zone.radius
           )
             world.damage(p, this.zone.damage, null, "storm");
-        if ([...world.players.values()].filter((p) => p.alive).length <= 1)
-          this.finish(world);
+        if (this.aliveSides(world) <= 1) this.finish(world);
       }
     } else if (world.time >= this.restartAt) {
       this.round++;
@@ -309,6 +378,7 @@ export class BattleRoyale extends RoundMode {
       this.phase = "waiting";
       this.startAt = 0;
       this.winnerId = null;
+      this.winnerTeam = null;
       this.zone.radius = 60;
       this.zone.shrinking = false;
       this.zone.damage = 5;
@@ -327,6 +397,10 @@ export class BattleRoyale extends RoundMode {
       ...state,
       zone: { ...this.zone },
       winnerId: this.winnerId,
+      winnerTeam: this.winnerTeam ?? null,
+      battleRoyale: true,
+      reviveDelay: this.rules.reviveDelay || 0,
+      survivingTeams: this.rules.teams ? this.aliveSides(world) : null,
       survivors: [...world.players.values()].filter((p) => p.alive).length,
     };
   }
@@ -334,6 +408,6 @@ export class BattleRoyale extends RoundMode {
 export const createMode = (key) =>
   formatKey(key) === "arena"
     ? new FreeForAll()
-    : key === "br"
-      ? new BattleRoyale()
+    : FORMATS[formatKey(key)].battleRoyale
+      ? new BattleRoyale({ key: formatKey(key) })
       : new RoundMode(key);

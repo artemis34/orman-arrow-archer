@@ -28,7 +28,7 @@ async function connect(options) {
 try {
   const first = await connect({ matchmake: true });
   assert.equal(first.latest.match.format, "br");
-  assert.equal(first.latest.match.capacity, 16);
+  assert.equal(first.latest.match.capacity, 32);
   assert.ok(first.latest.roster.every((p) => p.team == null));
   await until(
     () => first.latest.match.phase === "playing",
@@ -52,7 +52,7 @@ try {
   );
   assert.ok(first.latest.players.find((p) => p.id === first.id).x >= before);
   console.log(
-    "BATTLE_ROYALE_RUNTIME_OK: native WebSocket, 16 solo seats, countdown, live zone metadata, movement, late-entry rejection and new-round matchmaking.",
+    "BATTLE_ROYALE_RUNTIME_OK: native WebSocket, 32 solo seats, countdown, live zone metadata, movement, late-entry rejection and new-round matchmaking.",
   );
 } catch (error) {
   annotateFailure(error, "Cloudflare Battle Royale runtime");

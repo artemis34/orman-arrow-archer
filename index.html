@@ -70,20 +70,31 @@
             <button id="online-mode">◎ Çok oyunculu</button
             ><button id="practice-mode" class="selected">✧ Antrenman</button>
           </div>
+          <small id="online-count" aria-live="polite"
+            >Çevrimiçi oyuncular: —</small
+          >
           <div class="format-entry">
             <label for="match-format">KARŞILAŞMA</label>
             <select id="match-format" aria-describedby="format-note">
               <option value="arena">Serbest arena · Süresiz</option>
-              <option value="br">Battle Royale · Herkes tek</option>
+              <option value="br">Battle Royale · Solo · 32 kişi</option>
+              <option value="brduo">Battle Royale · İkili · 16 takım</option>
               <option value="round">Süreli arena · 4 dakika</option>
               <option value="duel">Düello · 1v1 · 2 dakika</option>
-              <option value="ranked">Ranked · Orman düellosu · 1v1</option>
               <option value="t2">Takım · 2v2</option>
               <option value="t4">Takım · 4v4</option>
               <option value="t8">Takım · 8v8</option>
               <option value="squads">4 takım × 4 kişi · 16 oyuncu</option>
               <option value="duos">8 takım × 2 kişi · 16 oyuncu</option>
             </select>
+            <label id="ranked-entry" class="hidden"
+              ><input
+                id="ranked-toggle"
+                type="checkbox"
+                title="RP kazanmak için karşılaşmada en az iki farklı gerçek oyuncu, ikilide iki farklı insanlı takım olmalı. Botlar RP kazandırmaz."
+              />
+              Dereceli</label
+            >
             <p id="format-note" class="field-note sr-only">
               Kristalleri topla, yeteneklerini geliştir.
             </p>
@@ -213,6 +224,7 @@
         <div id="leader-panel" class="hidden">
           <section class="arena-leaders" aria-label="Arena liderleri">
             <div class="arena-heading"><span>ARENA LİDERLERİ</span></div>
+            <small id="room-human-count"></small>
             <div class="arena-session">
               <span class="live-dot"></span><span id="connection">YEREL</span
               ><span id="population">8 OKÇU</span
@@ -470,6 +482,12 @@
         ><button id="back-lobby" class="text-button">Ana menüye dön</button>
       </section>
     </div>
+    <div id="dash-target" class="hidden" aria-hidden="true">ϟ</div>
+    <div id="first-game-tutorial" class="hidden" role="status">
+      <strong id="tutorial-title"></strong>
+      <p id="tutorial-note"></p>
+      <button id="tutorial-skip">Geç</button>
+    </div>
     <div id="help" class="modal hidden">
       <section class="help-card">
         <button id="help-close" class="close-modal" aria-label="Kapat">
@@ -507,17 +525,18 @@
               Space, sağ tık veya ϟ butonuyla atıl. Atılırken oklar sana
               işlemez. 3 saniyede yenilenir. E veya + butonu 25 can yeniler; 14
               saniyede dolar. Tek el modunda joystick’i normal çemberinin dışına
-              uzatınca atılırsın. Canın %35’e düştüğünde +25 can yeteneğin
-              hazırsa otomatik kullanılır. İkisini de ayarlardan kapatabilirsin.
+              uzatınca beliren ϟ hedefine dokunduğunda atılırsın. Canın %35’e
+              düştüğünde +25 can yeteneğin hazırsa otomatik kullanılır. İkisini
+              de ayarlardan kapatabilirsin.
             </p>
           </div>
           <div>
             <b>04 / GÜÇLEN</b>
             <p>
-              Tek el modunda kart seçmek için joystick’i sola (1), yukarı (2)
-              veya sağa (3) çekip bırak. Merkeze geri dönmek seçimi iptal eder.
-              Kristalleri topla, rakiplerini vur. Seviye atladığında üç
-              yetenekten birini alttaki kartlardan seç. İlk 5 saniye sabit ve
+              Tek el modunda parmağını kaldırmadan joystick’i sola (1), yukarı
+              (2) veya sağa (3) çek ve kısa bekle. Merkeze geri dönmek seçimi
+              iptal eder. Kristalleri topla, rakiplerini vur. Seviye atladığında
+              üç yetenekten birini alttaki kartlardan seç. İlk 5 saniye sabit ve
               hasara karşı korumalı olursun; seçimleri bitirince hemen devam
               edersin. Altın ışık ve azalan halka koruma bitene kadar yanar.
               Altın büyük kristaller nadirdir ve 60 XP verir.

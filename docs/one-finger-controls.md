@@ -1,32 +1,26 @@
 # Tek parmak kontrolleri
 
-Çalışan sürümün yedeği: `backup/pre-one-finger-controls-7a22ac5`.
+Yedekler: `backup/pre-one-finger-controls-7a22ac5` ve
+`backup/pre-br-duos-tutorial-d0d3d88`.
 
-Telefonda varsayılan tek el modunda:
+Tek el modunda ayrı atılma, can ve emoji tuşları gizlenir. Klasik modda kalırlar.
 
-- Hareket joystick'ini dış çemberin ötesine uzatmak bir kez atılma ister.
-  Parmağı dışarıda tutmak yeni atılmalar üretmez. Yeniden uzatmak için önce
-  çemberin içine dönmek gerekir. Hazır olmayan atılma sonraya sıraya alınmaz.
-- Can %35 veya altına indiğinde mevcut +25 can yeteneği otomatik istenir.
-  Sunucu mevcut 14 saniye bekleme süresini, canlı olmayı ve seviye korumasını
-  doğrular. Zayıf bağlantıda yeniden deneme en fazla saniyede bir yapılır;
-  mevcut hareket paketindeki `heal` alanı kullanılır, yeni mesaj türü yoktur.
-- Yetenek kartlarının konumu değişmez. Kartlar açıkken yeni bir joystick
-  hareketinde sol / yukarı / sağ, sırasıyla 1 / 2 / 3 numaralı kartı vurgular.
-  Parmağı bırakmak seçimi onaylar; merkeze dönmek veya aşağı çekmek iptal eder.
-  Kartı yenileme, parmak iptali ve odak kaybı eski seçimi onaylamaz. Seviye
-  atlarken zaten yürüyen parmağın hareketi seçim sayılmaz: önce bırakılır.
-- Atılma ve can tuşları elle kullanılabilir. İki yeni otomatik yardımcı Ayarlar
-  sekmesinden ayrı ayrı kapatılabilir. Klasik mod ve bilgisayarın WASD/fare
-  kontrolleri aynı kalır; kartlara dokunma ve 1/2/3 kısayolları çalışır.
+- Parmağını normal çemberin ötesine çekince o yönde geçici bir ϟ hedefi çıkar.
+  Hedef dışarıya kaçmaz; parmak hedefe ulaşınca bir kez atılma istenir.
+  Yön değiştirmek hedefi yeni yöne taşır. Bekleme süresinde kalan süre gösterilir.
+  Basılı tutmak tekrar atılmaz; yeni istek için önce çemberin içine dönülür.
+- Can %35 veya altındayken mevcut +25 can yeteneği hazırsa otomatik istenir.
+  Sunucu 14 saniyelik bekleme süresini, canı ve korumayı doğrular.
+- Kartlar çıkınca parmağı kaldırmak gerekmez. İlk yeni hareket seçimi mevcut
+  parmak konumuna taşır; sola / yukarı / sağa çekmek 1 / 2 / 3 numaralı kartı
+  vurgular. Yaklaşık 600 ms o yönde kalmak onaylar. Merkeze / aşağı dönmek,
+  odak kaybı ve pointer iptali seçimi iptal eder. İstenirse bırakmak da onaylar.
+  Kart değişince eski hareket geçersizleşir. Seçim sonrası aynı parmakla yürünür.
+- Kartların konumu, doğrudan dokunma ve klavye kısayolları korunur.
+- Yeni otomatik yardımlar Ayarlar'dan kapatılabilir.
 
-Bu değişiklik yalnızca istemci girişini ve kart vurgusunu etkiler. Sunucu
-fiziği, hasar, çarpışma, 30 Hz giriş ve v2 ağ protokolü değişmez. Beş saniyelik
-koruma ve seçim tamamlandığında korumanın erken bitmesi mevcut sunucu
-davranışıdır.
+İlk oyundaki geçilebilir öğretici gerçek hareket, atılma, atış ve yetenek seçimiyle
+ilerler. Tamamlanma/atlama cihazda saklanır. Masaüstüne WASD/fare anlatılır.
 
-Doğrulama: `npm test`, `npm run check`, iki build ve
-`npm run test:one-finger` (Chromium / WebKit). Yeni tarayıcı senaryosu gerçek
-otoriter test sunucusuna bağlanır; Chromium'da gerçek dokunmatik girdisini,
-WebKit'te mobil boyutta yakalanan pointer olaylarını kullanır. Telefonun
-gerçek donanım performansı bu işlev testinden çıkarılamaz.
+Sunucu hareketi, hasarı, çarpışmaları ve bekleme sürelerini hesaplamaya devam
+eder. v2 mesaj biçimi ve giriş alanları değişmez. Yeni bir istemci mesajı yoktur.

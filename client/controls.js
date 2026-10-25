@@ -270,11 +270,46 @@ export class Controls {
     let captureTarget = el;
     const overpull = new OverpullDash();
     let upgradeGesture = "",
-      selectedCard = -1;
+      selectedCard = -1,
+      selectionTimer = null,
+      committedOffer = "",
+      lastX = 0,
+      lastY = 0;
+    const clearSelectionTimer = () => {
+      clearTimeout(selectionTimer);
+      selectionTimer = null;
+    };
+    const commit = () => {
+      if (
+        !upgradeGesture ||
+        selectedCard < 0 ||
+        !this.active ||
+        this.focused === false ||
+        this.upgradeChoices?.() !== upgradeGesture
+      )
+        return;
+      const index = selectedCard;
+      committedOffer = upgradeGesture;
+      upgradeGesture = "";
+      clearSelectionTimer();
+      this.joy = { x: 0, z: 0 };
+      startX = lastX;
+      startY = lastY;
+      el.style.setProperty("--floating-x", `${startX}px`);
+      el.style.setProperty("--floating-y", `${startY}px`);
+      el.classList.remove("card-picking");
+      overpull.reset();
+      this.onDashTarget?.(null);
+      knob.style.transform = "";
+      this.onUpgradeChoose?.(index);
+      previewCard(-1);
+    };
     const previewCard = (index) => {
       if (selectedCard === index) return;
+      clearSelectionTimer();
       selectedCard = index;
       this.onUpgradePreview?.(index);
+      if (index >= 0) selectionTimer = setTimeout(commit, 600);
     };
     // Pointer moves can arrive faster than animation frames. Read layout only
     // when a gesture starts or the pad's actual size changes, never after each
@@ -288,6 +323,27 @@ export class Controls {
     });
     sizeObserver.observe(el);
     const update = (e) => {
+      lastX = e.clientX;
+      lastY = e.clientY;
+      const offer = !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
+      if (offer && offer !== upgradeGesture && offer !== committedOffer) {
+        upgradeGesture = offer;
+        clearSelectionTimer();
+        selectedCard = -1;
+        startX = e.clientX;
+        startY = e.clientY;
+        el.style.setProperty("--floating-x", `${startX}px`);
+        el.style.setProperty("--floating-y", `${startY}px`);
+        el.classList.add("card-picking");
+        this.tapDash?.reset();
+        overpull.reset();
+        this.onDashTarget?.(null);
+      }
+      if (offer && offer === committedOffer) return;
+      if (!offer && upgradeGesture) {
+        upgradeGesture = "";
+        previewCard(-1);
+      }
       const dx = e.clientX - startX,
         dz = e.clientY - startY,
         l = Math.hypot(dx, dz),
@@ -313,7 +369,11 @@ export class Controls {
       } else {
         this.joy = vector;
         if (vector.x || vector.z) this.lastMoveJoy = { ...vector };
-        if (this.oneHanded && this.overpullDash && overpull.move(l, radius)) {
+        if (
+          this.oneHanded &&
+          this.overpullDash &&
+          overpull.move(dx, dz, radius)
+        ) {
           // Consume a pull even during cooldown; holding the edge never queues
           // an unexpected dodge when the server's cooldown later expires.
           const me = this.latestMe;
@@ -322,6 +382,16 @@ export class Controls {
             this.dashVector = { ...vector };
           }
         }
+        if (this.oneHanded && this.overpullDash)
+          this.onDashTarget?.(
+            overpull.target
+              ? {
+                  x: startX + overpull.target.x,
+                  y: startY + overpull.target.y,
+                  cooldown: this.latestMe?.dashCd || 0,
+                }
+              : null,
+          );
       }
     };
     const begin = (e, target = el) => {
@@ -335,6 +405,8 @@ export class Controls {
       this.audio.unlock();
       this.isTouch = true;
       dragged = false;
+      committedOffer = "";
+      clearSelectionTimer();
       overpull.reset();
       upgradeGesture =
         !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
@@ -368,6 +440,9 @@ export class Controls {
       const captured = pointer;
       pointer = null;
       upgradeGesture = "";
+      committedOffer = "";
+      clearSelectionTimer();
+      this.onDashTarget?.(null);
       overpull.reset();
       previewCard(-1);
       if (captured !== null && captureTarget.hasPointerCapture(captured))
@@ -398,7 +473,10 @@ export class Controls {
             e.clientY - startY,
             radius,
           );
-          if (card >= 0) this.onUpgradeChoose?.(card);
+          if (card >= 0) {
+            previewCard(card);
+            commit();
+          }
         }
         if (!selecting && !aim && this.oneHanded && this.doubleTapDash) {
           const dash = this.tapDash.release({

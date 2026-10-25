@@ -6,28 +6,28 @@ import {
   joystickCard,
 } from "../client/one-finger.js";
 
-test("overpull dodges once, rearms inside the pad and never fires on a normal walk", () => {
-  const pull = new OverpullDash();
-  for (const distance of [0, 12, 38, 50, 70])
-    assert.equal(pull.move(distance, 40), false);
-  assert.equal(pull.move(74, 40), true);
-  for (let i = 0; i < 300; i++) assert.equal(pull.move(100, 40), false);
-  assert.equal(pull.move(39, 40), false);
-  assert.equal(
-    pull.move(75, 40),
-    false,
-    "hysteresis prevents boundary chatter",
-  );
-  assert.equal(pull.move(30, 40), false);
-  assert.equal(pull.move(80, 40), true);
-  pull.reset();
-  assert.equal(pull.move(80, 40), true);
-  for (const [d, r] of [
-    [NaN, 40],
-    [100, 0],
-    [100, Infinity],
-  ])
-    assert.equal(pull.move(d, r), false);
+test("dash targets remain fixed along any chosen direction and require actual contact", () => {
+  for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5, Math.PI / 4]) {
+    const d = new OverpullDash(),
+      x = Math.cos(angle),
+      y = Math.sin(angle);
+    assert.equal(d.move(40 * x, 40 * y, 40), false);
+    assert.equal(d.target, null);
+    assert.equal(d.move(50 * x, 50 * y, 40), false);
+    const target = { ...d.target };
+    assert.ok(Math.abs(Math.hypot(target.x, target.y) - 96) < 1e-8);
+    assert.equal(d.move(70 * x, 70 * y, 40), false);
+    assert.deepEqual(d.target, target);
+    assert.equal(d.move(96 * x, 96 * y, 40), true);
+    for (let i = 0; i < 300; i++)
+      assert.equal(d.move(100 * x, 100 * y, 40), false);
+    d.move(0, 0, 40);
+    assert.equal(
+      d.move(120 * x, 120 * y, 40),
+      true,
+      "fast drags sweep through the target",
+    );
+  }
 });
 
 test("card directions map left, up, right and allow centre/downward cancellation", () => {

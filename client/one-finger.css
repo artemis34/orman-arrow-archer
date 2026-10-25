@@ -42,3 +42,77 @@ body.onehand #upgrade-options .perk-key {
     font-size: 9px;
   }
 }
+body.onehand .arena-actions,
+body.onehand #emote-controls {
+  display: none;
+}
+#dash-target {
+  position: fixed;
+  z-index: 16;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e1ffa7;
+  background: #203b27bf;
+  color: #e1ffa7;
+  font-size: 26px;
+  text-align: center;
+  line-height: 32px;
+  pointer-events: none;
+}
+#online-count {
+  color: #c9e6b6;
+  font-size: 11px;
+}
+#ranked-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e0edce;
+  font-size: 12px;
+  margin-top: 8px;
+}
+#ranked-toggle {
+  width: 18px;
+  height: 18px;
+  accent-color: #cdeb94;
+}
+#first-game-tutorial {
+  position: fixed;
+  left: 50%;
+  top: max(70px, 12dvh);
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(320px, calc(100vw - 36px));
+  padding: 12px 14px;
+  border: 1px solid #c6e69a;
+  border-radius: 12px;
+  background: #153423ee;
+  color: #f0f7df;
+  pointer-events: none;
+}
+#first-game-tutorial strong {
+  font-size: 15px;
+}
+#first-game-tutorial p {
+  font-size: 12px;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+#tutorial-skip {
+  pointer-events: auto;
+  font-size: 11px;
+  padding: 5px 10px;
+  min-height: 30px;
+}
+#dash-target.cooldown {
+  opacity: 0.5;
+  font-size: 13px;
+}
+#room-human-count {
+  display: block;
+  padding: 0 10px 6px;
+  color: #bfd7b1;
+  font-size: 10px;
+}

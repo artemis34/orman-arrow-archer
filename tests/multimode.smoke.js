@@ -98,6 +98,38 @@ try {
       `MODE_OK ${format} ${rules.capacity} humans ${rules.teams} teams`,
     );
   }
+  for (const format of ["brranked", "brduoranked"]) {
+    const group = [];
+    for (let i = 0; i < 2; i++) {
+      const profileToken = [...crypto.getRandomValues(new Uint8Array(32))]
+        .map((v) => v.toString(16).padStart(2, "0"))
+        .join("");
+      const t = new WebSocketTransport(
+        base,
+        (state) => (t.latest = state),
+        () => {},
+        { format, matchmake: true },
+      );
+      clients.push(t);
+      await t.connect("Ranked BR", 0, { profileToken });
+      group.push(t);
+    }
+    await until(
+      () => group[0].latest?.roster.filter((p) => !p.bot).length === 2,
+      "two BR ranked profiles share a room",
+    );
+    assert.equal(group[0].room, group[1].room);
+    assert.equal(group[0].latest.roster.length, 32);
+    assert.equal(group[0].latest.match.format, format);
+    assert.equal(
+      group[0].latest.match.teams.length,
+      format === "brduoranked" ? 16 : 0,
+    );
+    for (const t of group) t.close();
+    console.log(
+      `MODE_OK ${format}: authenticated BR matchmaking, 32 seats and bot fill`,
+    );
+  }
   const ranked = [];
   for (let i = 0; i < 2; i++) {
     const token = [...crypto.getRandomValues(new Uint8Array(32))]

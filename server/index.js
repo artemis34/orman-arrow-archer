@@ -28,6 +28,15 @@ const io = new Server(http, {
 });
 const world = new World();
 const worlds = new Map([["arena:public", world]]);
+app.get("/api/presence", (_req, res) =>
+  res.json({
+    online: [...worlds.values()].reduce(
+      (n, w) => n + [...w.players.values()].filter((p) => !p.bot).length,
+      0,
+    ),
+    windowSeconds: 0,
+  }),
+);
 io.on("connection", (socket) => {
   if (io.sockets.sockets.size > 128) {
     socket.disconnect(true);

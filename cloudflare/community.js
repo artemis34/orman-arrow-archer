@@ -12,6 +12,9 @@ export class CommunityHub {
     this.ctx = ctx;
     this.budgets = new Map();
     ctx.storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS presence(room TEXT PRIMARY KEY, instance TEXT NOT NULL, count INTEGER NOT NULL, expires INTEGER NOT NULL)",
+    );
+    ctx.storage.sql.exec(
       "CREATE TABLE IF NOT EXISTS players(code TEXT PRIMARY KEY,name TEXT NOT NULL,points INTEGER NOT NULL,kills INTEGER NOT NULL,matches INTEGER NOT NULL,rankedMatches INTEGER NOT NULL,wins INTEGER NOT NULL)",
     );
     ctx.storage.sql.exec(
@@ -37,6 +40,48 @@ export class CommunityHub {
       const url = new URL(request.url),
         path = url.pathname;
       const data = request.method === "POST" ? await request.json() : {};
+      if (path === "/presence") {
+        const now = Date.now();
+        if (request.method === "POST") {
+          if (
+            typeof data.room !== "string" ||
+            data.room.length > 64 ||
+            typeof data.instance !== "string" ||
+            !Number.isInteger(data.count) ||
+            data.count < 0 ||
+            data.count > 32
+          )
+            return new Response("Invalid presence", { status: 400 });
+          if (data.count)
+            this.ctx.storage.sql.exec(
+              "INSERT INTO presence(room,instance,count,expires) VALUES(?,?,?,?) ON CONFLICT(room) DO UPDATE SET instance=excluded.instance,count=excluded.count,expires=excluded.expires",
+              data.room,
+              data.instance,
+              data.count,
+              now + 90000,
+            );
+          else
+            this.ctx.storage.sql.exec(
+              "DELETE FROM presence WHERE room=? AND instance=?",
+              data.room,
+              data.instance,
+            );
+          this.ctx.storage.sql.exec(
+            "DELETE FROM presence WHERE expires<=?",
+            now,
+          );
+        }
+        const online = this.ctx.storage.sql
+          .exec(
+            "SELECT COALESCE(SUM(count),0) AS online FROM presence WHERE expires>?",
+            now,
+          )
+          .toArray()[0].online;
+        return Response.json(
+          { online, windowSeconds: 90 },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
       if (path === "/upsert") {
         if (!validCode(data.code))
           return Response.json({ error: "Geçersiz profil." }, { status: 400 });

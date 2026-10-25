@@ -1,3 +1,4 @@
+import { FirstGameTutorial } from "./first-game-tutorial.js";
 import { EMOTES, EMOTE_RULES } from "../shared/emotes.js";
 import { setupEmotes } from "./emotes-ui.js";
 import { warmupRenderer } from "./renderer-warmup.js";
@@ -97,6 +98,29 @@ const performanceMonitor = setupPerformanceMonitor({
   enabled: preferences.get("wildbow-performance") === "true",
 });
 const renderCadence = new RenderCadence();
+const tutorial = new FirstGameTutorial({
+  get: preferences.get,
+  set: preferences.set,
+  root: $("first-game-tutorial"),
+  title: $("tutorial-title"),
+  note: $("tutorial-note"),
+  skip: $("tutorial-skip"),
+});
+async function onlineCount() {
+  if (document.hidden || playing) return;
+  try {
+    const r = await fetch(
+      new URL("/api/presence", initialServer || location.origin),
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!r.ok) return;
+    const data = await r.json();
+    if (Number.isInteger(data.online) && data.online >= 0)
+      text("online-count", `${data.online} çevrimiçi oyuncu`);
+  } catch {}
+}
+setInterval(onlineCount, 30000);
+setTimeout(onlineCount, 0);
 const emotes = setupEmotes({
   send: (key) => transport?.emote(key),
   canSend: () =>
@@ -158,14 +182,23 @@ if (authResult) {
   }, 100);
 }
 progression.refresh();
-$("match-format").value = format;
+const casualFormat = (key) =>
+  ({ ranked: "duel", brranked: "br", brduoranked: "brduo" })[key] || key;
+$("match-format").value = casualFormat(format);
+$("ranked-toggle").checked = !!FORMATS[format].ranked;
 function updateFormat() {
-  format = formatKey($("match-format").value);
+  const base = formatKey($("match-format").value);
+  show("ranked-entry", ["duel", "br", "brduo"].includes(base));
+  format = $("ranked-toggle").checked
+    ? { duel: "ranked", br: "brranked", brduo: "brduoranked" }[base] || base
+    : base;
   preferences.set("wildbow-format", format);
   text(
     "format-note",
     FORMATS[format].battleRoyale
-      ? "Herkes tek · Alan daralır · Son hayatta kalan kazanır"
+      ? FORMATS[format].teams
+        ? "16 ikili takım · Takım arkadaşın yaşarsa 15 sn sonra geri dön"
+        : "32 oyuncu · Alan daralır · Son hayatta kalan kazanır"
       : FORMATS[format].duel
         ? FORMATS[format].progression === false
           ? "Eşit başlangıç · Botsuz · Rastgele yetenek yok"
@@ -179,12 +212,15 @@ function updateFormat() {
 }
 $("match-format").addEventListener("change", () => {
   updateFormat();
-  if (format === "ranked" && cloudflare) {
+  if (FORMATS[format].ranked && cloudflare) {
     mode = "online";
     setRoomAccess(false);
   }
   setMode(mode);
 });
+$("ranked-toggle").addEventListener("change", () =>
+  $("match-format").dispatchEvent(new Event("change")),
+);
 updateFormat();
 $("room-code").value = roomCode(query.get("room") || "arena") || "arena";
 show("server-address", !cloudflare);
@@ -215,7 +251,7 @@ function setMode(next) {
   show("room-access", cloudflare && mode === "online");
   show(
     "lobby-network",
-    mode === "online" && (!cloudflare || format !== "ranked"),
+    mode === "online" && (!cloudflare || !FORMATS[format].ranked),
   );
   text(
     "network-summary",
@@ -247,7 +283,7 @@ function setMode(next) {
 }
 let privateRoom = !!query.get("room") && query.get("match") !== "quick";
 function setRoomAccess(privateMatch) {
-  privateRoom = format === "ranked" ? false : privateMatch;
+  privateRoom = FORMATS[format].ranked ? false : privateMatch;
   if (cloudflare) $("lobby-network").open = privateRoom;
   show("room-field", cloudflare && privateRoom);
   $("quick-match").setAttribute("aria-pressed", String(!privateRoom));
@@ -328,7 +364,7 @@ function setControls(oneHanded, persist = true) {
   text(
     "controls-hint",
     oneHanded
-      ? "Çek: yürü · Uzat: atıl · Can azalınca otomatik iyileş."
+      ? "Çek: yürü · ϟ hedefine çek: atıl · Can azalınca otomatik iyileş."
       : "İki joystick veya klavye ve fare ile kontrol sende.",
   );
   syncAutoFire();
@@ -399,6 +435,15 @@ controls.upgradeChoices = () => {
 controls.onUpgradePreview = (index) => {
   for (const [i, card] of [...$("upgrade-options").children].entries())
     card.classList.toggle("stick-selected", i === index);
+};
+controls.onDashTarget = (point) => {
+  show("dash-target", !!point && playing && controls.oneHanded);
+  if (point) {
+    text("dash-target", point.cooldown > 0 ? point.cooldown.toFixed(1) : "ϟ");
+    $("dash-target").classList.toggle("cooldown", point.cooldown > 0);
+    $("dash-target").style.left = `${point.x}px`;
+    $("dash-target").style.top = `${point.y}px`;
+  }
 };
 controls.onUpgradeChoose = (index) =>
   $("upgrade-options").children[index]?.click();
@@ -514,7 +559,7 @@ function consume(next) {
 }
 async function join() {
   if (joining) return;
-  if (format === "ranked" && (!cloudflare || mode !== "online")) {
+  if (FORMATS[format].ranked && (!cloudflare || mode !== "online")) {
     toast("Ranked için online Cloudflare modunu seç.");
     return;
   }
@@ -554,7 +599,7 @@ async function join() {
         retryCandidate = () =>
           new WebSocketTransport(url, consume, onDisconnect, {
             room,
-            matchmake: format === "ranked" || !privateRoom,
+            matchmake: FORMATS[format].ranked || !privateRoom,
             viewRadius: scene.networkRadius(),
             format,
             onProgress: (stage) => {
@@ -607,6 +652,7 @@ async function join() {
     transport = candidate;
     myId = welcome.id;
     playing = true;
+    tutorial.start(controls.oneHanded);
     performanceMonitor.reset();
     resultKey = "";
     controls.active = true;
@@ -652,6 +698,8 @@ function leave() {
   emotes.reset();
   audio.stopAll();
   playing = false;
+  tutorial.stop();
+  show("dash-target", false);
   performanceMonitor.reset();
   controls.active = false;
   controls.reset();
@@ -696,6 +744,11 @@ function updateHud(current) {
     killStreak.update(0, false);
     return;
   }
+  tutorial.observe(me);
+  text(
+    "room-human-count",
+    `${current.roster?.filter((p) => !p.bot).length || 0} oyuncu · ${current.roster?.filter((p) => p.bot).length || 0} bot`,
+  );
   killStreak.update(
     current.roster?.find((p) => p.id === myId)?.killStreak || 0,
     me.alive,
@@ -714,10 +767,10 @@ function updateHud(current) {
     const team = me.team != null ? match.teams[me.team] : null;
     text(
       "match-status",
-      match.format === "br"
+      !!match.zone
         ? match.phase === "waiting"
           ? `Battle Royale · ${match.remaining} sn sonra`
-          : `${match.survivors} CANLI · ${outsideZone ? "ALANA GİR" : match.zone.shrinking ? "Alan daralıyor" : `Daralmaya ${match.zone.remaining ?? 20} sn`}`
+          : `${match.survivingTeams != null ? match.survivingTeams + " TAKIM · " : ""}${match.survivors} CANLI · ${outsideZone ? "ALANA GİR" : match.zone.shrinking ? "Alan daralıyor" : `Daralmaya ${match.zone.remaining ?? 20} sn`}`
         : match.phase === "waiting"
           ? "Rakip bekleniyor…"
           : `${time}${team ? `\n${team.symbol} ${team.name} · ${team.score}` : " · Tur " + match.round}`,
@@ -741,9 +794,11 @@ function updateHud(current) {
       const top = [...match.teams].sort((a, b) => b.score - a.score);
       text(
         "round-winner",
-        match.format === "br"
+        !!match.zone
           ? match.winnerId
-            ? `${match.results.find((p) => p.id === match.winnerId)?.name || "Son okçu"} kazandı`
+            ? match.winnerTeam != null
+              ? `${TEAMS[match.winnerTeam].name} takımı kazandı`
+              : `${match.results.find((p) => p.id === match.winnerId)?.name || "Son okçu"} kazandı`
             : "Hayatta kalan yok · Berabere"
           : top.length
             ? top[0].score === top[1]?.score
@@ -759,7 +814,7 @@ function updateHud(current) {
           name: "OKÇU",
           kills: "E",
           assists: "A",
-          points: match.format === "br" ? "SIRA" : "PUAN",
+          points: !!match.zone ? "SIRA" : "PUAN",
           heading: true,
         },
         ...match.results,
@@ -775,7 +830,7 @@ function updateHud(current) {
             p.team != null ? `${TEAMS[p.team].symbol} ${p.name}` : p.name,
             p.kills,
             p.assists,
-            match.format === "br" && !p.heading ? `#${p.placement}` : p.points,
+            !!match.zone && !p.heading ? `#${p.placement}` : p.points,
           ]) {
             const cell = document.createElement("span");
             cell.textContent = value;
@@ -1013,13 +1068,17 @@ function updateHud(current) {
       "death-summary",
       `${me.kills} eleme · ${me.assists || 0} asist · Seviye ${me.level}${me.lastDeath ? ` · Son vuruş: ${me.lastDeath.killer} (${me.lastDeath.amount})` : ""}`,
     );
-    $("respawn").disabled = match?.format === "br" || me.respawnIn > 0.05;
-    $("respawn").firstChild.textContent =
-      match?.format === "br"
-        ? "Elendin · Yeni turu bekle "
-        : me.respawnIn > 0.05
-          ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
-          : "Yeniden doğ ";
+    $("respawn").disabled = !!match?.zone || me.respawnIn > 0.05;
+    $("respawn").firstChild.textContent = !!match?.zone
+      ? match.reviveDelay &&
+        current.roster?.some(
+          (p) => p.id !== myId && p.alive && p.team === me.team,
+        )
+        ? `Takım arkadaşın yaşarsa ${Math.ceil(me.respawnIn)} sn sonra dönersin `
+        : "Takım elendi · Yeni turu bekle "
+      : me.respawnIn > 0.05
+        ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
+        : "Yeniden doğ ";
   }
   const ctx = $("minimap").getContext("2d"),
     size = 160,

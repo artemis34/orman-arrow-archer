@@ -51,6 +51,7 @@ export class World {
     this.grid = new SpatialGrid();
     this.obstacleGrid = new SpatialGrid();
     this.orbGrid = new SpatialGrid();
+    this.duelOrbReady = new Map();
     this.arrows = new Pool(() => ({ hits: new Set() }), RULES.maxArrows);
     this.orbs = new Pool(() => ({}), RULES.maxOrbs);
     this.obstacles = [];
@@ -132,7 +133,7 @@ export class World {
     for (
       let n = 0;
       [...this.players.values()].filter((p) => p.bot).length < count &&
-      n < RULES.maxPlayers;
+      n < (this.mode.rules?.capacity || RULES.maxPlayers);
       n++
     ) {
       if (!this.players.has(`bot-${n}`))
@@ -196,10 +197,15 @@ export class World {
   spawnOrb(x, z, value) {
     if (x === undefined && this.mode.rules?.duel) {
       if (this.mode.rules.progression === false) return;
-      const available = DUEL_ORB_SITES.filter((site) =>
-        this.orbs.active.every(
-          (o) => Math.hypot(o.x - site.x, o.z - site.z) > 1.5,
-        ),
+      const available = DUEL_ORB_SITES.filter(
+        (site) =>
+          (this.duelOrbReady.get(site) || 0) <= this.time &&
+          [...this.players.values()].every(
+            (p) => !p.alive || Math.hypot(p.x - site.x, p.z - site.z) > 2.5,
+          ) &&
+          this.orbs.active.every(
+            (o) => Math.hypot(o.x - site.x, o.z - site.z) > 1.5,
+          ),
       );
       if (!available.length) return;
       const site = available[Math.floor(this.random() * available.length)];
@@ -222,6 +228,10 @@ export class World {
       rare,
       collected: false,
     });
+    if (this.mode.rules?.duel)
+      o.duelSite = DUEL_ORB_SITES.find(
+        (site) => site.x === x && site.z === z && site.value === value,
+      );
     return o;
   }
   addPlayer(id, name = "Gezgin", skin = 0, bot = false, options = {}) {
@@ -372,6 +382,7 @@ export class World {
     return true;
   }
   resetRound() {
+    this.duelOrbReady.clear();
     this.loot.drops.length = 0;
     this.loot.nextAt = this.time + (this.mode.rules?.duel ? 25 : 45);
     while (this.arrows.active.length) this.arrows.release(0);
@@ -478,7 +489,7 @@ export class World {
       p.buffType = null;
       p.buffTime = 0;
       p.charge = 0;
-      p.respawnAt = this.time + 3;
+      p.respawnAt = this.time + (this.mode.rules?.reviveDelay || 3);
       if (attacker && attacker !== p) {
         attacker.kills++;
         if (attacker.alive)
@@ -519,7 +530,7 @@ export class World {
       !p ||
       p.alive ||
       this.time < p.respawnAt ||
-      this.mode.canRespawn === false ||
+      (this.mode.canRespawn === false && !this.mode.canRevive?.(this, p)) ||
       this.mode.phase === "results"
     )
       return false;
@@ -567,6 +578,36 @@ export class World {
     });
     if (this.mode.rules?.duel)
       Object.assign(p, { x: p.duelSeat ? 18 : -18, z: 0 });
+    if (this.mode.rules?.reviveDelay && this.mode.phase === "playing") {
+      const mate = [...this.players.values()].find(
+        (q) => q.id !== p.id && q.alive && q.team === p.team,
+      );
+      if (mate) {
+        let point = { x: mate.x, z: mate.z };
+        for (let i = 0; i < 24; i++) {
+          const angle = (i * Math.PI) / 12;
+          const candidate = {
+            x: mate.x + Math.cos(angle) * 2.5,
+            z: mate.z + Math.sin(angle) * 2.5,
+          };
+          if (
+            Math.hypot(candidate.x, candidate.z) < this.mode.zone.radius &&
+            Math.abs(candidate.x) < 41 &&
+            Math.abs(candidate.z) < 41 &&
+            this.obstacles.every(
+              (o) =>
+                o.type === "bush" ||
+                Math.hypot(candidate.x - o.x, candidate.z - o.z) >
+                  o.r + RULES.radius,
+            )
+          ) {
+            point = candidate;
+            break;
+          }
+        }
+        Object.assign(p, point);
+      }
+    }
     return true;
   }
   fire(p, quick = false) {
@@ -838,7 +879,7 @@ export class World {
     for (const o of this.orbs.active) this.orbGrid.insert(o);
     for (const p of this.players.values()) {
       if (!p.alive) {
-        if (p.bot) this.respawn(p.id);
+        if (p.bot || this.mode.rules?.reviveDelay) this.respawn(p.id);
         continue;
       }
       const oldX = p.x,
@@ -957,6 +998,8 @@ export class World {
         )
           continue;
         o.collected = true;
+        if (o.duelSite)
+          this.duelOrbReady.set(o.duelSite, this.time + (o.rare ? 45 : 8));
         this.gain(p, o.value);
         this.events.push({
           type: "gem",

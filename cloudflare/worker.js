@@ -261,6 +261,7 @@ export class ArenaRoom {
         format: this.format,
       });
       if (!this.world || !this.sessions.has(ws)) return;
+      this.reportPresence();
       this.send(ws, "state", this.snapshot(session));
       if (this.world && !this.timer)
         this.timer = setInterval(() => this.step(), 1000 / RULES.tick);
@@ -278,6 +279,22 @@ export class ArenaRoom {
       else if (type === "ping") this.send(ws, "pong");
       else if (type === "view") session.viewRadius = viewRadius(data);
     }
+  }
+  reportPresence() {
+    if (!this.env?.COMMUNITY || !this.world) return;
+    const session = [...this.sessions.values()].find((s) => s.joined);
+    const count = [...this.sessions.values()].filter((s) => s.joined).length;
+    const key =
+      this.presenceRoom || (session && `${this.format}:${session.room}`);
+    if (!key) return;
+    this.presenceRoom = key;
+    this.ctx.waitUntil(
+      community(this.env, "/presence", {
+        room: key,
+        instance: this.instance,
+        count,
+      }).catch(() => {}),
+    );
   }
   snapshot(session) {
     return this.world.snapshot(
@@ -340,6 +357,10 @@ export class ArenaRoom {
       s.tickCounters ||= {};
       for (const key of ACTIVITY_KEYS) s.tickCounters[key] = p[key];
     }
+    if (!this.presenceAt || now - this.presenceAt >= 30000) {
+      this.presenceAt = now;
+      this.reportPresence();
+    }
     this.world.step();
     this.world.events.push(...drainEmotes(this.world));
     if (
@@ -347,6 +368,11 @@ export class ArenaRoom {
       previousPhase !== "playing" &&
       this.world.mode.phase === "playing"
     ) {
+      this.rankedSides = new Map(
+        [...this.sessions.values()]
+          .filter((s) => s.joined)
+          .map((s) => [s.id, this.world.players.get(s.id)?.team]),
+      );
       this.rankedStartedAt = this.world.time;
       this.rankedParticipants = new Map(
         [...this.sessions.values()]
@@ -374,6 +400,19 @@ export class ArenaRoom {
     }
     this.events.length = 0;
   }
+  rankedEligible(session) {
+    return (
+      !!this.world.mode.rules?.ranked &&
+      (this.world.mode.rules.duel
+        ? this.rankedParticipants?.size === 2
+        : this.rankedParticipants?.size >= 2) &&
+      new Set(this.rankedParticipants?.values() || []).size ===
+        this.rankedParticipants?.size &&
+      (!this.world.mode.rules.teams ||
+        new Set([...(this.rankedSides?.values() || [])]).size >= 2) &&
+      this.rankedParticipants.get(session.id) === session.profileId
+    );
+  }
   rewardRound() {
     const mode = this.world?.mode;
     if (
@@ -390,11 +429,7 @@ export class ArenaRoom {
       .filter((id) => id >= 0);
     for (const [ws, session] of this.sessions) {
       const p = this.world.players.get(session.id);
-      const ranked =
-        !!mode.rules?.ranked &&
-        this.rankedParticipants?.size === 2 &&
-        new Set(this.rankedParticipants.values()).size === 2 &&
-        this.rankedParticipants.get(session.id) === session.profileId;
+      const ranked = this.rankedEligible(session);
       if (
         !p ||
         !session.profileId ||
@@ -402,7 +437,9 @@ export class ArenaRoom {
       )
         continue;
       const win = mode.rules.battleRoyale
-        ? mode.winnerId === p.id
+        ? mode.rules.teams
+          ? mode.winnerTeam === p.team
+          : mode.winnerId === p.id
         : mode.forfeit
           ? mode.forfeit !== session.id
           : p.team != null
@@ -448,6 +485,7 @@ export class ArenaRoom {
     if (!session) return;
     if (
       this.world?.mode.rules?.ranked &&
+      this.world.mode.rules.duel &&
       this.world.mode.phase === "playing" &&
       this.world.time - this.rankedStartedAt >= 10
     ) {
@@ -455,10 +493,42 @@ export class ArenaRoom {
       this.world.mode.finish(this.world);
       this.rewardRound();
     }
+    if (
+      this.env?.PROFILES &&
+      this.world?.mode.rules?.battleRoyale &&
+      this.world.mode.phase === "playing" &&
+      this.rankedEligible(session)
+    ) {
+      const p = this.world.players.get(session.id);
+      const result = {
+        receipt: `${this.instance}:${this.world.mode.round}`,
+        ranked: true,
+        win: false,
+        outcome: "loss",
+        statsRecorded: true,
+        points: p?.matchPoints || 0,
+        kills: p?.kills || 0,
+      };
+      this.ctx.waitUntil(
+        this.flushActivity(ws, session)
+          .then(() =>
+            this.env.PROFILES.get(
+              this.env.PROFILES.idFromName(session.profileId),
+            ).fetch(
+              new Request("https://profile/award", {
+                method: "POST",
+                body: JSON.stringify(result),
+              }),
+            ),
+          )
+          .catch(() => {}),
+      );
+    }
     this.flushActivity(ws, session);
     clearTimeout(session.joinTimer);
     this.world?.removePlayer(session.id);
     this.sessions.delete(ws);
+    this.reportPresence();
     this.available(session.room);
     if (![...this.sessions.values()].some((s) => s.joined)) {
       clearInterval(this.timer);
@@ -737,6 +807,8 @@ export default {
         ).fetch(new Request(`https://internal/find?format=${key}`)),
       );
     }
+    if (url.pathname === "/api/presence")
+      return apiResponse(await community(env, "/presence"));
     if (url.pathname === "/health")
       return Response.json({
         ok: true,
