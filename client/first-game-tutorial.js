@@ -6,7 +6,8 @@ export class FirstGameTutorial {
     this.active = false;
     skip.addEventListener("click", () => this.finish());
   }
-  start(onehand) {
+  start(onehand, progression = true) {
+    this.total = progression ? 4 : 3;
     this.onehand = onehand;
     this.step = 0;
     this.origin = null;
@@ -37,7 +38,7 @@ export class FirstGameTutorial {
     ][this.step];
     if (complete) {
       this.step++;
-      if (this.step === 4) {
+      if (this.step === this.total) {
         this.finish();
         return;
       }
@@ -78,7 +79,7 @@ export class FirstGameTutorial {
             "Kristalleri topla, seviye atla. Kartlara dokun veya 1/2/3 tuşlarıyla seç.",
           ],
         ];
-    this.title.textContent = `${this.step + 1}/4 · ${steps[this.step][0]}`;
+    this.title.textContent = `${this.step + 1}/${this.total} · ${steps[this.step][0]}`;
     this.note.textContent = steps[this.step][1];
   }
 }

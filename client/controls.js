@@ -478,7 +478,13 @@ export class Controls {
             commit();
           }
         }
-        if (!selecting && !aim && this.oneHanded && this.doubleTapDash) {
+        if (
+          !selecting &&
+          !aim &&
+          this.oneHanded &&
+          this.doubleTapDash &&
+          !this.overpullDash
+        ) {
           const dash = this.tapDash.release({
             x: e.clientX,
             y: e.clientY,

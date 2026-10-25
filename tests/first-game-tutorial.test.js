@@ -40,3 +40,14 @@ test("skipping is persistent and death never counts as a tutorial movement", () 
   t.start(false);
   assert.equal(ui.hidden, true);
 });
+
+test("equal-equipment ranked duels finish guidance without demanding nonexistent upgrades", () => {
+  const { t, ui } = fixture();
+  t.start(true, false);
+  const me = { alive: true, x: 0, z: 0, dashCd: 0, shotCd: 0, upgrades: {} };
+  t.observe(me);
+  t.observe({ ...me, x: 3 });
+  t.observe({ ...me, dashCd: 2 });
+  t.observe({ ...me, shotCd: 0.5 });
+  assert.equal(ui.hidden, true);
+});

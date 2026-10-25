@@ -279,7 +279,36 @@ try {
   // Real touch taps, without the legacy joystick-direction test adapter.
   await page.touchscreen.tap(195, 715);
   await page.touchscreen.tap(195, 715);
-  await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
+  assert.equal(
+    actor.dashCd,
+    0,
+    "double taps cannot dodge while target-based dodge is active",
+  );
+  const pad = await page.locator("#move-stick").boundingBox(),
+    x = pad.x + pad.width / 2,
+    y = pad.y + pad.height / 2;
+  if (engine === "chromium") {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ id: 3, x, y }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ id: 3, x: x + pad.width * 0.9, y }],
+    });
+    await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  } else {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + pad.width * 0.9, y);
+    await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
+    await page.mouse.up();
+  }
   assert.equal(await page.evaluate(() => visualViewport.scale), scale);
   await page.locator("#leaders-toggle").tap();
   await page.locator("#exit").tap();

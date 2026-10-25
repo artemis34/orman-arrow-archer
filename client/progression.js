@@ -292,7 +292,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
         ],
         [
           "doubletap",
-          "Çift dokunuşla atıl",
+          "ϟ hedefi kapalıyken çift dokunuşla atıl",
           [
             ["true", "Açık"],
             ["false", "Kapalı"],

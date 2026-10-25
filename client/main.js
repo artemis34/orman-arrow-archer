@@ -652,7 +652,7 @@ async function join() {
     transport = candidate;
     myId = welcome.id;
     playing = true;
-    tutorial.start(controls.oneHanded);
+    tutorial.start(controls.oneHanded, FORMATS[format].progression !== false);
     performanceMonitor.reset();
     resultKey = "";
     controls.active = true;
