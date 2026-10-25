@@ -446,11 +446,12 @@ export class ArenaRoom {
             ? teamWinners.length === 1 && teamWinners[0] === p.team
             : top?.id === p.id &&
               (!mode.results[1] || top.points > mode.results[1].points);
-      const draw =
-        !mode.rules.battleRoyale &&
-        !mode.forfeit &&
-        mode.results.length > 1 &&
-        mode.results[0].points === mode.results[1].points;
+      const draw = mode.rules.battleRoyale
+        ? mode.winnerId == null
+        : !mode.forfeit &&
+          mode.results.length > 1 &&
+          mode.results[0].points === mode.results[1].points;
+
       const awardData = {
         receipt: `${this.instance}:${mode.round}`,
         kills: p.kills,

@@ -363,3 +363,45 @@ test("leaving ranked BR records one loss without terminating the other players m
     1,
   );
 });
+
+test("simultaneous final deaths in ranked BR award draws instead of losses", async (t) => {
+  const p = platform();
+  t.after(() => p.close());
+  const room = new ArenaRoom(p.context(), p.env);
+  room.world = new World({ bots: 0, mode: createMode("brranked") });
+  room.world.mode.countdown = 0;
+  const ids = [await profileId(tokenA), await profileId(tokenB)];
+  for (let i = 0; i < 2; i++) {
+    room.world.addPlayer("p" + i);
+    room.sessions.set(
+      { send() {} },
+      {
+        id: "p" + i,
+        profileId: ids[i],
+        joined: true,
+        joinedAt: 0,
+        activity: { kills: 0, hits: 0, assists: 0, objectives: 0 },
+      },
+    );
+  }
+  room.world.step();
+  room.world.time = 60;
+  room.rankedParticipants = new Map([
+    ["p0", ids[0]],
+    ["p1", ids[1]],
+  ]);
+  for (const player of room.world.players.values()) {
+    player.spawnShield = player.levelGuard = 0;
+    room.world.damage(player, 9999, null, "storm");
+  }
+  room.world.mode.finish(room.world);
+  room.rewardRound();
+  await p.drain();
+  for (const token of [tokenA, tokenB]) {
+    const profile = (await (await call(p.env, "/api/profile", token)).json())
+      .profile;
+    assert.equal(profile.ranked.matches, 1);
+    assert.equal(profile.ranked.points, 5);
+    assert.equal(profile.ranked.wins, 0);
+  }
+});
