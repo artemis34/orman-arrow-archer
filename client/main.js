@@ -1075,7 +1075,9 @@ function updateHud(current) {
           (p) => p.id !== myId && p.alive && p.team === me.team,
         )
         ? `Takım arkadaşın yaşarsa ${Math.ceil(me.respawnIn)} sn sonra dönersin `
-        : "Takım elendi · Yeni turu bekle "
+        : match.reviveDelay
+          ? "Takım elendi · Yeni turu bekle "
+          : "Elendin · Yeni turu bekle "
       : me.respawnIn > 0.05
         ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
         : "Yeniden doğ ";
