@@ -119,11 +119,13 @@ const tutorial = new FirstGameTutorial({
 });
 async function onlineCount() {
   if (document.hidden || playing) return;
+  const server = $("server-url").value.trim();
+  show("online-count", !!server);
+  if (!server) return;
   try {
-    const r = await fetch(
-      new URL("/api/presence", initialServer || location.origin),
-      { signal: AbortSignal.timeout(5000) },
-    );
+    const r = await fetch(new URL("/api/presence", server), {
+      signal: AbortSignal.timeout(5000),
+    });
     if (!r.ok) return;
     const data = await r.json();
     if (Number.isInteger(data.online) && data.online >= 0)

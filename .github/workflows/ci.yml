@@ -48,6 +48,10 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm run build
+      - name: Validate standalone frontend presence on Chrome and Safari
+        run: |
+          node tests/static-presence.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/static-presence.browser.js
       - name: Validate single-finger upgrades and ability assists on Chrome and Safari
         shell: bash
         run: |
