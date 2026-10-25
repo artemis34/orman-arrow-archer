@@ -43,6 +43,7 @@ import { WebSocketTransport } from "./websocket.js";
 import { roomCode, practiceBots } from "../shared/online.js";
 import { World } from "../shared/world.js";
 import { SKINS, UPGRADES, RULES } from "../shared/config.js";
+const UPGRADE_READING_MS = 5000;
 const $ = (id) => document.getElementById(id),
   show = (id, visible) => $(id).classList.toggle("hidden", !visible),
   text = (id, value) => {
@@ -87,6 +88,7 @@ let playing = false,
   accumulator = 0,
   hudAt = 0,
   choicesKey = "",
+  choicesOpenedAt = 0,
   upgradesCollapsed = false,
   lastLevel = 1,
   toastTimer,
@@ -450,6 +452,12 @@ controls.upgradeChoices = () => {
     ? `${choicesKey}:${me.level}:${state.match?.round || 0}`
     : "";
 };
+// Start from visible cards, not the older authority timestamp: network delay
+// must not consume the player's reading time. Explicit selections stay instant.
+controls.upgradeReadRemaining = () =>
+  choicesKey
+    ? Math.max(0, UPGRADE_READING_MS - (performance.now() - choicesOpenedAt))
+    : 0;
 controls.onUpgradePreview = (index) => {
   for (const [i, card] of [...$("upgrade-options").children].entries())
     card.classList.toggle("stick-selected", i === index);
@@ -1087,6 +1095,7 @@ function updateHud(current) {
         return b;
       }),
     );
+    choicesOpenedAt = ck ? performance.now() : 0;
   }
   show("death", !me.alive && !finished);
   if (!me.alive) {

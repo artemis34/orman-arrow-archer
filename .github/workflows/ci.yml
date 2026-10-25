@@ -18,6 +18,7 @@ on:
         feature/one-finger-controls,
         feature/royale-onehand-onboarding,
         feature/separate-royale-ratings,
+        fix/upgrade-reading-window,
       ]
     paths-ignore: ["**/*.md"]
   pull_request:

@@ -611,3 +611,61 @@ test("a held walking finger can enter cards and confirm by dwell, then resume wi
     assert.deepEqual(picks, [2]);
   });
 });
+
+test("the reading window delays held-stick confirmation but allows an explicit early release", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  withSticks(({ controls: c, move, dispatch }) => {
+    let offer = "first",
+      remaining = 5000;
+    const picks = [];
+    c.oneHanded = true;
+    c.upgradeChoices = () => offer;
+    c.upgradeReadRemaining = () => remaining;
+    c.onUpgradeChoose = (i) => picks.push(i);
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 180 });
+    t.mock.timers.tick(4999);
+    assert.deepEqual(
+      picks,
+      [],
+      "holding a direction cannot skip the reading window",
+    );
+    t.mock.timers.tick(1);
+    assert.deepEqual(picks, [2]);
+    dispatch("pointerup", { clientX: 180 });
+    offer = "second";
+    move.fire("pointerdown", { pointerId: 2 });
+    dispatch("pointermove", { pointerId: 2, clientX: 0 });
+    dispatch("pointerup", { pointerId: 2, clientX: 0 });
+    assert.deepEqual(
+      picks,
+      [2, 0],
+      "deliberate release chooses before five seconds",
+    );
+    t.mock.timers.tick(5000);
+    assert.deepEqual(
+      picks,
+      [2, 0],
+      "the cancelled timer cannot duplicate an explicit selection",
+    );
+    remaining = 0;
+    offer = "third";
+    move.fire("pointerdown", { pointerId: 3 });
+    t.mock.timers.tick(5000);
+    assert.deepEqual(
+      picks,
+      [2, 0],
+      "an expired reading window never chooses a card by itself",
+    );
+    dispatch("pointermove", { pointerId: 3, clientY: 580 });
+    t.mock.timers.tick(599);
+    assert.deepEqual(picks, [2, 0]);
+    t.mock.timers.tick(1);
+    assert.deepEqual(
+      picks,
+      [2, 0, 1],
+      "after reading, the usual dwell stays responsive",
+    );
+    dispatch("pointerup", { pointerId: 3, clientY: 580 });
+  });
+});

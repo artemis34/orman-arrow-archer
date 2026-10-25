@@ -19,6 +19,7 @@ const http = createServer(),
 let actor,
   joins = 0;
 const actions = [];
+const upgrades = [];
 io.on("connection", (socket) => {
   socket.on("join", (data) => {
     joins++;
@@ -31,7 +32,10 @@ io.on("connection", (socket) => {
       actions.push({ dash: input.dash, heal: input.heal });
     world.setInput(socket.id, input);
   });
-  socket.on("upgrade", (key) => world.choose(socket.id, key));
+  socket.on("upgrade", (key) => {
+    if (world.choose(socket.id, key))
+      upgrades.push({ key, at: performance.now() });
+  });
   socket.on("latency", (cb) => cb());
   socket.on("disconnect", () => world.removePlayer(socket.id));
 });
@@ -124,6 +128,7 @@ try {
     } else await page.mouse.up();
   };
   const offer = async () => {
+    const offeredAt = performance.now();
     world.gain(actor, actor.level * 55 - actor.xp);
     actor.choices = ["speed", "draw", "vitality"];
     await expect(page.locator("#upgrades")).toBeVisible();
@@ -131,6 +136,7 @@ try {
     await expect(page.locator("#upgrade-options button").first()).toContainText(
       "Rüzgâr adımı",
     );
+    return offeredAt;
   };
   // A normal walk is not a dodge; crossing the outer threshold is exactly one.
   actor.spawnShield = 0;
@@ -152,10 +158,14 @@ try {
   // Begin walking first, then level up. That held gesture must not choose.
   await start();
   await move(230);
-  await offer();
+  const offeredAt = await offer();
   await move(235); // rebase the already held finger into selection
   await move(235, 665);
-  await expect.poll(() => actor.upgrades.draw || 0).toBe(1);
+  await expect.poll(() => actor.upgrades.draw || 0, { timeout: 8000 }).toBe(1);
+  assert.ok(
+    upgrades.at(-1).at - offeredAt >= 5000,
+    "cards provide at least five seconds before automatic stick confirmation",
+  );
   await expect(page.locator("#upgrades")).toBeHidden();
   await move(250, 665); // same captured finger resumes movement
   await expect.poll(() => actor.input.x).toBeGreaterThan(0);
@@ -248,8 +258,13 @@ try {
       await page.screenshot({
         path: `/tmp/archer-validation/one-finger-${engine}-selection.png`,
       });
+    const releasedAt = performance.now();
     await end();
     await expect.poll(() => actor.upgrades[keys[index]]).toBe(old + 1);
+    assert.ok(
+      upgrades.at(-1).at - releasedAt < 1500,
+      "explicit choice is not held until the reading window expires",
+    );
     await expect(page.locator("#upgrades")).toBeHidden();
     assert.equal(actor.levelGuard, 0, "selection ends protection immediately");
   }

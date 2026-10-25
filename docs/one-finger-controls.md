@@ -14,14 +14,19 @@ Tek el modunda ayrı atılma, can ve emoji tuşları gizlenir. Klasik modda kal�
   Sunucu 14 saniyelik bekleme süresini, canı ve korumayı doğrular.
 - Kartlar çıkınca parmağı kaldırmak gerekmez. İlk yeni hareket seçimi mevcut
   parmak konumuna taşır; sola / yukarı / sağa çekmek 1 / 2 / 3 numaralı kartı
-  vurgular. Yaklaşık 600 ms o yönde kalmak onaylar. Merkeze / aşağı dönmek,
+  vurgular. Kartlar görünür olduktan sonraki ilk 5 saniye okuma süresidir;
+  bu sürede joystick'te beklemek otomatik onay vermez. Sonrasında yaklaşık
+  600 ms o yönde kalmak onaylar. Karta dokunmak veya çekip bırakmak, ilk
+  5 saniye dolmadan da hemen seçer. Seçilmemiş kartlar süre bitince kapanmaz.
+  Merkeze / aşağı dönmek,
   odak kaybı ve pointer iptali seçimi iptal eder. İstenirse bırakmak da onaylar.
   Kart değişince eski hareket geçersizleşir. Seçim sonrası aynı parmakla yürünür.
 - Kartların konumu, doğrudan dokunma ve klavye kısayolları korunur.
 - Yeni otomatik yardımlar Ayarlar'dan kapatılabilir.
 
-İlk oyundaki geçilebilir öğretici gerçek hareket, atılma, atış ve yetenek seçimiyle
-ilerler. Tamamlanma/atlama cihazda saklanır. Masaüstüne WASD/fare anlatılır.
+“Nasıl oynanır” ile açılan ayrı bot eğitimi gerçek hareket, atılma, atış ve
+yetenek seçimiyle ilerler. Butondan yeniden oynanabilir; normal maçlarda
+otomatik açılmaz. Masaüstüne WASD/fare anlatılır.
 
 Sunucu hareketi, hasarı, çarpışmaları ve bekleme sürelerini hesaplamaya devam
 eder. v2 mesaj biçimi ve giriş alanları değişmez. Yeni bir istemci mesajı yoktur.

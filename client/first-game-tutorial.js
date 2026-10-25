@@ -66,7 +66,7 @@ export class FirstGameTutorial {
           ],
           [
             "Bir yetenek seç",
-            "Kristalleri topla. Kartlar çıkınca parmağını kaldırmadan yeni yönde çek ve kısa bekle. Merkeze dönmek iptal eder.",
+            "Kartları oku. Yeni yönde çekip bırakınca hemen seçersin; ilk 5 saniyeden sonra basılı tutarak da seçebilirsin. Merkeze dönmek iptal eder.",
           ],
         ]
       : [

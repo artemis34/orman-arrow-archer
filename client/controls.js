@@ -309,7 +309,11 @@ export class Controls {
       clearSelectionTimer();
       selectedCard = index;
       this.onUpgradePreview?.(index);
-      if (index >= 0) selectionTimer = setTimeout(commit, 600);
+      if (index >= 0)
+        selectionTimer = setTimeout(
+          commit,
+          Math.max(600, this.upgradeReadRemaining?.() || 0),
+        );
     };
     // Pointer moves can arrive faster than animation frames. Read layout only
     // when a gesture starts or the pad's actual size changes, never after each
