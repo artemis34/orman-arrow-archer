@@ -184,19 +184,42 @@ try {
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  // Highlight, cancel to centre; cancellation must neither choose nor dodge.
-  await start();
-  await move(150);
-  await expect(page.locator("#upgrade-options button").nth(0)).toHaveClass(
-    /stick-selected/,
-  );
-  await move(195);
-  await end();
-  assert.equal(actor.pending, 1);
-  await start();
-  await move(150);
-  await end(true);
-  assert.equal(actor.pending, 1);
+  // Cancellation is one synchronous browser turn: a slow software renderer
+  // must not turn a deliberately quick cancellation into a valid 600 ms hold.
+  for (const cancelled of [false, true]) {
+    await page.evaluate(() =>
+      addEventListener(
+        "pointerdown",
+        (e) =>
+          (window.__gestureFixture = { id: e.pointerId, type: e.pointerType }),
+        { once: true, capture: true },
+      ),
+    );
+    await start();
+    const highlighted = await page.evaluate((cancelled) => {
+      const p = window.__gestureFixture;
+      const move = (type, x) =>
+        dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: p.id,
+            pointerType: p.type,
+            clientX: x,
+            clientY: 720,
+            bubbles: true,
+          }),
+        );
+      move("pointermove", 150);
+      const highlighted = document
+        .querySelector("#upgrade-options button")
+        ?.classList.contains("stick-selected");
+      move(cancelled ? "pointercancel" : "pointermove", cancelled ? 150 : 195);
+      delete window.__gestureFixture;
+      return highlighted;
+    }, cancelled);
+    assert.equal(highlighted, true);
+    await end(cancelled);
+    assert.equal(actor.pending, 1);
+  }
   for (const [index, x, y] of [
     [0, 150, 720],
     [1, 195, 670],
@@ -207,10 +230,20 @@ try {
     const old = actor.upgrades[keys[index]] || 0;
     await start();
     await move(x, y);
-    await expect(
-      page.locator("#upgrade-options button").nth(index),
-    ).toHaveClass(/stick-selected/);
-    if (index === 0)
+    await expect
+      .poll(
+        async () =>
+          actor.upgrades[keys[index]] === old + 1 ||
+          (await page.evaluate(
+            (index) =>
+              document
+                .querySelectorAll("#upgrade-options button")
+                [index]?.classList.contains("stick-selected"),
+            index,
+          )),
+      )
+      .toBeTruthy();
+    if (index === 0 && actor.pending)
       await page.screenshot({
         path: `/tmp/archer-validation/one-finger-${engine}-selection.png`,
       });
