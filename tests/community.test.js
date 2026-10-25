@@ -250,7 +250,7 @@ test("global presence counts real sessions across rooms, expires leases and reje
   assert.equal((await (await community(p.env, "/presence")).json()).online, 0);
 });
 
-test("ranked BR awards verified results with opposing humans but a lone human cannot farm bot RP", async (t) => {
+test("ranked BR includes bot-filled games and keeps their opening-roster reward scale", async (t) => {
   const p = platform();
   t.after(() => p.close());
   for (const count of [1, 2]) {
@@ -278,6 +278,7 @@ test("ranked BR awards verified results with opposing humans but a lone human ca
     room.rankedParticipants = new Map(
       [...room.sessions.values()].map((s) => [s.id, s.profileId]),
     );
+    room.rankedScale = Math.max(0.2, count / room.world.players.size);
     for (const player of room.world.players.values())
       if (player.id !== "human0") {
         player.spawnShield = player.levelGuard = 0;
@@ -288,8 +289,8 @@ test("ranked BR awards verified results with opposing humans but a lone human ca
     await p.drain();
     const a = (await (await call(p.env, "/api/profile", tokenA)).json())
       .profile;
-    assert.equal(a.ratings.solo.matches, count === 1 ? 0 : 1);
-    assert.equal(a.ratings.solo.points, count === 1 ? 0 : 25);
+    assert.equal(a.ratings.solo.matches, count);
+    assert.equal(a.ratings.solo.points, count === 1 ? 13 : 30);
   }
 });
 
@@ -332,7 +333,7 @@ test("leaving ranked BR records one loss without terminating the other players m
   );
 });
 
-test("simultaneous final deaths in ranked BR award draws instead of losses", async (t) => {
+test("simultaneous final deaths use recorded placements without inventing a winner", async (t) => {
   const p = platform();
   t.after(() => p.close());
   const room = new ArenaRoom(p.context(), p.env);
@@ -369,7 +370,7 @@ test("simultaneous final deaths in ranked BR award draws instead of losses", asy
     const profile = (await (await call(p.env, "/api/profile", token)).json())
       .profile;
     assert.equal(profile.ratings.solo.matches, 1);
-    assert.equal(profile.ratings.solo.points, 5);
+    assert.equal(profile.ratings.solo.points, token === tokenA ? 22 : 25);
     assert.equal(profile.ratings.solo.wins, 0);
   }
 });

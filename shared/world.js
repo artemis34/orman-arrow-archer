@@ -321,6 +321,7 @@ export class World {
     return p;
   }
   removePlayer(id) {
+    this.mode.onDeparture?.(this, this.players.get(id));
     this.players.delete(id);
     // Departed owners cannot leave unowned projectiles that bypass team rules.
     for (const a of this.arrows.active) if (a.owner === id) a.cancelled = true;

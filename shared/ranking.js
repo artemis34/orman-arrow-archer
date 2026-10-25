@@ -41,6 +41,27 @@ export function ensureRatings(profile) {
   profile.ratings.duo ||= emptyRating();
   return profile.ratings;
 }
+/** Freeze this fraction at the opening roster, never after deaths/disconnects. */
+export const ratingScaleFor = (humans, total) =>
+  Math.max(0.2, Math.min(1, humans / Math.max(1, total)));
+export function ratingDelta(outcome, scale = 1) {
+  const base = { win: 25, loss: -10, draw: 5 }[outcome] || 0;
+  const weight = Number.isFinite(scale) ? Math.max(0.2, Math.min(1, scale)) : 1;
+  return Math.sign(base) * Math.round(Math.abs(base) * weight);
+}
+/** Fixed 32-player / 16-team cutoffs, independent of kills and client claims. */
+export function placementDelta(rankMode, placement, scale = 1) {
+  const total = rankMode === "solo" ? 32 : rankMode === "duo" ? 16 : 0;
+  if (!Number.isInteger(placement) || placement < 1 || placement > total)
+    return null;
+  const cutoff = rankMode === "solo" ? 10 : 8;
+  const base =
+    placement <= cutoff
+      ? Math.round(25 - ((placement - 1) * 23) / (cutoff - 1))
+      : -Math.round(1 + ((placement - cutoff - 1) * 9) / (total - cutoff - 1));
+  const weight = Number.isFinite(scale) ? Math.max(0.2, Math.min(1, scale)) : 1;
+  return Math.sign(base) * Math.max(1, Math.round(Math.abs(base) * weight));
+}
 export function updateRank(profile, result) {
   if (
     !result.ranked ||
@@ -54,6 +75,7 @@ export function updateRank(profile, result) {
   rating.points = Math.max(
     0,
     rating.points +
-      (result.outcome === "win" ? 25 : result.outcome === "draw" ? 5 : -10),
+      (placementDelta(result.rankMode, result.placement, result.ratingScale) ??
+        ratingDelta(result.outcome, result.ratingScale)),
   );
 }

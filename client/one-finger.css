@@ -89,9 +89,16 @@ body.onehand #emote-controls {
 }
 #tutorial-skip {
   pointer-events: auto;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-height: 30px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  min-height: 44px;
+  border: 1px solid #90b777;
+  border-radius: 8px;
+  background: #284c36;
+  color: #f0f7df;
+  cursor: pointer;
 }
 #dash-target.cooldown {
   opacity: 0.5;

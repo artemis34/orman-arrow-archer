@@ -101,7 +101,7 @@ export function communityUI({
     );
     content.append(
       paragraph(
-        "Battle Royale her zaman derecelidir. Solo ve ikili puanları ayrıdır. Kazan +25 RP · Kaybet −10 RP · Beraberlik +5 RP. Yalnız botlarla oynanan maçlar RP kazandırmaz. Düello dereceyi etkilemez.",
+        "Solo BR: ilk 10 RP kazanır, 11–32 RP kaybeder. İkili BR: ilk 8 takım kazanır, 9–16 kaybeder. Sırana göre +25 ile −10 RP; bot arttıkça miktar azalır. Puan 0’ın altına inmez. Solo ve ikili dereceleri ayrıdır; düello ve eğitim etkilemez.",
       ),
     );
     const ranks = document.createElement("details"),

@@ -22,11 +22,24 @@ tutar. İki genel sıralama da ayrıdır. Eski ortak `ranked` kaydı korunur;
 modu bilinmeyen geçmiş sonuçlar yeni kayıtlara dağıtılmaz. Yeni iki kayıt 0 RP
 ile başlar. Kozmetikler, yapraklar ve ömür boyu istatistikler korunur.
 
-Dereceli maçlar doğrulanmış profil ve eşleştirme bileti ister. RP yalnızca en az
-iki farklı gerçek profil varsa, ikilide bu profiller en az iki farklı takımda
-başladıysa verilir. Tek insan + botlar RP üretmez. Dereceli BR'den ayrılmak diğer
-oyuncuların maçını bitirmez; uygun katılımcıya tekil makbuzla kendi modunda
-yenilgi kaydedilir. Ödüller hâlâ sadece sunucudan yazılır.
+Dereceli maçlar doğrulanmış profil ve eşleştirme bileti ister. Botlu maçlar da RP
+verir. Ölçek maç başındaki gerçek oyuncu / toplam oyuncu oranıdır (en az %20).
+Solo 1–10. sıralar pozitif, 11–32. sıralar negatif RP alır. İkilide 1–8.
+takımlar pozitif, 9–16. takımlar negatif RP alır; takım arkadaşlarının sırası
+aynıdır. Tam insan kadrosunda birincilik +25, son pozitif sıra +2, ilk negatif
+sıra −1 ve sonunculuk −10 RP'dir; aradaki sıralar doğrusal dağıtılıp yuvarlanır.
+Bot ölçeği bu puanlara uygulanır; pozitif/negatif sonuç en az 1 RP'dir.
+Tek insan +31 botta birincilik +5, sonunculuk −2 RP'dir. Puan 0'ın altına inmez.
+Ölçek ölümler ve ayrılmalarla yeniden hesaplanmaz. Yalnızca birincilik galibiyet
+sayılır. BR'den ayrılmak kalan oyuncuların maçını bitirmez; ayrılana, önceden
+elenmişse kaydedilen sırası, hâlâ hayattaysa ayrıldığı andaki kalan taraf sayısı
+üzerinden tek makbuzla sonuç kaydedilir.
+
+Öğretici normal maçlarda otomatik açılmaz. Menüdeki “Nasıl oynanır” yerel,
+7 botlu ayrı bir arena başlatır. Hareket, atılma, atış ve yetenek seçimi gerçek
+oyun eylemleriyle öğretilir. Eğitim RP vermez ve çevrimiçi odaya bağlanmaz.
+Tamamlayınca veya “Eğitimden çık”a basınca önceki menü seçimleri geri gelir.
+Daha önce bitirilmiş olsa bile butondan tekrar oynanabilir.
 
 Opsiyonel match metadata: `zone`, `survivors`, `winnerId`, `winnerTeam`,
 `survivingTeams`, `reviveDelay` ve sonuç satırı `placement`. v2 oyuncu tuple'ları

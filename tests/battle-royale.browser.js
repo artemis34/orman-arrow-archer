@@ -78,6 +78,7 @@ try {
     await page.locator("#online-mode").click();
     await page.locator("#play").click();
     await expect(page.locator("#hud")).toBeVisible();
+    await expect(page.locator("#first-game-tutorial")).toBeHidden();
   }
   await expect.poll(() => w.mode.phase).toBe("playing");
   const [a, b] = actors;

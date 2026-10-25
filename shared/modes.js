@@ -235,6 +235,8 @@ export class BattleRoyale extends RoundMode {
     this.startedAt = 0;
     this.nextStormAt = 0;
     this.eliminations = new Map();
+    this.soloPlacements = new Map();
+    this.teamPlacements = new Map();
     this.winnerId = null;
     this.winnerTeam = null;
     this.zone = {
@@ -270,6 +272,31 @@ export class BattleRoyale extends RoundMode {
   onElimination(world, attacker, target) {
     super.onElimination(world, attacker, target);
     this.eliminations.set(target.id, world.time);
+    if (!this.rules.teams)
+      this.soloPlacements.set(target.id, this.aliveSides(world) + 1);
+    else if (
+      ![...world.players.values()].some(
+        (p) => p.alive && p.team === target.team,
+      )
+    )
+      this.teamPlacements.set(target.team, this.aliveSides(world) + 1);
+  }
+  placementFor(world, player) {
+    if (!player) return undefined;
+    if (!this.rules.teams)
+      return this.soloPlacements.get(player.id) ?? this.aliveSides(world);
+    return this.teamPlacements.get(player.team) ?? this.aliveSides(world);
+  }
+  onDeparture(world, player) {
+    if (this.phase !== "playing" || !player?.alive) return;
+    if (!this.rules.teams)
+      this.soloPlacements.set(player.id, this.aliveSides(world));
+    else if (
+      ![...world.players.values()].some(
+        (p) => p.id !== player.id && p.alive && p.team === player.team,
+      )
+    )
+      this.teamPlacements.set(player.team, this.aliveSides(world));
   }
   updateZone(world) {
     const age = world.time - this.startedAt;
@@ -293,30 +320,11 @@ export class BattleRoyale extends RoundMode {
         ? alive[0]?.id || null
         : null;
     super.finish(world);
-    this.results.sort((a, b) => {
-      if (this.rules.teams) {
-        if (a.team === b.team) return a.id.localeCompare(b.id);
-        if (a.team === this.winnerTeam) return -1;
-        if (b.team === this.winnerTeam) return 1;
-        const death = (team) =>
-          Math.max(
-            ...[...world.players.values()]
-              .filter((p) => p.team === team)
-              .map((p) => this.eliminations.get(p.id) ?? Infinity),
-          );
-        return death(b.team) - death(a.team) || a.team - b.team;
-      }
-      if (a.id === this.winnerId) return -1;
-      if (b.id === this.winnerId) return 1;
-      return (
-        (this.eliminations.get(b.id) ?? Infinity) -
-          (this.eliminations.get(a.id) ?? Infinity) || b.kills - a.kills
-      );
-    });
-    const teams = [...new Set(this.results.map((p) => p.team))];
-    this.results.forEach((row, i) => {
-      row.placement = this.rules.teams ? teams.indexOf(row.team) + 1 : i + 1;
-    });
+    for (const row of this.results)
+      row.placement = this.placementFor(world, world.players.get(row.id));
+    this.results.sort(
+      (a, b) => a.placement - b.placement || a.id.localeCompare(b.id),
+    );
   }
   step(world) {
     if (this.phase === "waiting") {
@@ -329,6 +337,8 @@ export class BattleRoyale extends RoundMode {
       if (world.time < this.startAt && humans < this.rules.capacity) return;
       world.resetRound();
       this.eliminations.clear();
+      this.soloPlacements.clear();
+      this.teamPlacements.clear();
       this.winnerId = null;
       this.winnerTeam = null;
       this.phase = "playing";

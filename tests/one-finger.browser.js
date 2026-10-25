@@ -16,10 +16,12 @@ world.obstacleGrid.clear();
 while (world.orbs.active.length) world.orbs.release(0);
 const http = createServer(),
   io = new Server(http, { cors: { origin: true } });
-let actor;
+let actor,
+  joins = 0;
 const actions = [];
 io.on("connection", (socket) => {
   socket.on("join", (data) => {
+    joins++;
     actor = world.addPlayer(socket.id, data.name);
     Object.assign(actor, { x: 0, z: 0 });
     socket.emit("welcome", { id: actor.id, obstacles: [], rules: RULES });
@@ -81,8 +83,7 @@ try {
   await page.locator("#online-mode").tap();
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
-  await expect(page.locator("#first-game-tutorial")).toBeVisible();
-  await page.locator("#tutorial-skip").tap();
+  await expect(page.locator("#first-game-tutorial")).toBeHidden();
   await expect(page.locator("#dash")).toBeHidden();
   await expect(page.locator("#heal")).toBeHidden();
   await expect.poll(() => !!actor?.input.autoFire).toBe(true);
@@ -306,6 +307,49 @@ try {
   await page.locator("#leaders-toggle").tap();
   await page.locator("#exit").tap();
   await expect(page.locator("#lobby")).toBeVisible();
+  // How to play always starts a separate local lesson, even from ranked duo.
+  await page.locator("#match-format").selectOption("brduo");
+  const beforeLesson = joins;
+  const savedUrl = page.url();
+  const savedFormat = await page.evaluate(() =>
+    localStorage.getItem("wildbow-format"),
+  );
+  for (let repeat = 0; repeat < 2; repeat++) {
+    await page.locator("#help-open").tap();
+    await expect(page.locator("#hud")).toBeVisible();
+    await expect(page.locator("#connection")).toHaveText("YEREL");
+    await expect(page.locator("#first-game-tutorial")).toBeVisible();
+    await expect(page.locator("#tutorial-title")).toContainText("1/4");
+    await start();
+    await move(240);
+    await expect(page.locator("#tutorial-title")).toContainText("2/4");
+    await move(325);
+    await end();
+    await expect(page.locator("#tutorial-title")).toContainText("3/4");
+    assert.equal(joins, beforeLesson, "lesson never joins the online room");
+    assert.equal(page.url(), savedUrl, "lesson preserves the online invite");
+    await page.screenshot({
+      path: `/tmp/archer-validation/tutorial-${engine}.png`,
+    });
+    await page.locator("#tutorial-skip").tap();
+    await expect(page.locator("#lobby")).toBeVisible();
+    await expect(page.locator("#first-game-tutorial")).toBeHidden();
+    await expect(page.locator("#match-format")).toHaveValue("brduo");
+    await expect(page.locator("#online-mode")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("wildbow-format")),
+      savedFormat,
+    );
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("wildbow-overpull")),
+      "false",
+      "lesson does not overwrite assist preferences",
+    );
+  }
+  await page.locator("#match-format").selectOption("arena");
   await selectControlMode(page, "classic");
   await page.locator("#play").tap();
   await expect(page.locator("#aim-stick")).toBeVisible();

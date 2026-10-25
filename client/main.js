@@ -92,6 +92,7 @@ let playing = false,
   toastTimer,
   joining = false,
   joiningTransport = null,
+  tutorialReturn = null,
   guardWasActive = false;
 const performanceMonitor = setupPerformanceMonitor({
   parent: document.querySelector(".arena-map"),
@@ -105,6 +106,16 @@ const tutorial = new FirstGameTutorial({
   title: $("tutorial-title"),
   note: $("tutorial-note"),
   skip: $("tutorial-skip"),
+  onFinish: (reason) =>
+    queueMicrotask(() => {
+      if (!tutorialReturn) return;
+      leave();
+      toast(
+        reason === "completed"
+          ? "Eğitim tamamlandı · Arenaya hazırsın!"
+          : "Eğitimden çıktın",
+      );
+    }),
 });
 async function onlineCount() {
   if (document.hidden || playing) return;
@@ -385,7 +396,22 @@ function help(open) {
     $("help-close").focus();
   } else focusBeforeHelp?.focus();
 }
-$("help-open").onclick = () => help(true);
+$("help-open").onclick = async () => {
+  if (joining || playing) return;
+  tutorialReturn = {
+    format,
+    mode,
+    privateRoom,
+    overpull: controls.overpullDash,
+  };
+  format = "arena";
+  mode = "practice";
+  // Make the dash lesson reachable even if this optional assist is disabled.
+  // The saved preference and regular match controls are restored on exit.
+  if (controls.oneHanded) controls.overpullDash = true;
+  await join(true);
+  if (!playing) restoreTutorialLobby();
+};
 
 $("help-close").onclick = () => help(false);
 addEventListener("keydown", (e) => {
@@ -547,7 +573,7 @@ function consume(next) {
     }
   }
 }
-async function join() {
+async function join(isTutorial = false) {
   if (joining) return;
   joining = true;
   $("play").setAttribute("aria-busy", "true");
@@ -638,7 +664,10 @@ async function join() {
     transport = candidate;
     myId = welcome.id;
     playing = true;
-    tutorial.start(controls.oneHanded, FORMATS[format].progression !== false);
+    clearTimeout(toastTimer);
+    show("toast", false);
+    tutorial.stop();
+    if (isTutorial) tutorial.start(controls.oneHanded, true, true);
     performanceMonitor.reset();
     resultKey = "";
     controls.active = true;
@@ -680,6 +709,14 @@ $("player-name").addEventListener("keydown", (e) => {
     $("player-name").blur();
   }
 });
+function restoreTutorialLobby() {
+  if (!tutorialReturn) return;
+  controls.overpullDash = tutorialReturn.overpull;
+  ({ format, mode, privateRoom } = tutorialReturn);
+  tutorialReturn = null;
+  $("match-format").value = format;
+  setRoomAccess(privateRoom);
+}
 function leave() {
   emotes.reset();
   audio.stopAll();
@@ -706,6 +743,7 @@ function leave() {
     show(id, false);
   show("lobby", true);
   document.body.classList.remove("playing");
+  restoreTutorialLobby();
   $("kill-feed").replaceChildren();
   killStreak.update(0, false);
   text(

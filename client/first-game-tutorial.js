@@ -1,23 +1,25 @@
-/** Non-blocking first-match guidance, advanced by real authoritative gameplay. */
+/** Opt-in bot lesson, advanced by real gameplay rather than timed slides. */
 export class FirstGameTutorial {
-  constructor({ get, set, root, title, note, skip }) {
-    Object.assign(this, { get, set, root, title, note });
+  constructor({ get, set, root, title, note, skip, onFinish }) {
+    Object.assign(this, { get, set, root, title, note, onFinish });
     this.step = 0;
     this.active = false;
-    skip.addEventListener("click", () => this.finish());
+    skip.addEventListener("click", () => this.finish("skipped"));
   }
-  start(onehand, progression = true) {
+  start(onehand, progression = true, force = false) {
     this.total = progression ? 4 : 3;
     this.onehand = onehand;
     this.step = 0;
     this.origin = null;
-    this.active = this.get("wildbow-tutorial-v1") !== "done";
+    this.active = force || this.get("wildbow-tutorial-v1") !== "done";
     this.render();
   }
-  finish() {
+  finish(reason = "completed") {
+    if (!this.active) return;
     this.active = false;
     this.set("wildbow-tutorial-v1", "done");
     this.render();
+    this.onFinish?.(reason);
   }
   stop() {
     this.active = false;

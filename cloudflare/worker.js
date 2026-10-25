@@ -1,3 +1,4 @@
+import { ratingScaleFor } from "../shared/ranking.js";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
 import {
@@ -379,6 +380,10 @@ export class ArenaRoom {
           .filter((s) => s.joined)
           .map((s) => [s.id, s.profileId]),
       );
+      this.rankedScale = ratingScaleFor(
+        this.rankedParticipants.size,
+        this.world.players.size,
+      );
     }
     for (const [ws, s] of this.sessions) {
       const p = this.world.players.get(s.id),
@@ -404,11 +409,9 @@ export class ArenaRoom {
     return (
       !!this.world.mode.rules?.ranked &&
       !!this.world.mode.rules.battleRoyale &&
-      this.rankedParticipants?.size >= 2 &&
+      this.rankedParticipants?.size >= 1 &&
       new Set(this.rankedParticipants?.values() || []).size ===
         this.rankedParticipants?.size &&
-      (!this.world.mode.rules.teams ||
-        new Set([...(this.rankedSides?.values() || [])]).size >= 2) &&
       this.rankedParticipants.get(session.id) === session.profileId
     );
   }
@@ -462,6 +465,8 @@ export class ArenaRoom {
         statsRecorded: true,
         ranked,
         rankMode: mode.rules.teams ? "duo" : "solo",
+        placement: mode.results.find((row) => row.id === p.id)?.placement,
+        ratingScale: this.rankedScale ?? 1,
         outcome: draw ? "draw" : win ? "win" : "loss",
       };
       const task = this.flushActivity(ws, session)
@@ -495,6 +500,8 @@ export class ArenaRoom {
         receipt: `${this.instance}:${this.world.mode.round}`,
         ranked: true,
         rankMode: this.world.mode.rules.teams ? "duo" : "solo",
+        placement: this.world.mode.placementFor(this.world, p),
+        ratingScale: this.rankedScale ?? 1,
         win: false,
         outcome: "loss",
         statsRecorded: true,
