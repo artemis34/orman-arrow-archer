@@ -1,3 +1,4 @@
+import { BowPose } from "./bow-pose.js";
 import { BattleRoyaleZoneView } from "./br-zone-view.js";
 import { forestMaterials, forestProp, decorateForest } from "./forest.js";
 import { createPose, updatePose } from "./presentation.js";
@@ -548,6 +549,24 @@ export class ArenaScene {
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.17, 0.18), cloth);
     arm.position.set(0.37, 1, 0.2);
     body.add(arm);
+    const holdingArm = new THREE.Mesh(arm.geometry, cloth);
+    holdingArm.position.set(0.36, 1, -0.2);
+    body.add(holdingArm);
+    const nockedArrow = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(1.15, 1, 0),
+        new THREE.Vector3(0.97, 1, -0.09),
+        new THREE.Vector3(1.15, 1, 0),
+        new THREE.Vector3(0.97, 1, 0.09),
+        new THREE.Vector3(1.15, 1, 0),
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0.14, 1, 0.08),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0xfff2ca }),
+    );
+    nockedArrow.visible = false;
+    bow.add(nockedArrow);
     const base = new THREE.Mesh(
       new THREE.RingGeometry(0.7, 0.76, 32),
       new THREE.MeshBasicMaterial({
@@ -674,6 +693,8 @@ export class ArenaScene {
       maxHp: p.maxHp,
       skin: p.skin,
       cosmetics: { ...p.cosmetics },
+      bowPose: new BowPose(p),
+      nockedArrow,
       bowColor: cosmetic("bow")?.color || 0xe7bf79,
       spawnColor: cosmetic("spawn")?.color || 0xbde08d,
       wasAlive: p.alive,
@@ -921,15 +942,32 @@ export class ArenaScene {
         }
         v.label.visible = playing;
 
-        if (v.drawCharge !== p.charge) {
-          v.drawCharge = p.charge;
+        const bowPose = v.bowPose.update(
+          p,
+          dt,
+          p.id === myId ? this.autoFire && !!p.autoTargetId : p.shotCd > 0,
+        );
+        const draw = bowPose.draw;
+        if (!celebrating) {
+          v.arm.position.x = 0.37 - draw * 0.4 + bowPose.recoil * 0.05;
+          v.arm.rotation.y = -draw * 0.35;
+          v.bow.position.x = 0.45 + bowPose.recoil * 0.07;
+        }
+        v.nockedArrow.visible =
+          !celebrating && draw > 0.06 && bowPose.release === 0;
+        // Flight stays in the authoritative projectile stream; this is only the loaded arrow.
+        v.nockedArrow.position.x = -0.05 - draw * 0.6;
+        if (v.drawCharge !== draw) {
+          v.drawCharge = draw;
           v.string.geometry.attributes.position.setXYZ(
             1,
-            -0.05 - p.charge * 0.4,
+            -0.05 - draw * 0.6,
             1,
             0,
           );
           v.string.geometry.attributes.position.needsUpdate = true;
+          v.bowLine.scale.x = 1 - draw * 0.18 + bowPose.recoil * 0.04;
+          v.bowLine.updateMatrix();
         }
         if (v.hp !== p.hp || v.maxHp !== p.maxHp || v.team !== p.team) {
           v.team = p.team;

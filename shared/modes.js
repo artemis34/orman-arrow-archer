@@ -7,6 +7,7 @@ export const FORMATS = Object.freeze({
     teams: 0,
     duration: 210,
     battleRoyale: true,
+    ranked: true,
   },
   brduo: {
     name: "Battle Royale · İkili",
@@ -14,24 +15,8 @@ export const FORMATS = Object.freeze({
     teams: 16,
     duration: 210,
     battleRoyale: true,
-    reviveDelay: 15,
-  },
-  brranked: {
-    name: "Battle Royale · Solo dereceli",
-    capacity: 32,
-    teams: 0,
-    duration: 210,
-    battleRoyale: true,
     ranked: true,
-  },
-  brduoranked: {
-    name: "Battle Royale · İkili dereceli",
-    capacity: 32,
-    teams: 16,
-    duration: 210,
-    battleRoyale: true,
     reviveDelay: 15,
-    ranked: true,
   },
   round: { name: "Süreli arena", capacity: 16, teams: 0, duration: 240 },
   duel: {
@@ -41,15 +26,6 @@ export const FORMATS = Object.freeze({
     duration: 120,
     duel: true,
     progression: true,
-  },
-  ranked: {
-    name: "Ranked · Orman düellosu",
-    capacity: 2,
-    teams: 0,
-    duration: 120,
-    duel: true,
-    ranked: true,
-    progression: false,
   },
   t2: { name: "Takım · 2v2", capacity: 4, teams: 2, duration: 240 },
   t4: { name: "Takım · 4v4", capacity: 8, teams: 2, duration: 240 },
@@ -77,8 +53,12 @@ export const TEAMS = Object.freeze([
     "#efb0ba",
   ].map((color, i) => ({ name: `Takım ${i + 9}`, color, symbol: `${i + 9}` })),
 ]);
-export const formatKey = (value) =>
-  typeof value === "string" && Object.hasOwn(FORMATS, value) ? value : "arena";
+export const formatKey = (value) => {
+  if (typeof value !== "string") return "arena";
+  const key =
+    { ranked: "duel", brranked: "br", brduoranked: "brduo" }[value] || value;
+  return Object.hasOwn(FORMATS, key) ? key : "arena";
+};
 export const opponents = (a, b) =>
   a.id !== b.id && (a.team == null || b.team == null || a.team !== b.team);
 export class GameMode {

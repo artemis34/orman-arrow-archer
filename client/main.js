@@ -182,16 +182,9 @@ if (authResult) {
   }, 100);
 }
 progression.refresh();
-const casualFormat = (key) =>
-  ({ ranked: "duel", brranked: "br", brduoranked: "brduo" })[key] || key;
-$("match-format").value = casualFormat(format);
-$("ranked-toggle").checked = !!FORMATS[format].ranked;
+$("match-format").value = format;
 function updateFormat() {
-  const base = formatKey($("match-format").value);
-  show("ranked-entry", ["duel", "br", "brduo"].includes(base));
-  format = $("ranked-toggle").checked
-    ? { duel: "ranked", br: "brranked", brduo: "brduoranked" }[base] || base
-    : base;
+  format = formatKey($("match-format").value);
   preferences.set("wildbow-format", format);
   text(
     "format-note",
@@ -218,9 +211,6 @@ $("match-format").addEventListener("change", () => {
   }
   setMode(mode);
 });
-$("ranked-toggle").addEventListener("change", () =>
-  $("match-format").dispatchEvent(new Event("change")),
-);
 updateFormat();
 $("room-code").value = roomCode(query.get("room") || "arena") || "arena";
 show("server-address", !cloudflare);
@@ -559,10 +549,6 @@ function consume(next) {
 }
 async function join() {
   if (joining) return;
-  if (FORMATS[format].ranked && (!cloudflare || mode !== "online")) {
-    toast("Ranked için online Cloudflare modunu seç.");
-    return;
-  }
   joining = true;
   $("play").setAttribute("aria-busy", "true");
   $("play").querySelector("b").textContent = "İPTAL ET";
@@ -1261,6 +1247,7 @@ function frame(now) {
           controls.charge ? { angle: controls.angle, cone: 0.16 } : {},
         )
       : null;
+  scene.autoFire = controls.autoFire;
   scene.render(view, myId, dt, playing, target?.id);
   if (playing) performanceMonitor.frame(now, transport);
   if (playing && now - hudAt > 90) {

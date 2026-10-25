@@ -33,15 +33,27 @@ export const titleFor = (kills = 0) => {
   const [name, min] = tier(TITLES, kills);
   return { name, min, next: TITLES.find((r) => r[1] > kills)?.[1] ?? null };
 };
+export const emptyRating = () => ({ points: 0, matches: 0, wins: 0 });
+/** Legacy mixed RP remains archived; it cannot be attributed to either queue. */
+export function ensureRatings(profile) {
+  profile.ratings ||= {};
+  profile.ratings.solo ||= emptyRating();
+  profile.ratings.duo ||= emptyRating();
+  return profile.ratings;
+}
 export function updateRank(profile, result) {
-  if (!result.ranked || !["win", "loss", "draw"].includes(result.outcome))
+  if (
+    !result.ranked ||
+    !["solo", "duo"].includes(result.rankMode) ||
+    !["win", "loss", "draw"].includes(result.outcome)
+  )
     return;
-  profile.ranked ||= { points: 0, matches: 0, wins: 0 };
-  profile.ranked.matches++;
-  if (result.outcome === "win") profile.ranked.wins++;
-  profile.ranked.points = Math.max(
+  const rating = ensureRatings(profile)[result.rankMode];
+  rating.matches++;
+  if (result.outcome === "win") rating.wins++;
+  rating.points = Math.max(
     0,
-    profile.ranked.points +
+    rating.points +
       (result.outcome === "win" ? 25 : result.outcome === "draw" ? 5 : -10),
   );
 }

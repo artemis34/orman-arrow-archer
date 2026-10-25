@@ -17,6 +17,7 @@ on:
         fix/live-frame-network-diagnostics,
         feature/one-finger-controls,
         feature/royale-onehand-onboarding,
+        feature/separate-royale-ratings,
       ]
     paths-ignore: ["**/*.md"]
   pull_request:
@@ -59,6 +60,8 @@ jobs:
             sleep 1
           done
           npm run test:one-finger
+          node tests/bow-pose.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/bow-pose.browser.js
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:one-finger
       - name: Validate full-quality renderer budgets and resource reuse
         run: |

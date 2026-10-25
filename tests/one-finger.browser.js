@@ -72,13 +72,12 @@ try {
     page.locator('#match-format option[value="ranked"]'),
   ).toHaveCount(0);
   await page.locator("#match-format").selectOption("duel");
-  await expect(page.locator("#ranked-entry")).toBeVisible();
-  await page.locator("#ranked-toggle").check();
+  await expect(page.locator("#ranked-toggle")).toHaveCount(0);
   await page.locator("#match-format").selectOption("brduo");
-  await expect(page.locator("#ranked-toggle")).toBeChecked();
-  await page.locator("#ranked-toggle").uncheck();
+  await expect(page.locator("#match-format option:checked")).toContainText(
+    "Dereceli",
+  );
   await page.locator("#match-format").selectOption("arena");
-  await expect(page.locator("#ranked-entry")).toBeHidden();
   await page.locator("#online-mode").tap();
   await page.locator("#play").tap();
   await expect(page.locator("#hud")).toBeVisible();
@@ -141,11 +140,11 @@ try {
   assert.equal(actions.filter((a) => a.dash).length, 0);
   await move(250);
   await expect(page.locator("#dash-target")).toBeVisible();
-  await move(285);
+  await move(325);
   await expect.poll(() => actions.filter((a) => a.dash).length).toBe(1);
   // Do not queue an automatic dodge when cooldown finishes under a held finger.
   actor.dashCd = 0;
-  await move(295);
+  await move(335);
   await page.waitForTimeout(180);
   assert.equal(actions.filter((a) => a.dash).length, 1);
   await end();
@@ -263,7 +262,7 @@ try {
   actor.healCd = actor.dashCd = 0;
   const disabledActions = actions.length;
   await start();
-  await move(285);
+  await move(325);
   await expect.poll(() => actor.input.x).toBeGreaterThan(0.5);
   await end();
   assert.equal(

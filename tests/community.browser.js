@@ -77,7 +77,11 @@ try {
   await expect(page.locator(".collection-content")).toContainText(
     "Onay bekleniyor",
   );
-  assert.equal(friendRequests, 1, "one touch submits exactly one friend request");
+  assert.equal(
+    friendRequests,
+    1,
+    "one touch submits exactly one friend request",
+  );
   const myToken = await page.evaluate(() =>
     localStorage.getItem("wildbow-profile-key"),
   );
@@ -93,8 +97,13 @@ try {
   });
   assert.equal(accepted.status, 200);
   await page.locator('[data-tab="profile"]').tap();
-  await expect(page.locator(".rank-summary")).toContainText("Tohum");
-  await expect(page.locator(".rank-summary")).toContainText("0 RP");
+  await expect(page.locator(".rank-summary")).toHaveCount(2);
+  for (const [i, label] of ["Solo BR", "İkili BR"].entries()) {
+    await expect(page.locator(".rank-summary").nth(i)).toContainText(label);
+    await expect(page.locator(".rank-summary").nth(i)).toContainText(
+      "Tohum · 0 RP",
+    );
+  }
   await page.locator('[data-tab="friends"]').tap();
   await expect(page.locator(".collection-content")).toContainText(
     "WWWWWWWWWWWWWWWW",
@@ -112,6 +121,10 @@ try {
   await expect(page.locator(".collection-content")).toContainText(
     "Herkes Tohum",
   );
+  await page.getByRole("button", { name: "İkili BR", exact: true }).tap();
+  await expect(
+    page.getByRole("button", { name: "İkili BR", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Genel elemeler", exact: true }).tap();
   await expect(page.locator(".collection-content")).toContainText(
     "sunucunun doğruladığı",

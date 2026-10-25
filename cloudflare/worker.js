@@ -403,9 +403,8 @@ export class ArenaRoom {
   rankedEligible(session) {
     return (
       !!this.world.mode.rules?.ranked &&
-      (this.world.mode.rules.duel
-        ? this.rankedParticipants?.size === 2
-        : this.rankedParticipants?.size >= 2) &&
+      !!this.world.mode.rules.battleRoyale &&
+      this.rankedParticipants?.size >= 2 &&
       new Set(this.rankedParticipants?.values() || []).size ===
         this.rankedParticipants?.size &&
       (!this.world.mode.rules.teams ||
@@ -462,6 +461,7 @@ export class ArenaRoom {
         win,
         statsRecorded: true,
         ranked,
+        rankMode: mode.rules.teams ? "duo" : "solo",
         outcome: draw ? "draw" : win ? "win" : "loss",
       };
       const task = this.flushActivity(ws, session)
@@ -485,16 +485,6 @@ export class ArenaRoom {
     const session = this.sessions.get(ws);
     if (!session) return;
     if (
-      this.world?.mode.rules?.ranked &&
-      this.world.mode.rules.duel &&
-      this.world.mode.phase === "playing" &&
-      this.world.time - this.rankedStartedAt >= 10
-    ) {
-      this.world.mode.forfeit = session.id;
-      this.world.mode.finish(this.world);
-      this.rewardRound();
-    }
-    if (
       this.env?.PROFILES &&
       this.world?.mode.rules?.battleRoyale &&
       this.world.mode.phase === "playing" &&
@@ -504,6 +494,7 @@ export class ArenaRoom {
       const result = {
         receipt: `${this.instance}:${this.world.mode.round}`,
         ranked: true,
+        rankMode: this.world.mode.rules.teams ? "duo" : "solo",
         win: false,
         outcome: "loss",
         statsRecorded: true,
@@ -740,6 +731,7 @@ export default {
         await community(env, "/upsert", {
           code: profile.socialCode,
           name: profile.displayName,
+          ratings: profile.ratings,
           points: profile.ranked.points,
           rankedMatches: profile.ranked.matches,
           kills: profile.stats.kills,
@@ -794,7 +786,7 @@ export default {
       return apiResponse(
         await community(
           env,
-          `/leaderboard?kind=${url.searchParams.get("kind") === "kills" ? "kills" : "ranked"}`,
+          `/leaderboard?kind=${["duo", "kills"].includes(url.searchParams.get("kind")) ? url.searchParams.get("kind") : "solo"}`,
         ),
       );
     }

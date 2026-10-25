@@ -1,3 +1,4 @@
+import { ensureRatings } from "../shared/ranking.js";
 import {
   newProfile,
   purchase,
@@ -17,7 +18,12 @@ export class PlayerProfile {
     return this.ctx.blockConcurrencyWhile(async () => {
       const stored = await this.ctx.storage.get("profile");
       const needsMigration =
-        !stored || !stored.socialCode || !stored.ranked || !stored.displayName;
+        !stored ||
+        !stored.socialCode ||
+        !stored.ranked ||
+        !stored.displayName ||
+        !stored.ratings?.solo ||
+        !stored.ratings?.duo;
       const profile = stored || newProfile();
       if (!profile.socialCode)
         profile.socialCode = crypto
@@ -26,6 +32,7 @@ export class PlayerProfile {
           .slice(0, 12)
           .toUpperCase();
       profile.ranked ||= { points: 0, matches: 0, wins: 0 };
+      ensureRatings(profile);
       profile.displayName ||= "Gezgin";
       const path = new URL(request.url).pathname;
       let outcome = { ok: true },
@@ -70,6 +77,7 @@ export class PlayerProfile {
           community(this.env, "/upsert", {
             code: profile.socialCode,
             name: profile.displayName,
+            ratings: profile.ratings,
             points: profile.ranked.points,
             rankedMatches: profile.ranked.matches,
             kills: profile.stats.kills,

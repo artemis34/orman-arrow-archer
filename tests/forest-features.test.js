@@ -106,7 +106,7 @@ test("loot preserves terrain/XP, announces before landing, then grants exactly o
   assert.equal(p.level, 2);
   assert.equal(w.events.filter((e) => e.type === "lootClaim").length, 1);
 });
-test("loot density is bounded, population/area aware, obstruction free and absent in equal-start ranked duels", () => {
+test("loot density is bounded, population/area aware, obstruction free and present in casual duels", () => {
   const w = new World({ bots: 0 });
   w.addPlayer("p");
   const initial = w.loot.interval(w);
@@ -129,10 +129,14 @@ test("loot density is bounded, population/area aware, obstruction free and absen
   }
   for (const key of ["ranked"]) {
     const d = new World({ bots: 0, mode: createMode(key) });
+    d.addPlayer("a");
+    d.addPlayer("b");
+    d.step();
     d.time = 200;
     d.loot.tick(d);
-    assert.equal(d.loot.drops.length, 0);
-    assert.equal(d.orbs.active.length, 0);
+    assert.equal(d.loot.drops.length, 1);
+    assert.equal(d.orbs.active.length, 26);
+    assert.equal(d.mode.rules.ranked, undefined);
   }
 });
 test("loot state roundtrips through the existing v2 tuple and kill feedback cannot reveal hidden coordinates", () => {
@@ -156,20 +160,31 @@ test("loot state roundtrips through the existing v2 tuple and kill feedback cann
 test("ranked starts at zero independently of old kills; receipts cannot inflate rank and titles follow lifetime kills", () => {
   const p = newProfile();
   p.stats.kills = 5000;
-  assert.equal(rankFor(p.ranked.points).name, "Tohum");
+  assert.equal(rankFor(p.ratings.solo.points).name, "Tohum");
   assert.equal(titleFor(p.stats.kills).name, "Efsane Okçu");
-  award(p, { receipt: "r1", ranked: true, outcome: "win", win: true });
-  assert.equal(p.ranked.points, 25);
-  award(p, { receipt: "r1", ranked: true, outcome: "win" });
-  assert.equal(p.ranked.points, 25);
+  award(p, {
+    receipt: "r1",
+    ranked: true,
+    rankMode: "solo",
+    outcome: "win",
+    win: true,
+  });
+  assert.equal(p.ratings.solo.points, 25);
+  award(p, { receipt: "r1", ranked: true, rankMode: "solo", outcome: "win" });
+  assert.equal(p.ratings.solo.points, 25);
   award(p, { receipt: "casual", kills: 10, win: true });
-  assert.equal(p.ranked.points, 25);
+  assert.equal(p.ratings.solo.points, 25);
   recordActivity(p, { receipt: "activity1", kills: 2 });
   recordActivity(p, { receipt: "activity1", kills: 2 });
   assert.equal(p.stats.kills, 5012);
   for (let i = 0; i < 4; i++)
-    award(p, { receipt: `loss${i}`, ranked: true, outcome: "loss" });
-  assert.equal(p.ranked.points, 0);
+    award(p, {
+      receipt: `loss${i}`,
+      ranked: true,
+      rankMode: "solo",
+      outcome: "loss",
+    });
+  assert.equal(p.ratings.solo.points, 0);
   assert.equal(titleFor(9).name, "Çırak");
   assert.equal(titleFor(10).name, "İzci");
   assert.equal(titleFor(50).name, "Avcı");

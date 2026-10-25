@@ -85,6 +85,7 @@ test("global ranks use server receipts; public clients cannot write scores, alia
       body: JSON.stringify({
         receipt: "r1",
         ranked: true,
+        rankMode: "solo",
         outcome: "win",
         win: true,
         kills: 5,
@@ -118,54 +119,21 @@ test("global ranks use server receipts; public clients cannot write scores, alia
     5,
   );
 });
-test("ranked forfeit and results award once to distinct real profiles, never from bot fills", async (t) => {
-  const p = platform();
-  t.after(() => p.close());
-  const ctx = p.context(),
-    room = new ArenaRoom(ctx, p.env);
-  const results = [];
+test("legacy ranked-duel links now join casual duels and never qualify for RP", () => {
+  const room = new ArenaRoom({ getWebSockets: () => [] }, {});
   room.world = new World({ bots: 0, mode: createMode("ranked") });
   room.world.addPlayer("a");
   room.world.addPlayer("b");
   room.world.step();
-  const ids = [await profileId(tokenA), await profileId(tokenB)];
-  const sockets = [
-    { send: (s) => results.push(JSON.parse(s)) },
-    { send: (s) => results.push(JSON.parse(s)) },
-  ];
-  sockets.forEach((ws, i) =>
-    room.sessions.set(ws, {
-      id: i ? "b" : "a",
-      profileId: ids[i],
-      joined: true,
-      joinedAt: 0,
-      room: "ranked-wildbow-1",
-      activity: { kills: 0, hits: 0, assists: 0, objectives: 0 },
-    }),
-  );
-  room.rankedStartedAt = 0;
   room.rankedParticipants = new Map([
-    ["a", ids[0]],
-    ["b", ids[1]],
+    ["a", "one"],
+    ["b", "two"],
   ]);
-  room.world.time = 15;
-  room.remove(sockets[0]);
-  await p.drain();
-  const a = (await (await call(p.env, "/api/profile", tokenA)).json()).profile,
-    b = (await (await call(p.env, "/api/profile", tokenB)).json()).profile;
-  assert.equal(a.ranked.matches, 1);
-  assert.equal(a.ranked.points, 0);
-  assert.equal(b.ranked.points, 25);
-  room.rewardRound();
-  await p.drain();
-  assert.equal(
-    (await (await call(p.env, "/api/profile", tokenB)).json()).profile.ranked
-      .points,
-    25,
-  );
-  assert.equal(room.world.players.size, 1);
-  assert.equal([...room.world.players.values()].filter((p) => p.bot).length, 0);
+  assert.equal(room.world.mode.id, "duel");
+  assert.equal(room.world.mode.rules.ranked, undefined);
+  assert.equal(room.rankedEligible({ id: "a", profileId: "one" }), false);
 });
+
 test("provider setup is optional and no credential or fake login is exposed", async (t) => {
   const p = platform();
   t.after(() => p.close());
@@ -320,8 +288,8 @@ test("ranked BR awards verified results with opposing humans but a lone human ca
     await p.drain();
     const a = (await (await call(p.env, "/api/profile", tokenA)).json())
       .profile;
-    assert.equal(a.ranked.matches, count === 1 ? 0 : 1);
-    assert.equal(a.ranked.points, count === 1 ? 0 : 25);
+    assert.equal(a.ratings.solo.matches, count === 1 ? 0 : 1);
+    assert.equal(a.ratings.solo.points, count === 1 ? 0 : 25);
   }
 });
 
@@ -354,12 +322,12 @@ test("leaving ranked BR records one loss without terminating the other players m
   await p.drain();
   assert.equal(room.world.mode.phase, "playing");
   const a = (await (await call(p.env, "/api/profile", tokenA)).json()).profile;
-  assert.equal(a.ranked.matches, 1);
+  assert.equal(a.ratings.solo.matches, 1);
   room.remove(sockets[0]);
   await p.drain();
   assert.equal(
-    (await (await call(p.env, "/api/profile", tokenA)).json()).profile.ranked
-      .matches,
+    (await (await call(p.env, "/api/profile", tokenA)).json()).profile.ratings
+      .solo.matches,
     1,
   );
 });
@@ -400,8 +368,8 @@ test("simultaneous final deaths in ranked BR award draws instead of losses", asy
   for (const token of [tokenA, tokenB]) {
     const profile = (await (await call(p.env, "/api/profile", token)).json())
       .profile;
-    assert.equal(profile.ranked.matches, 1);
-    assert.equal(profile.ranked.points, 5);
-    assert.equal(profile.ranked.wins, 0);
+    assert.equal(profile.ratings.solo.matches, 1);
+    assert.equal(profile.ratings.solo.points, 5);
+    assert.equal(profile.ratings.solo.wins, 0);
   }
 });

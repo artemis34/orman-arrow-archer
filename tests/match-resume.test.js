@@ -31,7 +31,7 @@ test("partial friend parties retain full opposing sides in every team format", (
     );
   }
 });
-test("ranked eliminations and respawns never introduce XP drops or random upgrades", () => {
+test("legacy duel links use casual XP and respawn rules, with no rank", () => {
   const w = new World({ bots: 0, mode: createMode("ranked") });
   const a = w.addPlayer("a"),
     b = w.addPlayer("b");
@@ -39,12 +39,13 @@ test("ranked eliminations and respawns never introduce XP drops or random upgrad
   a.spawnShield = b.spawnShield = 0;
   w.damage(b, 1000, a.id);
   assert.equal(b.alive, false);
-  assert.equal(w.orbs.active.length, 0);
-  assert.equal(a.level, 1);
-  assert.deepEqual(a.choices, []);
+  assert.ok(w.orbs.active.length > 0);
+  assert.ok(a.level > 1);
+  assert.equal(a.choices.length, 3);
+  assert.equal(w.mode.rules.ranked, undefined);
   w.time += 3.1;
   assert.equal(w.respawn(b.id), true);
-  assert.equal(w.snapshot(a.id).orbs.length, 0);
+  assert.ok(w.snapshot(a.id).orbs.length > 0);
   assert.equal(b.hp, a.maxHp);
   assert.equal(b.level, 1);
 });

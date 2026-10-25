@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
-import { BattleRoyale, createMode, FORMATS } from "../shared/modes.js";
+import {
+  BattleRoyale,
+  createMode,
+  FORMATS,
+  formatKey,
+} from "../shared/modes.js";
 import { SnapshotEncoder, SnapshotDecoder } from "../shared/protocol.js";
 for (const key of ["br", "brduo", "brranked", "brduoranked"])
   test(`${key} fills exactly 32 seats, including all 16 pairs`, () => {
@@ -10,7 +15,7 @@ for (const key of ["br", "brduo", "brranked", "brduoranked"])
     w.addPlayer("human");
     assert.equal(w.players.size, 32);
     assert.equal([...w.players.values()].filter((p) => p.bot).length, 31);
-    if (FORMATS[key].teams)
+    if (FORMATS[formatKey(key)].teams)
       for (let team = 0; team < 16; team++)
         assert.equal(
           [...w.players.values()].filter((p) => p.team === team).length,

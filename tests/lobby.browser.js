@@ -295,7 +295,7 @@ try {
     });
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchMove",
-      touchPoints: [{ id: 3, x: x + pad.width * 0.9, y }],
+      touchPoints: [{ id: 3, x: x + pad.width * 1.25, y }],
     });
     await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
     await cdp.send("Input.dispatchTouchEvent", {
@@ -305,7 +305,7 @@ try {
   } else {
     await page.mouse.move(x, y);
     await page.mouse.down();
-    await page.mouse.move(x + pad.width * 0.9, y);
+    await page.mouse.move(x + pad.width * 1.25, y);
     await expect.poll(() => actor.dashCd).toBeGreaterThan(0);
     await page.mouse.up();
   }

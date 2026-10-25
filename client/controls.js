@@ -372,7 +372,12 @@ export class Controls {
         if (
           this.oneHanded &&
           this.overpullDash &&
-          overpull.move(dx, dz, radius)
+          overpull.move(dx, dz, radius, {
+            minX: 18 - startX,
+            maxX: innerWidth - 18 - startX,
+            minY: 18 - startY,
+            maxY: innerHeight - 18 - startY,
+          })
         ) {
           // Consume a pull even during cooldown; holding the edge never queues
           // an unexpected dodge when the server's cooldown later expires.

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { WebSocketTransport } from "../client/websocket.js";
 const base = process.env.CLOUDFLARE_TEST_URL || "http://127.0.0.1:8787";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-async function until(check, message, timeout=6000) {
-  const end=Date.now()+timeout;
-  while(Date.now()<end) {
+async function until(check, message, timeout = 6000) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
     if (await check()) return;
     await wait(60);
   }
@@ -29,7 +29,7 @@ async function join(key) {
     base,
     (s) => (t.latest = s),
     () => {},
-    { format: "ranked", matchmake: true },
+    { format: "br", matchmake: true },
   );
   clients.push(t);
   await t.connect("Ranked Test", 0, { profileToken: key });
@@ -40,30 +40,40 @@ try {
   await assert.rejects(() => join(keys[0]), /farklı online profil/);
   const b = await join(keys[1]);
   await until(
-    () => a.latest?.match?.phase === "playing" && a.latest.roster.length === 2,
+    () => a.latest?.match?.phase === "playing" && a.latest.roster.length === 32,
     "ranked match did not start",
+    20000,
   );
   assert.equal(a.room, b.room);
-  assert.equal(a.latest.roster.filter((p) => p.bot).length, 0);
+  assert.equal(a.latest.roster.filter((p) => p.bot).length, 30);
   assert.equal(a.latest.players[0].level, 1);
-  assert.equal(a.latest.orbs.length, 0);
-  assert.equal((await profile(keys[0])).ranked.points, 0);
-  assert.equal((await profile(keys[1])).ranked.points, 0);
-  await until(()=>a.latest?.match?.remaining<=108,"ranked clock did not reach the disconnect grace threshold",30000);
+  assert.ok(a.latest.orbs.length > 0);
+  assert.equal((await profile(keys[0])).ratings.solo.points, 0);
+  assert.equal((await profile(keys[1])).ratings.solo.points, 0);
   a.close();
   await until(
-    async () => (await profile(keys[1])).ranked.points === 25,
-    "forfeit was not scored by the authority",
+    async () => (await profile(keys[0])).ratings.solo.matches === 1,
+    "departed BR player must receive a verified loss",
   );
-  assert.equal((await profile(keys[0])).ranked.points, 0);
-  assert.equal((await profile(keys[0])).ranked.matches, 1);
-  const board = await (await fetch(`${base}/api/leaderboard`)).json();
-  const winner=await profile(keys[1]);
-  assert.ok(board.entries.some((p) => p.code===winner.socialCode&&p.points===25));
+  assert.equal((await profile(keys[0])).ratings.solo.points, 0);
+  assert.equal((await profile(keys[0])).ratings.duo.matches, 0);
+  assert.equal((await profile(keys[1])).ratings.solo.matches, 0);
+  const board = await (await fetch(`${base}/api/leaderboard?kind=solo`)).json();
+  const loser = await profile(keys[0]);
+  assert.equal(board.kind, "solo");
+  assert.ok(
+    board.entries.every(
+      (p) =>
+        p.points === p.ratings.solo.points &&
+        p.rankedMatches === p.ratings.solo.matches,
+    ),
+  );
+  const duo = await (await fetch(`${base}/api/leaderboard?kind=duo`)).json();
+  assert.ok(!duo.entries.some((p) => p.code === loser.socialCode));
   const publicData = JSON.stringify(board);
   assert.ok(!publicData.includes(keys[0]) && !publicData.includes(keys[1]));
   console.log(
-    "COMMUNITY_RUNTIME_OK ranked distinct identity, authenticated matchmaking, equal starts, forfeit ratings, persistent leaderboards and private recovery keys",
+    "COMMUNITY_RUNTIME_OK ranked distinct identity, authenticated matchmaking, 32 seats, isolated BR ratings, persistent leaderboards and private recovery keys",
   );
 } finally {
   for (const t of clients) t.close();

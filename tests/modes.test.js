@@ -120,7 +120,7 @@ test("a completed round freezes damage and movement, awards assists and supports
   for (const p of w.players.values())
     assert.equal(p.kills + p.assists + p.matchPoints, 0);
 });
-test("ranked duels wait for a second player, have equal stats and symmetric cover, without XP or random cards", () => {
+test("legacy ranked-duel links retain symmetric casual duels without RP", () => {
   const w = new World({ bots: 0, mode: createMode("ranked") });
   const a = w.addPlayer("a");
   w.setInput("a", { x: 1 });
@@ -133,10 +133,11 @@ test("ranked duels wait for a second player, have equal stats and symmetric cove
   assert.equal(w.mode.phase, "playing");
   assert.equal(a.hp, b.hp);
   assert.equal(a.x, -b.x);
-  assert.equal(w.orbs.active.length, 0);
+  assert.equal(w.orbs.active.length, 26);
   w.gain(a, 10000);
-  assert.equal(a.level, 1);
-  assert.equal(w.snapshot("a").powerups.length, 0);
+  assert.ok(a.level > 1);
+  assert.equal(w.snapshot("a").powerups.length, 2);
+  assert.equal(w.mode.rules.ranked, undefined);
   for (const o of w.obstacles)
     assert.ok(
       w.obstacles.some((other) => other.x === -o.x && other.z === -o.z),

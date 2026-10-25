@@ -123,6 +123,10 @@ export function newProfile() {
       .toUpperCase(),
     displayName: "Gezgin",
     ranked: { points: 0, matches: 0, wins: 0 },
+    ratings: {
+      solo: { points: 0, matches: 0, wins: 0 },
+      duo: { points: 0, matches: 0, wins: 0 },
+    },
     coins: 0,
     owned: CATALOG.filter((p) => !p.price).map((p) => p.id),
     equipped: starter(),

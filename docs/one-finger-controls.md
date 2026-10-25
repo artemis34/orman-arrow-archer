@@ -6,7 +6,8 @@ Yedekler: `backup/pre-one-finger-controls-7a22ac5` ve
 Tek el modunda ayrı atılma, can ve emoji tuşları gizlenir. Klasik modda kalırlar.
 
 - Parmağını normal çemberin ötesine çekince o yönde geçici bir ϟ hedefi çıkar.
-  Hedef dışarıya kaçmaz; parmak hedefe ulaşınca bir kez atılma istenir.
+  Hedef normal durumda joystick merkezinden yaklaşık 120 piksel uzaktadır;
+  ekran kenarında erişilebilir alana sığdırılır. Hedef dışarıya kaçmaz; parmak hedefe ulaşınca bir kez atılma istenir.
   Yön değiştirmek hedefi yeni yöne taşır. Bekleme süresinde kalan süre gösterilir.
   Basılı tutmak tekrar atılmaz; yeni istek için önce çemberin içine dönülür.
 - Can %35 veya altındayken mevcut +25 can yeteneği hazırsa otomatik istenir.
@@ -24,3 +25,9 @@ ilerler. Tamamlanma/atlama cihazda saklanır. Masaüstüne WASD/fare anlatılır
 
 Sunucu hareketi, hasarı, çarpışmaları ve bekleme sürelerini hesaplamaya devam
 eder. v2 mesaj biçimi ve giriş alanları değişmez. Yeni bir istemci mesajı yoktur.
+
+Yay animasyonu yalnızca görseldir: şarj, çekilen kol, gerilen kiriş ve yayda
+bekleyen ok görünür. Sunucunun atış bekleme süresindeki yükseliş bırakma
+hareketini başlatır. Otomatik atışta da bir sonraki ok için germe hareketi
+gösterilir. Uçan oklar mevcut otoriter projectile akışından çizilir; animasyon
+yeni bir fizik oku oluşturmaz.

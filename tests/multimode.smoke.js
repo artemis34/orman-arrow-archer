@@ -98,7 +98,7 @@ try {
       `MODE_OK ${format} ${rules.capacity} humans ${rules.teams} teams`,
     );
   }
-  for (const format of ["brranked", "brduoranked"]) {
+  for (const format of ["br", "brduo"]) {
     const group = [];
     for (let i = 0; i < 2; i++) {
       const profileToken = [...crypto.getRandomValues(new Uint8Array(32))]
@@ -123,40 +123,13 @@ try {
     assert.equal(group[0].latest.match.format, format);
     assert.equal(
       group[0].latest.match.teams.length,
-      format === "brduoranked" ? 16 : 0,
+      format === "brduo" ? 16 : 0,
     );
     for (const t of group) t.close();
     console.log(
       `MODE_OK ${format}: authenticated BR matchmaking, 32 seats and bot fill`,
     );
   }
-  const ranked = [];
-  for (let i = 0; i < 2; i++) {
-    const token = [...crypto.getRandomValues(new Uint8Array(32))]
-      .map((v) => v.toString(16).padStart(2, "0"))
-      .join("");
-    const t = new WebSocketTransport(
-      base,
-      (state) => (t.latest = state),
-      () => {},
-      { format: "ranked", matchmake: true },
-    );
-    clients.push(t);
-    await t.connect(`Ranked ${i}`, 0, { profileToken: token });
-    ranked.push(t);
-  }
-  await until(
-    () => ranked[0].latest?.roster?.length === 2,
-    "two ranked humans share one room",
-  );
-  assert.equal(ranked[0].room, ranked[1].room);
-  assert.equal(ranked[0].latest.roster.filter((p) => p.bot).length, 0);
-  assert.equal(ranked[0].latest.players[0].level, 1);
-  assert.equal(ranked[0].latest.orbs.length, 0);
-  for (const t of ranked) t.close();
-  console.log(
-    "MODE_OK ranked: two distinct authenticated profiles, no bots, equal starting levels",
-  );
   const key = [...crypto.getRandomValues(new Uint8Array(32))]
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("");

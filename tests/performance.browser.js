@@ -232,7 +232,8 @@ try {
     assert.equal(result.animation.heads, 120);
     assert.equal(result.animation.gems, 140);
     assert.equal(result.animation.rare, result.rareExpected);
-    assert.equal(result.animation.bowVertices, 16 * 40);
+    // Bow + string use 40 vertices; the visible loaded arrow adds 7 line segments.
+    assert.equal(result.animation.bowVertices, 16 * (40 + 14));
     assert.equal(
       result.steadyTextureUploads,
       0,

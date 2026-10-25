@@ -12,14 +12,21 @@ sonunda, onun yakınındaki uygun bir noktada otomatik doğar. Seviye ve ekipman
 normal yeniden doğuşta olduğu gibi sıfırlanır. İki takım üyesi de ölürse dönüş
 yoktur. Son kalan takım kazanır; iki üye aynı takım sıralamasını alır.
 
-Ayrı Ranked menü satırı kaldırılmıştır. Düello, solo BR ve ikili BR için
-**Dereceli** kutusu kullanılır. Eski `ranked` format kimliği eski bağlantıların ve
-istemcilerin 1v1 uyumluluğu için sunucuda korunur. BR için `brranked` ve
-`brduoranked` kullanılır. Dereceli maçlar doğrulanmış profil ve eşleştirme bileti
-ister. RP yalnızca en az iki farklı gerçek profil varsa, ikilide bu profiller en
-az iki farklı takımda başladıysa verilir. Tek insan + botlar RP üretmez.
-Dereceli BR'den ayrılmak diğer oyuncuların maçını bitirmez; uygun katılımcıya
-tekil makbuzla yenilgi kaydedilir. Ödüller hâlâ sadece sunucudan yazılır.
+Çevrimiçi solo ve ikili BR her zaman derecelidir; açma/kapatma seçeneği yoktur.
+Düellolar dereceyi etkilemez. Eski `ranked` bağlantısı normal düelloya,
+`brranked` solo `br`, `brduoranked` ikili `brduo` kuyruğuna yönlenir. Böylece eski
+bağlantılar farklı eşleştirme havuzları oluşturmaz. Antrenman RP vermez.
+
+Profillerde `ratings.solo` ve `ratings.duo` ayrı puan, maç ve galibiyet sayısı
+tutar. İki genel sıralama da ayrıdır. Eski ortak `ranked` kaydı korunur;
+modu bilinmeyen geçmiş sonuçlar yeni kayıtlara dağıtılmaz. Yeni iki kayıt 0 RP
+ile başlar. Kozmetikler, yapraklar ve ömür boyu istatistikler korunur.
+
+Dereceli maçlar doğrulanmış profil ve eşleştirme bileti ister. RP yalnızca en az
+iki farklı gerçek profil varsa, ikilide bu profiller en az iki farklı takımda
+başladıysa verilir. Tek insan + botlar RP üretmez. Dereceli BR'den ayrılmak diğer
+oyuncuların maçını bitirmez; uygun katılımcıya tekil makbuzla kendi modunda
+yenilgi kaydedilir. Ödüller hâlâ sadece sunucudan yazılır.
 
 Opsiyonel match metadata: `zone`, `survivors`, `winnerId`, `winnerTeam`,
 `survivingTeams`, `reviveDelay` ve sonuç satırı `placement`. v2 oyuncu tuple'ları

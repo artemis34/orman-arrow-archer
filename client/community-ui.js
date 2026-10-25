@@ -12,7 +12,7 @@ export function communityUI({
   activeTab,
 }) {
   let generation = 0,
-    kind = "ranked",
+    kind = "solo",
     providers = {};
   const paragraph = (text) => {
     const p = document.createElement("p");
@@ -80,17 +80,28 @@ export function communityUI({
   }
   function rankSummary() {
     const p = profile(),
-      rank = rankFor(p.ranked?.points),
       title = titleFor(p.stats.kills);
-    const box = row(
-      `${rank.icon} ${rank.name} · ${p.ranked?.points || 0} RP`,
-      `${title.name} · ${p.stats.kills} eleme${title.next ? ` · Sonraki ünvan ${title.next}` : ""}`,
-    );
-    box.classList.add("rank-summary");
-    content.append(box);
+    for (const [kind, label] of [
+      ["solo", "Solo BR"],
+      ["duo", "İkili BR"],
+    ]) {
+      const rating = p.ratings?.[kind] || { points: 0, matches: 0, wins: 0 },
+        rank = rankFor(rating.points);
+      const box = row(
+        `${label} · ${rank.icon} ${rank.name} · ${rating.points} RP`,
+        `${rating.matches} maç · ${rating.wins} galibiyet`,
+      );
+      box.classList.add("rank-summary");
+      content.append(box);
+    }
     content.append(
       paragraph(
-        "Ranked: her tur sıfırdan, eşit ekipmanla gerçek 1v1. Kazan +25 RP · Kaybet −10 RP · Beraberlik +5 RP. Puan sıfırın altına düşmez.",
+        `${title.name} · ${p.stats.kills} eleme${title.next ? ` · Sonraki ünvan ${title.next}` : ""}`,
+      ),
+    );
+    content.append(
+      paragraph(
+        "Battle Royale her zaman derecelidir. Solo ve ikili puanları ayrıdır. Kazan +25 RP · Kaybet −10 RP · Beraberlik +5 RP. Yalnız botlarla oynanan maçlar RP kazandırmaz. Düello dereceyi etkilemez.",
       ),
     );
     const ranks = document.createElement("details"),
@@ -238,7 +249,8 @@ export function communityUI({
         const filters = document.createElement("div");
         filters.className = "collection-slots";
         for (const [key, label] of [
-          ["ranked", "Ranked"],
+          ["solo", "Solo BR"],
+          ["duo", "İkili BR"],
           ["kills", "Genel elemeler"],
         ]) {
           const b = button(label, () => {
@@ -251,8 +263,8 @@ export function communityUI({
         content.append(filters);
         content.append(
           paragraph(
-            kind === "ranked"
-              ? "Herkes Tohum ve 0 RP ile başlar. İlk ranked maçından sonra sıralamaya girersin."
+            kind !== "kills"
+              ? "Herkes Tohum ve 0 RP ile başlar. Solo ve ikili sıralamaları ayrı tutulur."
               : "Online maçlarda sunucunun doğruladığı toplam elemeler. Antrenman sayılmaz.",
           ),
         );
@@ -264,7 +276,7 @@ export function communityUI({
           content.append(
             row(
               `${i + 1}. ${p.name}`,
-              `${p.rank.name} · ${p.title.name} · ${kind === "ranked" ? `${p.points} RP` : `${p.kills} eleme`}`,
+              `${p.rank.name} · ${p.title.name} · ${kind !== "kills" ? `${p.points} RP` : `${p.kills} eleme`}`,
             ),
           ),
         );

@@ -65,19 +65,6 @@ body.onehand #emote-controls {
   color: #c9e6b6;
   font-size: 11px;
 }
-#ranked-entry {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #e0edce;
-  font-size: 12px;
-  margin-top: 8px;
-}
-#ranked-toggle {
-  width: 18px;
-  height: 18px;
-  accent-color: #cdeb94;
-}
 #first-game-tutorial {
   position: fixed;
   left: 50%;

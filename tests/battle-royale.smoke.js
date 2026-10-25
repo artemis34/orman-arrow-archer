@@ -21,7 +21,11 @@ async function connect(options) {
     { format: "br", ...options },
   );
   clients.push(t);
-  await t.connect("BR smoke", 0);
+  await t.connect("BR smoke", 0, {
+    profileToken: [...crypto.getRandomValues(new Uint8Array(32))]
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join(""),
+  });
   await until(() => t.latest, "BR initial snapshot");
   return t;
 }

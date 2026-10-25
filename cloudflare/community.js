@@ -12,6 +12,12 @@ export class CommunityHub {
     this.ctx = ctx;
     this.budgets = new Map();
     ctx.storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS ratings(code TEXT NOT NULL,kind TEXT NOT NULL,points INTEGER NOT NULL,matches INTEGER NOT NULL,wins INTEGER NOT NULL,PRIMARY KEY(code,kind))",
+    );
+    ctx.storage.sql.exec(
+      "CREATE INDEX IF NOT EXISTS rating_order ON ratings(kind,points DESC,matches DESC)",
+    );
+    ctx.storage.sql.exec(
       "CREATE TABLE IF NOT EXISTS presence(room TEXT PRIMARY KEY, instance TEXT NOT NULL, count INTEGER NOT NULL, expires INTEGER NOT NULL)",
     );
     ctx.storage.sql.exec(
@@ -31,9 +37,29 @@ export class CommunityHub {
         .toArray()[0] || null
     );
   }
-  public(row) {
+  public(row, kind = "solo") {
     if (!row) return null;
-    return { ...row, rank: rankFor(row.points), title: titleFor(row.kills) };
+    const ratings = {
+      solo: { points: 0, matches: 0, wins: 0 },
+      duo: { points: 0, matches: 0, wins: 0 },
+    };
+    for (const r of this.ctx.storage.sql
+      .exec(
+        "SELECT kind,points,matches,wins FROM ratings WHERE code=?",
+        row.code,
+      )
+      .toArray())
+      ratings[r.kind] = { points: r.points, matches: r.matches, wins: r.wins };
+    const rating = ratings[kind] || ratings.solo;
+    return {
+      ...row,
+      points: rating.points,
+      rankedMatches: rating.matches,
+      wins: kind === "kills" ? row.wins : rating.wins,
+      ratings,
+      rank: rankFor(rating.points),
+      title: titleFor(row.kills),
+    };
   }
   fetch(request) {
     return this.ctx.blockConcurrencyWhile(async () => {
@@ -97,19 +123,46 @@ export class CommunityHub {
           safe(data.rankedMatches),
           safe(data.wins),
         );
+        for (const kind of ["solo", "duo"]) {
+          const r = data.ratings?.[kind];
+          if (!r) continue;
+          this.ctx.storage.sql.exec(
+            "INSERT INTO ratings(code,kind,points,matches,wins) VALUES(?,?,?,?,?) ON CONFLICT(code,kind) DO UPDATE SET points=excluded.points,matches=excluded.matches,wins=excluded.wins",
+            data.code,
+            kind,
+            safe(r.points),
+            safe(r.matches),
+            safe(r.wins),
+          );
+        }
         return Response.json({ ok: true });
       }
       if (path === "/leaderboard") {
-        const ranked = url.searchParams.get("kind") !== "kills";
-        const rows = this.ctx.storage.sql
-          .exec(
-            ranked
-              ? "SELECT * FROM players WHERE rankedMatches>0 ORDER BY points DESC,wins DESC,code ASC LIMIT 50"
-              : "SELECT * FROM players WHERE kills>0 ORDER BY kills DESC,wins DESC,code ASC LIMIT 50",
-          )
-          .toArray();
-        return Response.json({ entries: rows.map((r) => this.public(r)) });
+        const kind =
+          url.searchParams.get("kind") === "kills"
+            ? "kills"
+            : url.searchParams.get("kind") === "duo"
+              ? "duo"
+              : "solo";
+        const rows =
+          kind === "kills"
+            ? this.ctx.storage.sql
+                .exec(
+                  "SELECT * FROM players WHERE kills>0 ORDER BY kills DESC,wins DESC,code ASC LIMIT 50",
+                )
+                .toArray()
+            : this.ctx.storage.sql
+                .exec(
+                  "SELECT p.* FROM players p JOIN ratings r ON r.code=p.code WHERE r.kind=? AND r.matches>0 ORDER BY r.points DESC,r.wins DESC,p.code ASC LIMIT 50",
+                  kind,
+                )
+                .toArray();
+        return Response.json({
+          kind,
+          entries: rows.map((r) => this.public(r, kind)),
+        });
       }
+
       if (path === "/resolve")
         return Response.json({
           id: (await this.ctx.storage.get(`alias:${data.id}`)) || data.id,

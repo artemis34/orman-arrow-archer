@@ -20,7 +20,7 @@ export class OverpullDash {
     this.target = null;
     this.previous = { x: 0, y: 0 };
   }
-  move(dx, dy, radius) {
+  move(dx, dy, radius, bounds) {
     if (![dx, dy, radius].every(Number.isFinite) || radius <= 0) return false;
     const length = Math.hypot(dx, dy);
     if (length < radius * 0.95) {
@@ -29,16 +29,27 @@ export class OverpullDash {
       return false;
     }
     if (!this.armed) return false;
-    if (length > radius * 1.05) {
-      const distance = radius * 2.4;
+    const ux = dx / length,
+      uy = dy / length;
+    let distance = radius * 3.1;
+    if (bounds) {
+      if (ux > 0) distance = Math.min(distance, bounds.maxX / ux);
+      if (ux < 0) distance = Math.min(distance, bounds.minX / ux);
+      if (uy > 0) distance = Math.min(distance, bounds.maxY / uy);
+      if (uy < 0) distance = Math.min(distance, bounds.minY / uy);
+    }
+    if (distance <= 0) {
+      this.target = null;
+      this.previous = { x: dx, y: dy };
+      return false;
+    }
+    if (length > Math.min(radius * 1.05, distance * 0.5)) {
+      const oldLength = this.target && Math.hypot(this.target.x, this.target.y);
       if (
         !this.target ||
-        (dx * this.target.x + dy * this.target.y) / (length * distance) < 0.8
+        (dx * this.target.x + dy * this.target.y) / (length * oldLength) < 0.8
       )
-        this.target = {
-          x: (dx / length) * distance,
-          y: (dy / length) * distance,
-        };
+        this.target = { x: ux * distance, y: uy * distance };
       const px = this.previous.x,
         py = this.previous.y,
         vx = dx - px,

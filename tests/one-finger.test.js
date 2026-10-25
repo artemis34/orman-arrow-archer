@@ -15,15 +15,15 @@ test("dash targets remain fixed along any chosen direction and require actual co
     assert.equal(d.target, null);
     assert.equal(d.move(50 * x, 50 * y, 40), false);
     const target = { ...d.target };
-    assert.ok(Math.abs(Math.hypot(target.x, target.y) - 96) < 1e-8);
+    assert.ok(Math.abs(Math.hypot(target.x, target.y) - 124) < 1e-8);
     assert.equal(d.move(70 * x, 70 * y, 40), false);
     assert.deepEqual(d.target, target);
-    assert.equal(d.move(96 * x, 96 * y, 40), true);
+    assert.equal(d.move(124 * x, 124 * y, 40), true);
     for (let i = 0; i < 300; i++)
-      assert.equal(d.move(100 * x, 100 * y, 40), false);
+      assert.equal(d.move(140 * x, 140 * y, 40), false);
     d.move(0, 0, 40);
     assert.equal(
-      d.move(120 * x, 120 * y, 40),
+      d.move(160 * x, 160 * y, 40),
       true,
       "fast drags sweep through the target",
     );
@@ -62,4 +62,14 @@ test("automatic healing uses relative HP and respects authoritative life, guard 
     assert.equal(automaticHealReady({ ...me, ...change }), false);
   assert.equal(automaticHealReady({ ...me, hp: 70, maxHp: 200 }), true);
   assert.equal(automaticHealReady(null), false);
+});
+
+test("further dash targets remain reachable at the screen boundary", () => {
+  const d = new OverpullDash();
+  d.move(50, 0, 40, { minX: -180, maxX: 80, minY: -700, maxY: 100 });
+  assert.equal(d.target.x, 80);
+  assert.equal(
+    d.move(80, 0, 40, { minX: -180, maxX: 80, minY: -700, maxY: 100 }),
+    true,
+  );
 });

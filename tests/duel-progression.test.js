@@ -117,21 +117,12 @@ test("public duel parachutes are contested centrally, limited to one and grant o
   assert.equal(decoded.players.find((p) => p.id === a.id).choices.length, 3);
 });
 
-test("ranked keeps deterministic equal equipment and excludes XP, skills, buffs and parachutes", () => {
-  const { w, a, b } = match("ranked");
-  w.gain(a, 100000);
-  assert.equal(a.level, 1);
-  assert.equal(a.pending, 0);
-  assert.deepEqual(a.choices, []);
-  assert.deepEqual(a.upgrades, {});
-  assert.equal(w.orbs.active.length, 0);
-  assert.deepEqual(w.snapshot(a.id).powerups, []);
-  assert.equal(w.snapshot(a.id).objective, null);
-  w.time = 90;
-  w.loot.tick(w);
-  w.loot.spawn(w);
-  assert.equal(w.loot.drops.length, 0);
-  w.damage(b, 9999, a.id);
-  assert.equal(w.orbs.active.length, 0);
-  assert.equal(a.level, 1);
+test("legacy ranked links resolve to the ordinary progressive duel without rating", () => {
+  const { w, a } = match("ranked");
+  assert.equal(w.mode.id, "duel");
+  assert.equal(w.mode.rules.ranked, undefined);
+  w.gain(a, 60);
+  assert.equal(a.level, 2);
+  assert.equal(a.choices.length, 3);
+  assert.ok(w.orbs.active.length > 0);
 });
