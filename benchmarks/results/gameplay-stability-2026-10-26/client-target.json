@@ -1,0 +1,42 @@
+{
+  "runtime": "v24.19.0",
+  "scope": "Local CPU microbenchmark, not whole-game or physical-device FPS",
+  "reports": [
+    {
+      "players": 8,
+      "calls": 10000,
+      "fullSearch": {
+        "medianMs": 25.45452499999999,
+        "microsecondsPerCall": 2.5454524999999992
+      },
+      "authorityTarget": {
+        "medianMs": 4.07112699999999,
+        "microsecondsPerCall": 0.407112699999999
+      }
+    },
+    {
+      "players": 16,
+      "calls": 10000,
+      "fullSearch": {
+        "medianMs": 56.03828900000002,
+        "microsecondsPerCall": 5.603828900000002
+      },
+      "authorityTarget": {
+        "medianMs": 5.38440300000002,
+        "microsecondsPerCall": 0.538440300000002
+      }
+    },
+    {
+      "players": 32,
+      "calls": 10000,
+      "fullSearch": {
+        "medianMs": 104.27668500000004,
+        "microsecondsPerCall": 10.427668500000005
+      },
+      "authorityTarget": {
+        "medianMs": 3.4459149999997862,
+        "microsecondsPerCall": 0.3445914999999786
+      }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "measuredAt": "2026-10-26T06:21:51.521Z",
+  "base": "https://orman-arrow-archer.cangunes1995.workers.dev",
+  "location": "CI runner network, not the player's iPhone or carrier",
+  "http": [
+    {
+      "path": "/health",
+      "rttMs": {
+        "count": 8,
+        "median": 41.95624600000002,
+        "p95": 95.09142399999996,
+        "max": 204.905815
+      },
+      "ingressColos": [
+        "DFW"
+      ],
+      "status": {
+        "ok": true,
+        "transport": "websocket",
+        "tickRate": 30,
+        "snapshotRate": 15
+      }
+    },
+    {
+      "path": "/api/rooms/brduo-wildbow-1/status?format=brduo",
+      "rttMs": {
+        "count": 8,
+        "median": 171.34036799999967,
+        "p95": 188.65944399999944,
+        "max": 220.51500499999975
+      },
+      "ingressColos": [
+        "DFW"
+      ],
+      "status": {
+        "ok": true,
+        "humans": 0,
+        "ticking": false,
+        "time": 0,
+        "format": "brduo",
+        "capacity": 32
+      }
+    }
+  ],
+  "socket": {
+    "room": "net-mvovbe17",
+    "seconds": 60,
+    "rttMs": {
+      "count": 60,
+      "median": 22.4119370000044,
+      "p95": 24.647963999996136,
+      "max": 25.750475000000733
+    },
+    "arrivalHz": 15.14967473804506,
+    "simulationRatio": 1.0099727543150678,
+    "intervalMs": {
+      "count": 908,
+      "median": 65.91743300000235,
+      "p95": 67.88865900000383,
+      "max": 88.6903170000005
+    },
+    "gapsOver150ms": 0
+  },
+  "publicSocket": {
+    "room": "wildbow-1",
+    "seconds": 60,
+    "rttMs": {
+      "count": 60,
+      "median": 152.2953379999999,
+      "p95": 153.19828600000073,
+      "max": 221.5009429999991
+    },
+    "arrivalHz": 15.216554939202124,
+    "simulationRatio": 1.0144369959468083,
+    "intervalMs": {
+      "count": 912,
+      "median": 65.88756100000319,
+      "p95": 67.96310500000254,
+      "max": 81.380631
+    },
+    "gapsOver150ms": 0
+  }
+}

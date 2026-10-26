@@ -1,0 +1,133 @@
+{
+  "root": "/workspace/orman-arrow-archer",
+  "repeats": 3,
+  "runtime": "v24.19.0",
+  "reports": [
+    {
+      "humans": 2,
+      "bots": 6,
+      "median": {
+        "medianTickMs": 0.18095200000004752,
+        "p95TickMs": 0.48655199999996057,
+        "cpuMsPerSimSecond": 10.418863636363637,
+        "heapRetainedKiB": 160.9296875,
+        "peakGrowthKiB": 5047.640625,
+        "bytesPerSecond": 26844.545454545456,
+        "messagesPerSecond": 30
+      },
+      "samples": [
+        {
+          "medianTickMs": 0.20611000000002377,
+          "p95TickMs": 0.5090959999999995,
+          "cpuMsPerSimSecond": 10.418863636363637,
+          "heapRetainedKiB": 168.4765625,
+          "peakGrowthKiB": 1793.9296875,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.1793400000000247,
+          "p95TickMs": 0.48655199999996057,
+          "cpuMsPerSimSecond": 9.565136363636363,
+          "heapRetainedKiB": 160.9296875,
+          "peakGrowthKiB": 5047.640625,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.18095200000004752,
+          "p95TickMs": 0.48592100000007576,
+          "cpuMsPerSimSecond": 13.867727272727272,
+          "heapRetainedKiB": 129.6484375,
+          "peakGrowthKiB": 5351.6875,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        }
+      ]
+    },
+    {
+      "humans": 8,
+      "bots": 0,
+      "median": {
+        "medianTickMs": 0.6138429999998607,
+        "p95TickMs": 1.4805360000000292,
+        "cpuMsPerSimSecond": 24.19631818181818,
+        "heapRetainedKiB": -40.859375,
+        "peakGrowthKiB": 11557.4453125,
+        "bytesPerSecond": 144358,
+        "messagesPerSecond": 120
+      },
+      "samples": [
+        {
+          "medianTickMs": 0.6138429999998607,
+          "p95TickMs": 1.4805360000000292,
+          "cpuMsPerSimSecond": 24.19631818181818,
+          "heapRetainedKiB": -93.5546875,
+          "peakGrowthKiB": 11346.546875,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.6406830000000809,
+          "p95TickMs": 1.5545180000001437,
+          "cpuMsPerSimSecond": 27.211318181818182,
+          "heapRetainedKiB": 375.59375,
+          "peakGrowthKiB": 14034.578125,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.5642590000002201,
+          "p95TickMs": 1.286185000000387,
+          "cpuMsPerSimSecond": 20.450545454545452,
+          "heapRetainedKiB": -40.859375,
+          "peakGrowthKiB": 11557.4453125,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        }
+      ]
+    },
+    {
+      "humans": 16,
+      "bots": 0,
+      "median": {
+        "medianTickMs": 1.502850999999282,
+        "p95TickMs": 3.4598040000000765,
+        "cpuMsPerSimSecond": 51.68372727272727,
+        "heapRetainedKiB": 347.9765625,
+        "peakGrowthKiB": 27227.6796875,
+        "bytesPerSecond": 540447,
+        "messagesPerSecond": 240
+      },
+      "samples": [
+        {
+          "medianTickMs": 1.454367999999704,
+          "p95TickMs": 3.4598040000000765,
+          "cpuMsPerSimSecond": 55.01981818181818,
+          "heapRetainedKiB": 385.5859375,
+          "peakGrowthKiB": 23583.046875,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.5441129999999248,
+          "p95TickMs": 3.5235499999998865,
+          "cpuMsPerSimSecond": 51.68372727272727,
+          "heapRetainedKiB": 347.9765625,
+          "peakGrowthKiB": 27227.6796875,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.502850999999282,
+          "p95TickMs": 3.2690969999994195,
+          "cpuMsPerSimSecond": 48.190681818181815,
+          "heapRetainedKiB": -46.3671875,
+          "peakGrowthKiB": 30359.078125,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        }
+      ]
+    }
+  ]
+}

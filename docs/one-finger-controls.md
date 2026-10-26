@@ -12,9 +12,9 @@ Tek el modunda ayrı atılma, can ve emoji tuşları gizlenir. Klasik modda kal�
   Basılı tutmak tekrar atılmaz; yeni istek için önce çemberin içine dönülür.
 - Can %35 veya altındayken mevcut +25 can yeteneği hazırsa otomatik istenir.
   Sunucu 14 saniyelik bekleme süresini, canı ve korumayı doğrular.
-- Kartlar çıkınca parmağı kaldırmak gerekmez. İlk yeni hareket seçimi mevcut
-  parmak konumuna taşır; sola / yukarı / sağa çekmek 1 / 2 / 3 numaralı kartı
-  vurgular. Kartlar görünür olduktan sonraki ilk 5 saniye okuma süresidir;
+- Kartlar çıkınca parmağı kaldırmak gerekmez. Kartlar göründüğü anda seçim başlangıcı son
+  parmak konumuna taşınır. İlk sola / yukarı / sağa çekiş doğrudan 1 / 2 / 3
+  numaralı kartı vurgular. Kartlar görünür olduktan sonraki ilk 5 saniye okuma süresidir;
   bu sürede joystick'te beklemek otomatik onay vermez. Sonrasında yaklaşık
   600 ms o yönde kalmak onaylar. Karta dokunmak veya çekip bırakmak, ilk
   5 saniye dolmadan da hemen seçer. Seçilmemiş kartlar süre bitince kapanmaz.

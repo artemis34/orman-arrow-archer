@@ -1,0 +1,241 @@
+{
+  "root": "/workspace/scratch/stability-baseline-code",
+  "repeats": 7,
+  "runtime": "v24.19.0",
+  "reports": [
+    {
+      "humans": 2,
+      "bots": 6,
+      "median": {
+        "medianTickMs": 0.20006100000000515,
+        "p95TickMs": 0.5011140000001433,
+        "cpuMsPerSimSecond": 9.250863636363636,
+        "heapRetainedKiB": 167.625,
+        "peakGrowthKiB": 5154.0078125,
+        "bytesPerSecond": 26844.545454545456,
+        "messagesPerSecond": 30
+      },
+      "samples": [
+        {
+          "medianTickMs": 0.21481300000004921,
+          "p95TickMs": 0.5810639999999694,
+          "cpuMsPerSimSecond": 11.913772727272727,
+          "heapRetainedKiB": 314.765625,
+          "peakGrowthKiB": 980.734375,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.20057199999996556,
+          "p95TickMs": 0.5430969999999888,
+          "cpuMsPerSimSecond": 11.056318181818183,
+          "heapRetainedKiB": 162.8515625,
+          "peakGrowthKiB": 5154.0078125,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.1907170000000633,
+          "p95TickMs": 0.4747340000000122,
+          "cpuMsPerSimSecond": 13.1355,
+          "heapRetainedKiB": 167.625,
+          "peakGrowthKiB": 5217.140625,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.1628650000000107,
+          "p95TickMs": 0.4807739999999967,
+          "cpuMsPerSimSecond": 8.308181818181819,
+          "heapRetainedKiB": 145.5703125,
+          "peakGrowthKiB": 5711.7109375,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.18980600000008963,
+          "p95TickMs": 0.5172679999998309,
+          "cpuMsPerSimSecond": 8.875045454545456,
+          "heapRetainedKiB": -2.5,
+          "peakGrowthKiB": 5061.1953125,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.2101070000001073,
+          "p95TickMs": 0.49880000000007385,
+          "cpuMsPerSimSecond": 9.250863636363636,
+          "heapRetainedKiB": 186.546875,
+          "peakGrowthKiB": 6085.421875,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        },
+        {
+          "medianTickMs": 0.20006100000000515,
+          "p95TickMs": 0.5011140000001433,
+          "cpuMsPerSimSecond": 8.857272727272727,
+          "heapRetainedKiB": 263.015625,
+          "peakGrowthKiB": 3655.2109375,
+          "bytesPerSecond": 26844.545454545456,
+          "messagesPerSecond": 30
+        }
+      ]
+    },
+    {
+      "humans": 8,
+      "bots": 0,
+      "median": {
+        "medianTickMs": 0.5359260000000177,
+        "p95TickMs": 1.2818680000000313,
+        "cpuMsPerSimSecond": 22.363363636363637,
+        "heapRetainedKiB": 119.2109375,
+        "peakGrowthKiB": 12916.1953125,
+        "bytesPerSecond": 144358,
+        "messagesPerSecond": 120
+      },
+      "samples": [
+        {
+          "medianTickMs": 0.5760960000002342,
+          "p95TickMs": 1.4232210000000123,
+          "cpuMsPerSimSecond": 24.416363636363634,
+          "heapRetainedKiB": -94.9375,
+          "peakGrowthKiB": 13222.5859375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.5052000000000589,
+          "p95TickMs": 1.2818680000000313,
+          "cpuMsPerSimSecond": 21.99281818181818,
+          "heapRetainedKiB": 507.0546875,
+          "peakGrowthKiB": 12883.234375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.5644790000001194,
+          "p95TickMs": 1.2659640000001673,
+          "cpuMsPerSimSecond": 20.83,
+          "heapRetainedKiB": 152.265625,
+          "peakGrowthKiB": 14027.484375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.526922999999897,
+          "p95TickMs": 1.2393450000004123,
+          "cpuMsPerSimSecond": 22.363363636363637,
+          "heapRetainedKiB": 190.4609375,
+          "peakGrowthKiB": 10944.0859375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.5359260000000177,
+          "p95TickMs": 1.4620989999998528,
+          "cpuMsPerSimSecond": 22.97740909090909,
+          "heapRetainedKiB": 119.2109375,
+          "peakGrowthKiB": 10958.234375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.5812940000000708,
+          "p95TickMs": 1.6242839999999887,
+          "cpuMsPerSimSecond": 24.18790909090909,
+          "heapRetainedKiB": 104.7421875,
+          "peakGrowthKiB": 12916.1953125,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        },
+        {
+          "medianTickMs": 0.48142399999960617,
+          "p95TickMs": 1.2741519999999582,
+          "cpuMsPerSimSecond": 19.990863636363635,
+          "heapRetainedKiB": 117.84375,
+          "peakGrowthKiB": 29265.59375,
+          "bytesPerSecond": 144358,
+          "messagesPerSecond": 120
+        }
+      ]
+    },
+    {
+      "humans": 16,
+      "bots": 0,
+      "median": {
+        "medianTickMs": 1.5882089999995515,
+        "p95TickMs": 3.672217000001183,
+        "cpuMsPerSimSecond": 52.59045454545455,
+        "heapRetainedKiB": 143.96875,
+        "peakGrowthKiB": 50939.1484375,
+        "bytesPerSecond": 540447,
+        "messagesPerSecond": 240
+      },
+      "samples": [
+        {
+          "medianTickMs": 1.5972430000001623,
+          "p95TickMs": 3.4541250000002037,
+          "cpuMsPerSimSecond": 49.916909090909094,
+          "heapRetainedKiB": 270.4140625,
+          "peakGrowthKiB": 25252.6953125,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.6152489999994941,
+          "p95TickMs": 3.5065939999994953,
+          "cpuMsPerSimSecond": 53.48231818181819,
+          "heapRetainedKiB": 143.96875,
+          "peakGrowthKiB": 23212.65625,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.4914029999999912,
+          "p95TickMs": 3.6590089999990596,
+          "cpuMsPerSimSecond": 49.660954545454544,
+          "heapRetainedKiB": 122.8984375,
+          "peakGrowthKiB": 29587.640625,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.559556000000157,
+          "p95TickMs": 4.126317000000199,
+          "cpuMsPerSimSecond": 56.01986363636363,
+          "heapRetainedKiB": -149.203125,
+          "peakGrowthKiB": 63434.921875,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.7697619999999006,
+          "p95TickMs": 3.696140000000014,
+          "cpuMsPerSimSecond": 58.14445454545455,
+          "heapRetainedKiB": 824.53125,
+          "peakGrowthKiB": 50939.1484375,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.5882089999995515,
+          "p95TickMs": 3.7994049999997515,
+          "cpuMsPerSimSecond": 52.59045454545455,
+          "heapRetainedKiB": -214.8671875,
+          "peakGrowthKiB": 64076.2421875,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        },
+        {
+          "medianTickMs": 1.4442900000012742,
+          "p95TickMs": 3.672217000001183,
+          "cpuMsPerSimSecond": 52.28059090909091,
+          "heapRetainedKiB": 315.6875,
+          "peakGrowthKiB": 58463.0390625,
+          "bytesPerSecond": 540447,
+          "messagesPerSecond": 240
+        }
+      ]
+    }
+  ]
+}

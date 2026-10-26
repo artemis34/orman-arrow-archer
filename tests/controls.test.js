@@ -7,6 +7,7 @@ import {
   floatingStickStartAllowed,
 } from "../client/controls.js";
 import { ArenaScene } from "../client/scene.js";
+import { TapDashDetector } from "../client/tap-dash.js";
 test("floating pads start only in the lower portrait/landscape thumb area", () => {
   for (const [w, h, ratio] of [
     [390, 844, 0.6],
@@ -497,6 +498,30 @@ test("a held countdown direction starts on live combat without queueing abilitie
   assert.equal(live.dash, false);
   assert.equal(live.heal, false);
   assert.equal(live.autoFire, true);
+});
+test("touch releases during countdown cannot queue shots or bridge a double-tap dodge", () => {
+  withSticks(({ controls: c, move, aim, dispatch }) => {
+    c.oneHanded = c.doubleTapDash = true;
+    c.tapDash = new TapDashDetector();
+    c.latestState = { match: { phase: "waiting" } };
+    move.fire("pointerdown", { timeStamp: 100 });
+    dispatch("pointerup", { timeStamp: 140 });
+    aim.fire("pointerdown", { pointerId: 2, clientX: 300, timeStamp: 150 });
+    dispatch("pointerup", { pointerId: 2, clientX: 300, timeStamp: 180 });
+    assert.notEqual(c.quickShot, true);
+    assert.notEqual(c.dash, true);
+    // The match starts before the next sampled frame. The old tap must not carry over.
+    c.latestState.match.phase = "playing";
+    move.fire("pointerdown", { pointerId: 3, timeStamp: 200 });
+    dispatch("pointerup", { pointerId: 3, timeStamp: 240 });
+    assert.notEqual(c.dash, true);
+    move.fire("pointerdown", { pointerId: 4, timeStamp: 300 });
+    dispatch("pointerup", { pointerId: 4, timeStamp: 340 });
+    assert.equal(c.dash, true, "fresh live gestures still dodge");
+    aim.fire("pointerdown", { pointerId: 5, clientX: 300, timeStamp: 400 });
+    dispatch("pointerup", { pointerId: 5, clientX: 300, timeStamp: 440 });
+    assert.equal(c.quickShot, true, "a fresh live aim tap still shoots");
+  });
 });
 test("walking and aiming remain independent when either stick is released", () => {
   const c = touchControls();

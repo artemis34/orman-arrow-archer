@@ -528,10 +528,10 @@ export class Controls {
             startedAt: pressedAt,
             endedAt: e.timeStamp,
             dragged,
-            cancelled: e.type !== "pointerup",
+            cancelled: e.type !== "pointerup" || !this.canAct(),
             pointerType: e.pointerType,
           });
-          if (dash && this.active) {
+          if (dash && this.canAct()) {
             this.dash = true;
             this.dashVector = { ...this.lastMoveJoy };
           }
@@ -548,7 +548,7 @@ export class Controls {
           e.type === "pointerup" &&
           !dragged &&
           e.timeStamp - pressedAt < 280 &&
-          this.active
+          this.canAct()
         )
           this.quickShot = true;
         release();
