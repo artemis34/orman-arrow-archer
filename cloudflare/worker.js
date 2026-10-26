@@ -1,4 +1,5 @@
 import { ratingScaleFor } from "../shared/ranking.js";
+import { connectionProbe } from "./connection-probe.js";
 import {
   arenaStub,
   directoryName,
@@ -43,6 +44,12 @@ export class ArenaRoom {
   }
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/connection-probe")
+      return connectionProbe(request, {
+        humans: [...this.sessions.values()].filter((s) => s.joined).length,
+        ticking: !!this.timer,
+        format: this.format || null,
+      });
     const requestedFormat = formatKey(url.searchParams.get("format"));
     if (!this.sessions.size && !this.reservations.size && !this.world)
       this.format = requestedFormat;
@@ -801,6 +808,39 @@ export default {
           env,
           `/leaderboard?kind=${["duo", "kills"].includes(url.searchParams.get("kind")) ? url.searchParams.get("kind") : "solo"}`,
         ),
+      );
+    }
+    if (url.pathname === "/api/connection-info")
+      return apiResponse(
+        Response.json({
+          version: 1,
+          country: request.cf?.country || "",
+          ingress: request.cf?.colo || "",
+          region: requestRegion(request.cf),
+          regionalMatchmaking: env.REGIONAL_MATCHMAKING !== "off",
+        }),
+      );
+    if (url.pathname === "/api/connection-probe") {
+      if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
+        return new Response("WebSocket connection required", { status: 426 });
+      const target = url.searchParams.get("target");
+      if (target === "edge") return connectionProbe(request);
+      let stub;
+      if (target === "regional") {
+        const region = requestRegion(request.cf);
+        stub = located(
+          env.ARENAS,
+          `network-probe:${region || "default"}`,
+          region,
+        );
+      } else if (target === "room") {
+        const room = url.searchParams.get("room");
+        if (!room || roomCode(room) !== room)
+          return new Response("Invalid room", { status: 400 });
+        stub = arenaStub(env, room);
+      } else return new Response("Invalid target", { status: 400 });
+      return stub.fetch(
+        new Request("https://internal/connection-probe", request),
       );
     }
     if (url.pathname === "/api/matchmake") {

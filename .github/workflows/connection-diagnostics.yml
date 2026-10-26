@@ -1,0 +1,103 @@
+name: Validate device connection diagnosis
+on:
+  push:
+    branches: [main, fix/device-route-diagnostics]
+    paths:
+      - cloudflare/connection-probe.js
+      - cloudflare/worker.js
+      - client/performance-monitor.js
+      - client/progression.js
+      - public/connection-test.*
+      - tests/connection-diagnostics.*
+      - .github/workflows/connection-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run build:cloudflare
+      - name: Check probes and unchanged multiplayer in the native Worker
+        shell: bash
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          set -euo pipefail
+          npm run dev:cloudflare > /tmp/connection-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:8787/health; then break; fi
+            sleep 1
+          done
+          npm run test:cloudflare
+          node tests/connection-diagnostics.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/connection-diagnostics.browser.js
+          npm run test:cloudflare:browser
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
+      - name: Check the existing FPS settings and unobstructed HUD
+        run: |
+          node tests/performance-monitor.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/performance-monitor.browser.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-connection-diagnostics
+          path: |
+            /tmp/connection-worker.log
+            /tmp/archer-validation/connection-*.png
+  live:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:cloudflare
+      - name: Wait for this client deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          read_asset='const fs=require("node:fs");const src=fs.readFileSync(process.argv[1],"utf8").match(/<script[^>]*src="([^"]+\.js)"/);if(!src)process.exit(1);console.log(src[1].split("/").at(-1));'
+          expected=$(node -e "$read_asset" dist-cloudflare/index.html)
+          matched=false
+          for attempt in {1..30}; do
+            if curl --fail --silent "$CLOUDFLARE_TEST_URL/" -o /tmp/connection-live.html; then
+              actual=$(node -e "$read_asset" /tmp/connection-live.html || true)
+              if test "$actual" = "$expected"; then matched=true; break; fi
+            fi
+            sleep 5
+          done
+          test "$matched" = true
+      - name: Measure the actual deployed paths on Chrome and Safari
+        run: |
+          node tests/connection-diagnostics.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/connection-diagnostics.browser.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-device-connection-diagnostics
+          path: /tmp/archer-validation/connection-*.png

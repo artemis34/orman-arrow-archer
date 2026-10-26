@@ -153,15 +153,17 @@ export function setupPerformanceMonitor({ parent, enabled = false }) {
   element.setAttribute("aria-live", "off");
   const frameLine = document.createElement("div"),
     networkLine = document.createElement("div"),
-    cadenceLine = document.createElement("div");
+    cadenceLine = document.createElement("div"),
+    roomLine = document.createElement("div");
   frameLine.id = "performance-frames";
   networkLine.id = "performance-network";
   cadenceLine.id = "performance-cadence";
+  roomLine.id = "performance-room";
   frameLine.title =
     "Son 3 saniyedeki çizilen kareler. p95: kare aralıklarının %95'i bu sürede veya altında. Takılma: 50 ms üzerindeki kare aralıkları. GPU süresi değildir.";
   networkLine.title =
     "Ping: tarayıcıdan sunucuya gidip gelen ölçülmüş yanıt süresi; tarayıcıdaki beklemeyi de içerir. Veri yaşı: son durumun bu tarayıcıya ulaşmasından beri geçen süre; tek yönlü ağ gecikmesi değildir.";
-  element.append(frameLine, networkLine, cadenceLine);
+  element.append(frameLine, networkLine, cadenceLine, roomLine);
   parent.append(element);
   const frames = new FrameCadence(),
     network = new NetworkCadence();
@@ -174,6 +176,7 @@ export function setupPerformanceMonitor({ parent, enabled = false }) {
     frameLine.textContent = "FPS ölçülüyor…";
     networkLine.textContent = "";
     cadenceLine.textContent = "";
+    roomLine.textContent = "";
     for (const key of Object.keys(element.dataset)) delete element.dataset[key];
   };
   const setEnabled = (value) => {
@@ -224,6 +227,12 @@ export function setupPerformanceMonitor({ parent, enabled = false }) {
         simulationRatio: connection.simulationRatio,
         jitterMs: connection.jitterMs,
       };
+      const room =
+        connection.online && typeof transport?.room === "string"
+          ? transport.room
+          : "";
+      roomLine.textContent = room ? `Oda ${room}` : "";
+      element.dataset.room = room;
       for (const [key, value] of Object.entries(metrics))
         element.dataset[key] = Number.isFinite(value) ? String(value) : "";
     },

@@ -361,6 +361,23 @@ export function setupProgression({ cloudflare, server, onSettings }) {
         row.append(select);
         (advanced ? extra : primary).append(row);
       }
+      if (cloudflare) {
+        try {
+          const url = new URL("/connection-test.html", server());
+          const query = new URL(location.href).searchParams;
+          if (query.get("room"))
+            url.searchParams.set("room", query.get("room"));
+          const link = document.createElement("a");
+          link.id = "connection-test-open";
+          link.href = url.href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "Bağlantıyı test et ↗";
+          link.style.cssText =
+            "display:block;padding:14px 0;color:#d9f3ac;font-weight:700";
+          primary.append(link);
+        } catch {}
+      }
       content.append(primary, extra);
     }
   }
