@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Wildbow · Bağlantı testi</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        color: #e8f2dc;
+        background: #11271f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px 16px;
+      }
+      main {
+        max-width: 680px;
+        margin: auto;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 12px 0;
+      }
+      p {
+        color: #bdcdb7;
+      }
+      a {
+        color: #d3eea1;
+      }
+      button {
+        font: inherit;
+        font-weight: 700;
+        border: 1px solid #8daa65;
+        border-radius: 12px;
+        padding: 13px 18px;
+        background: #d0e99c;
+        color: #15291e;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      section {
+        margin: 20px 0;
+        padding: 16px;
+        border: 1px solid #6c8a5c;
+        border-radius: 14px;
+        background: #183327;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 4px;
+        border-bottom: 1px solid #496244;
+      }
+      th {
+        color: #d3eea1;
+      }
+      td:not(:first-child) {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      textarea {
+        display: block;
+        width: 100%;
+        min-height: 220px;
+        margin: 12px 0;
+        background: #10261e;
+        color: #e8f2dc;
+        border: 1px solid #6c8a5c;
+        border-radius: 8px;
+        padding: 12px;
+        font:
+          13px/1.6 ui-monospace,
+          monospace;
+      }
+      .muted {
+        font-size: 13px;
+      }
+      .hidden {
+        display: none;
+      }
+      #diagnosis {
+        color: #e8f2dc;
+      }
+      #status {
+        min-height: 3em;
+      }
+      #location {
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 360px) {
+        table {
+          font-size: 12px;
+        }
+        section {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-connection-version="1">
+      <a href="/">← Wildbow’a dön</a>
+      <h1>Bağlantını ölçelim</h1>
+      <p>
+        Telefonundan Cloudflare girişine, bölgesel test odasına ve son oyun
+        odana ping ölçer. Yaklaşık 15–25 saniye sürer. Ölçüm sırasında bu
+        sayfayı açık tut.
+      </p>
+      <p class="muted">
+        Test oyun başlatmaz. Maçlar arka planda devam eder; maç bittikten sonra
+        menüden aç.
+      </p>
+      <button id="start" type="button">Testi başlat</button>
+      <p id="status" role="status" aria-live="polite">
+        Ölçüm hazır. Sonucu Wi‑Fi ve mobil veride ayrı ayrı
+        karşılaştırabilirsin.
+      </p>
+      <p id="location" class="muted"></p>
+      <section id="results" class="hidden">
+        <table aria-label="Bağlantı ölçümleri">
+          <thead>
+            <tr>
+              <th>Yol</th>
+              <th>Medyan</th>
+              <th>p95</th>
+              <th>Yanıt</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <p id="diagnosis"></p>
+        <p class="muted">
+          p95, geçerli yanıtların %95’inin bu sürede veya altında kaldığını
+          gösterir. Cloudflare giriş noktası, oyun odasının fiziksel sunucu
+          şehri değildir. Bu kısa testin paketleri maç verisinden küçüktür.
+        </p>
+        <button id="copy" type="button">Sonucu kopyala</button>
+        <textarea
+          id="report"
+          readonly
+          aria-label="Paylaşılabilir bağlantı sonucu"
+        ></textarea>
+      </section>
+    </main>
+    <script type="module" src="/connection-test.js"></script>
+  </body>
+</html>
