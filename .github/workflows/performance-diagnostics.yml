@@ -2,10 +2,16 @@ name: Measure live FPS and network
 on:
   workflow_dispatch:
   push:
-    branches: [fix/live-frame-network-diagnostics, main]
+    branches:
+      [
+        fix/live-frame-network-diagnostics,
+        optimization/gameplay-stability-2026-10-26,
+        main,
+      ]
     paths:
       [
         benchmarks/runtime-diagnostics.js,
+        benchmarks/network-diagnostics.js,
         .github/workflows/performance-diagnostics.yml,
         client/render-cadence.js,
       ]
@@ -42,10 +48,16 @@ jobs:
             sleep 5
           done
           test "$matched" = true
+      - name: Measure private and public room latency without rendering
+        env:
+          CLOUDFLARE_TEST_URL: https://orman-arrow-archer.cangunes1995.workers.dev
+        run: node benchmarks/network-diagnostics.js
       - name: Measure current production without changing its deployment
         run: node benchmarks/runtime-diagnostics.js --base=https://orman-arrow-archer.cangunes1995.workers.dev --seconds=45 --label=current-production
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: runtime-measurements
-          path: /tmp/archer-validation/runtime-diagnostics.*
+          path: |
+            /tmp/archer-validation/runtime-diagnostics.*
+            /tmp/archer-validation/network-diagnostics.json

@@ -181,7 +181,7 @@ try {
   await assert.rejects(join("Overflow", capacity), /Arena dolu/);
   assert.equal((await status(capacity)).humans, 16);
   const quick = await join("Quick smoke", room, { matchmake: true });
-  assert.match(quick.t.room, /^wildbow-\d+$/);
+  assert.match(quick.t.room, /^wildbow-(?:[a-z]+-)?\d+$/);
   assert.equal(
     quick.t.binary,
     true,

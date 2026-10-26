@@ -433,11 +433,70 @@ test("level up during an existing walking gesture cannot accidentally choose a c
     assert.deepEqual(picked, [1]);
   });
 });
+test("displaying cards rebases the held thumb before the first intentional drag", () => {
+  withSticks(({ controls: c, move, dispatch }) => {
+    let offer = "";
+    const picked = [];
+    c.oneHanded = true;
+    c.upgradeChoices = () => offer;
+    c.onUpgradeChoose = (i) => {
+      picked.push(i);
+      offer = "";
+      c.refreshUpgrade();
+    };
+    move.fire("pointerdown");
+    dispatch("pointermove", { clientX: 100 });
+    offer = "first";
+    c.refreshUpgrade();
+    assert.deepEqual(c.joy, { x: 0, z: 0 });
+    dispatch("pointermove", { clientX: 155 });
+    dispatch("pointerup", { clientX: 155 });
+    assert.deepEqual(picked, [2], "one new pull is sufficient");
+    move.fire("pointerdown", { pointerId: 2 });
+    dispatch("pointermove", { pointerId: 2, clientX: 100 });
+    offer = "second";
+    c.refreshUpgrade();
+    dispatch("pointerup", { pointerId: 2, clientX: 100 });
+    assert.deepEqual(
+      picked,
+      [2],
+      "releasing an unchanged walking finger never selects",
+    );
+  });
+});
 test("touch walking faces movement instead of the old mouse position", () => {
   const c = touchControls();
   assert.equal(c.sample({ alive: true }, null).angle, 0);
   c.joy = { x: 0, z: -1 };
   assert.equal(c.sample({ alive: true }, null).angle, -Math.PI / 2);
+});
+test("a held countdown direction starts on live combat without queueing abilities", () => {
+  const c = touchControls();
+  c.autoHeal = false;
+  c.autoFire = true;
+  c.oneHanded = true;
+  c.dash = c.heal = true;
+  const me = {
+    id: "me",
+    alive: true,
+    x: 0,
+    z: 0,
+    hp: 150,
+    maxHp: 150,
+    upgrades: {},
+  };
+  const waiting = { players: [me], match: { phase: "waiting" } };
+  const paused = c.sample(me, waiting);
+  assert.equal(paused.x, 0);
+  assert.equal(paused.z, 0);
+  assert.equal(paused.dash, false);
+  assert.equal(paused.heal, false);
+  assert.equal(paused.autoFire, false);
+  const live = c.sample(me, { ...waiting, match: { phase: "playing" } });
+  assert.ok(live.x > 0);
+  assert.equal(live.dash, false);
+  assert.equal(live.heal, false);
+  assert.equal(live.autoFire, true);
 });
 test("walking and aiming remain independent when either stick is released", () => {
   const c = touchControls();

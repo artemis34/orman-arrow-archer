@@ -12,6 +12,9 @@ import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
 import { setupPerformanceMonitor } from "./performance-monitor.js";
 import { RenderCadence } from "./render-cadence.js";
+import { UpgradeReadingWindow } from "./upgrade-reading.js";
+import { presentationTarget } from "./auto-target.js";
+import { cooldownText, matchAllowsInput } from "./one-finger.js";
 import { controlModeFor, saveControlMode } from "./control-preferences.js";
 import { setupProgression } from "./progression.js";
 import { FORMATS, TEAMS, formatKey } from "../shared/modes.js";
@@ -43,7 +46,7 @@ import { WebSocketTransport } from "./websocket.js";
 import { roomCode, practiceBots } from "../shared/online.js";
 import { World } from "../shared/world.js";
 import { SKINS, UPGRADES, RULES } from "../shared/config.js";
-const UPGRADE_READING_MS = 5000;
+const upgradeReading = new UpgradeReadingWindow();
 const $ = (id) => document.getElementById(id),
   show = (id, visible) => $(id).classList.toggle("hidden", !visible),
   text = (id, value) => {
@@ -88,7 +91,6 @@ let playing = false,
   accumulator = 0,
   hudAt = 0,
   choicesKey = "",
-  choicesOpenedAt = 0,
   upgradesCollapsed = false,
   lastLevel = 1,
   toastTimer,
@@ -435,11 +437,16 @@ bindAction($("upgrades-collapse"), () => {
   upgradesCollapsed = true;
   show("upgrades", false);
   show("upgrade-reminder", !!choicesKey);
+  upgradeReading.pause();
+  controls.refreshUpgrade();
 });
 bindAction($("upgrade-reminder"), () => {
   upgradesCollapsed = !upgradesCollapsed;
   show("upgrades", !upgradesCollapsed);
   show("upgrade-reminder", upgradesCollapsed && !!choicesKey);
+  if (!upgradesCollapsed) upgradeReading.start();
+  else upgradeReading.pause();
+  controls.refreshUpgrade();
 });
 // UI actions use the same upgrade request as a card tap; no protocol change.
 controls.upgradeChoices = () => {
@@ -455,17 +462,22 @@ controls.upgradeChoices = () => {
 // Start from visible cards, not the older authority timestamp: network delay
 // must not consume the player's reading time. Explicit selections stay instant.
 controls.upgradeReadRemaining = () =>
-  choicesKey
-    ? Math.max(0, UPGRADE_READING_MS - (performance.now() - choicesOpenedAt))
-    : 0;
+  choicesKey ? upgradeReading.remaining() : 0;
 controls.onUpgradePreview = (index) => {
   for (const [i, card] of [...$("upgrade-options").children].entries())
     card.classList.toggle("stick-selected", i === index);
 };
 controls.onDashTarget = (point) => {
-  show("dash-target", !!point && playing && controls.oneHanded);
+  show(
+    "dash-target",
+    !!point &&
+      playing &&
+      controls.oneHanded &&
+      matchAllowsInput(state?.match) &&
+      !(state?.players.find((p) => p.id === myId)?.levelGuard > 0),
+  );
   if (point) {
-    text("dash-target", point.cooldown > 0 ? point.cooldown.toFixed(1) : "ϟ");
+    text("dash-target", cooldownText(point.cooldown, true) || "ϟ");
     $("dash-target").classList.toggle("cooldown", point.cooldown > 0);
     $("dash-target").style.left = `${point.x}px`;
     $("dash-target").style.top = `${point.y}px`;
@@ -484,6 +496,8 @@ function consume(next) {
   if (!playing) return;
   const me = next.players.find((p) => p.id === myId);
   if (me) {
+    controls.latestState = next;
+    controls.latestMe = me;
     const guarded = me.levelGuard > 0;
     if (guarded && !guardWasActive) {
       panels.close();
@@ -491,7 +505,7 @@ function consume(next) {
     }
     controls.active =
       me.alive &&
-      (!next.match || next.match.phase === "playing") &&
+      (!next.match || next.match.phase !== "results") &&
       $("help").classList.contains("hidden");
     guardWasActive = guarded;
   }
@@ -573,9 +587,10 @@ function consume(next) {
       );
     } else if (e.type === "heal") {
       scene.burst(e.x, e.z, 0xa8efa1, 14);
+      scene.feedback.show(e.owner, "+ CAN", "heal");
       if (e.owner === myId) {
-        audio.play("level");
-        toast(`+${e.amount || 25} CAN`);
+        audio.play("heal");
+        toast("CAN YENİLENDİ");
       }
     } else if (e.type === "dash") {
       scene.burst(e.x, e.z, 0xdbedbc, 6);
@@ -623,6 +638,7 @@ async function join(isTutorial = false) {
             room,
             matchmake: FORMATS[format].ranked || !privateRoom,
             viewRadius: scene.networkRadius(),
+            responsiveInputs: true,
             format,
             onProgress: (stage) => {
               const label = {
@@ -906,10 +922,10 @@ function updateHud(current) {
   $("xp-fill").style.width = `${(me.xp / (me.level * 55)) * 100}%`;
   text("xp-text", `${me.xp} / ${me.level * 55}`);
   text("xp-remaining", `${Math.max(0, me.level * 55 - me.xp)} XP kaldı`);
-  text("dash-time", me.dashCd > 0.05 ? me.dashCd.toFixed(1) : "");
-  $("dash").classList.toggle("cooldown", me.dashCd > 0.05);
-  text("heal-time", me.healCd > 0.05 ? me.healCd.toFixed(0) : "");
-  $("heal").classList.toggle("cooldown", me.healCd > 0.05 || me.hp >= me.maxHp);
+  text("dash-time", cooldownText(me.dashCd, true));
+  $("dash").classList.toggle("cooldown", me.dashCd > 0);
+  text("heal-time", cooldownText(me.healCd));
+  $("heal").classList.toggle("cooldown", me.healCd > 0 || me.hp >= me.maxHp);
   text(
     "dash-label",
     controls.oneHanded && controls.overpullDash ? "UZAT · ATIL" : "ATIL",
@@ -919,7 +935,21 @@ function updateHud(current) {
     controls.oneHanded && controls.autoHeal ? "OTO · +25" : "+25 CAN",
   );
   $("health-fill").classList.toggle("critical", me.hp < me.maxHp * 0.3);
-  $("dash").disabled = $("heal").disabled = me.levelGuard > 0;
+  const abilitiesAllowed =
+    me.alive && matchAllowsInput(current.match) && !(me.levelGuard > 0);
+  $("dash").disabled = !abilitiesAllowed || me.dashCd > 0;
+  $("heal").disabled = !abilitiesAllowed || me.healCd > 0 || me.hp >= me.maxHp;
+  $("dash").title = !abilitiesAllowed
+    ? "Karşılaşma başladığında ve koruma bittiğinde atılabilirsin"
+    : me.dashCd > 0
+      ? `Atılma ${cooldownText(me.dashCd, true)} sn sonra hazır`
+      : "Atıl · Space / sağ tık";
+  $("heal").title =
+    me.hp >= me.maxHp
+      ? "Canın dolu"
+      : me.healCd > 0
+        ? `Can yenileme ${cooldownText(me.healCd)} sn sonra hazır`
+        : "25'e kadar can yenile · E";
   $("hud").classList.toggle("guarded", me.levelGuard > 0);
   text(
     "guard-time",
@@ -937,7 +967,7 @@ function updateHud(current) {
   $("charge-fill").style.width = charge + "%";
   const autoTarget =
     controls.isTouch || controls.autoFire
-      ? selectTarget(me, current.players, scene.obstacles)
+      ? presentationTarget(me, current.players, scene.obstacles)
       : null;
   text(
     "charge-hint",
@@ -963,7 +993,11 @@ function updateHud(current) {
           ? "ÇALIDA GİZLENDİN"
           : buff
             ? `${buff.icon} ${buff.description} · ${Math.ceil(me.buffTime)}s`
-            : "İZİNİ BIRAK",
+            : controls.oneHanded && controls.autoHeal
+              ? me.healCd > 0
+                ? `CAN DESTEĞİ · ${cooldownText(me.healCd)} sn`
+                : "CAN DESTEĞİ HAZIR · %35'TE OTO"
+              : "İZİNİ BIRAK",
   );
   const measuredPing =
     Number.isFinite(transport.ping) &&
@@ -1095,7 +1129,9 @@ function updateHud(current) {
         return b;
       }),
     );
-    choicesOpenedAt = ck ? performance.now() : 0;
+    if (ck) upgradeReading.start();
+    else upgradeReading.clear();
+    controls.refreshUpgrade();
   }
   show("death", !me.alive && !finished);
   if (!me.alive) {
@@ -1287,14 +1323,12 @@ function frame(now) {
   const me = view?.players.find((p) => p.id === myId);
   const target =
     playing && (controls.isTouch || controls.autoFire) && me?.alive
-      ? (me.lockedTargetId &&
-          view.players.find((p) => p.id === me.lockedTargetId)) ||
-        selectTarget(
-          me,
-          view.players,
-          scene.obstacles,
-          controls.charge ? { angle: controls.angle, cone: 0.16 } : {},
-        )
+      ? controls.charge
+        ? selectTarget(me, view.players, scene.obstacles, {
+            angle: controls.angle,
+            cone: 0.16,
+          })
+        : presentationTarget(me, view.players, scene.obstacles)
       : null;
   scene.autoFire = controls.autoFire;
   scene.render(view, myId, dt, playing, target?.id);
@@ -1305,6 +1339,8 @@ function frame(now) {
   }
 }
 document.addEventListener("visibilitychange", () => {
+  if (document.hidden) upgradeReading.pause();
+  else if (!upgradesCollapsed) upgradeReading.resume();
   performanceMonitor.reset();
   renderCadence.reset();
   lastTime = performance.now();

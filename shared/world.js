@@ -704,9 +704,9 @@ export class World {
     p.autoTargetId = target?.id || null;
     return target;
   }
-  quickShot(p) {
+  quickShot(p, target) {
     if (!p.alive || p.shotCd > 0 || p.levelGuard > 0) return false;
-    const target = this.autoTarget(p);
+    if (target === undefined) target = this.autoTarget(p);
     if (!target) return false;
     p.angle = aimedAngle(
       p,
@@ -905,14 +905,14 @@ export class World {
       }
       p.input.heal = false;
       p.input.dash = false;
-      if (!p.bot) this.autoTarget(p);
+      const autoTarget = !p.bot ? this.autoTarget(p) : undefined;
       const cancelled = i.cancelShot;
       if (cancelled) p.charge = 0;
       p.input.cancelShot = false;
       const quick = i.quickShot && !i.charge && p.levelGuard <= 0;
       p.input.quickShot = false;
       if (quick) {
-        this.quickShot(p);
+        this.quickShot(p, autoTarget);
         // A short stick tap may have started drawing on pointerdown. It is an
         // auto-shot gesture, so a missing target must not release that partial draw.
         p.charge = 0;
@@ -950,7 +950,7 @@ export class World {
         !cancelled &&
         p.shotCd <= 0
       )
-        this.quickShot(p);
+        this.quickShot(p, autoTarget);
       p.hidden =
         !i.charge &&
         this.time >= (p.revealUntil || 0) &&

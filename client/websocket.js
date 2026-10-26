@@ -17,6 +17,7 @@ export class WebSocketTransport extends NetworkTransport {
       viewRadius = 34,
       format = "arena",
       onProgress = () => {},
+      responsiveInputs = false,
     } = {},
   ) {
     super(onState, onDisconnect);
@@ -29,6 +30,7 @@ export class WebSocketTransport extends NetworkTransport {
     this.viewRadius = viewRadius;
     this.format = format;
     this.onProgress = onProgress;
+    this.responsiveInputs = responsiveInputs;
     this.decoder = new SnapshotDecoder();
     this.inputBatch = [];
     this.pingAt = null;
@@ -205,10 +207,18 @@ export class WebSocketTransport extends NetworkTransport {
       const previous = this.lastWireInput;
       this.inputBatch.push(data);
       this.lastWireInput = data;
+      const speed = Math.hypot(data.x, data.z);
+      const previousSpeed = previous ? Math.hypot(previous.x, previous.z) : 0;
+      const changedDirection =
+        speed > 0.1 &&
+        previousSpeed > 0.1 &&
+        data.x * previous.x + data.z * previous.z < speed * previousSpeed * 0.5;
       // Predict at 30 Hz; send two ordered authority frames in one 15 Hz packet.
       // Press/release, stopping and explicit target selection are sent immediately.
       const urgent =
         !previous ||
+        (this.responsiveInputs &&
+          ((speed > 0 && previousSpeed === 0) || changedDirection)) ||
         data.dash ||
         data.heal ||
         data.quickShot ||

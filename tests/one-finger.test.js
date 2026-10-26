@@ -4,6 +4,8 @@ import {
   OverpullDash,
   automaticHealReady,
   joystickCard,
+  matchAllowsInput,
+  cooldownText,
 } from "../client/one-finger.js";
 
 test("dash targets remain fixed along any chosen direction and require actual contact", () => {
@@ -28,6 +30,17 @@ test("dash targets remain fixed along any chosen direction and require actual co
       "fast drags sweep through the target",
     );
   }
+});
+test("cooldowns never say zero before ready and all modes gate commands on live combat", () => {
+  assert.equal(cooldownText(0), "");
+  assert.equal(cooldownText(0.01), "1");
+  assert.equal(cooldownText(0.01, true), "0.1");
+  assert.equal(cooldownText(2.31, true), "2.4");
+  assert.equal(cooldownText(NaN), "");
+  assert.equal(matchAllowsInput(null), true);
+  assert.equal(matchAllowsInput({ phase: "playing" }), true);
+  for (const phase of ["waiting", "results"])
+    assert.equal(matchAllowsInput({ phase }), false);
 });
 
 test("card directions map left, up, right and allow centre/downward cancellation", () => {

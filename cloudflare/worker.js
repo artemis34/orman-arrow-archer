@@ -1,4 +1,13 @@
 import { ratingScaleFor } from "../shared/ranking.js";
+import {
+  arenaStub,
+  directoryName,
+  located,
+  publicRoom,
+  requestRegion,
+  roomRegion,
+  validRegion,
+} from "./regions.js";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
 import {
@@ -211,7 +220,8 @@ export class ArenaRoom {
           ))
       ) {
         this.send(ws, "error", {
-          message: "Ranked için iki farklı online profil gerekir.",
+          message:
+            "Dereceli maç için geçerli ve her oyuncuda farklı online profil gerekir.",
         });
         ws.close(1008, "ranked identity required");
         this.remove(ws);
@@ -238,7 +248,7 @@ export class ArenaRoom {
         {
           cosmetics: sanitizeCosmetics(profile),
           // Sharing a friend room deliberately groups its humans, within team capacity.
-          party: !/(?:^|-)wildbow-\d+$/.test(session.room) ? "friends" : "",
+          party: !publicRoom(session.room) ? "friends" : "",
         },
       );
       if (!player) {
@@ -307,22 +317,16 @@ export class ArenaRoom {
     );
   }
   available(room) {
-    if (
-      !this.env?.MATCHMAKER ||
-      !/^(?:[a-z0-9]+-)?wildbow-\d+$/.test(room || "")
-    )
-      return;
+    if (!this.env?.MATCHMAKER || !publicRoom(room)) return;
     this.ctx.waitUntil(
-      this.env.MATCHMAKER.get(
-        this.env.MATCHMAKER.idFromName(
-          this.format && this.format !== "arena"
-            ? `public:${this.format}`
-            : "public",
-        ),
+      located(
+        this.env.MATCHMAKER,
+        directoryName(this.format, roomRegion(room)),
+        roomRegion(room),
       )
         .fetch(
           new Request(
-            `https://internal/available?format=${this.format || "arena"}`,
+            `https://internal/available?format=${this.format || "arena"}&region=${roomRegion(room)}`,
             {
               method: "POST",
               body: JSON.stringify({ room }),
@@ -622,12 +626,16 @@ export class ArenaMatchmaker {
     });
   }
   async fetch(request) {
-    const path = new URL(request.url).pathname;
-    const key = formatKey(new URL(request.url).searchParams.get("format"));
-    const prefix = key === "arena" ? "" : `${key}-`;
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const key = formatKey(url.searchParams.get("format"));
+    const region = validRegion(url.searchParams.get("region"));
+    const prefix =
+      (key === "arena" ? "" : `${key}-`) +
+      `wildbow-${region ? region + "-" : ""}`;
     if (path === "/available") {
       const { room } = await request.json();
-      const match = new RegExp(`^${prefix}wildbow-(\\d+)$`).exec(room || "");
+      const match = new RegExp(`^${prefix}(\\d+)$`).exec(room || "");
       if (match && Number(match[1]) - 1 < this.cursor) {
         this.cursor = Math.max(0, Number(match[1]) - 1);
         await this.ctx.storage.put("cursor", this.cursor);
@@ -637,10 +645,8 @@ export class ArenaMatchmaker {
     const initial = this.cursor;
     for (let attempt = 0; attempt < ONLINE.publicRooms; attempt++) {
       const index = this.cursor,
-        room = `${prefix}wildbow-${index + 1}`;
-      const response = await this.env.ARENAS.get(
-        this.env.ARENAS.idFromName(room),
-      ).fetch(
+        room = `${prefix}${index + 1}`;
+      const response = await arenaStub(this.env, room).fetch(
         new Request(`https://internal/reserve?room=${room}&format=${key}`, {
           method: "POST",
         }),
@@ -799,12 +805,12 @@ export default {
     }
     if (url.pathname === "/api/matchmake") {
       const key = formatKey(url.searchParams.get("format"));
+      const region =
+        env.REGIONAL_MATCHMAKING === "off" ? "" : requestRegion(request.cf);
       return apiResponse(
-        await env.MATCHMAKER.get(
-          env.MATCHMAKER.idFromName(
-            key === "arena" ? "public" : `public:${key}`,
-          ),
-        ).fetch(new Request(`https://internal/find?format=${key}`)),
+        await located(env.MATCHMAKER, directoryName(key, region), region).fetch(
+          new Request(`https://internal/find?format=${key}&region=${region}`),
+        ),
       );
     }
     if (url.pathname === "/api/presence")
@@ -821,9 +827,7 @@ export default {
       const code = roomCode(match[1]);
       if (!code || code !== match[1])
         return new Response("Invalid room", { status: 400 });
-      return apiResponse(
-        await env.ARENAS.get(env.ARENAS.idFromName(code)).fetch(request),
-      );
+      return apiResponse(await arenaStub(env, code).fetch(request));
     }
     if (url.pathname.startsWith("/api/"))
       return new Response("Not found", { status: 404 });

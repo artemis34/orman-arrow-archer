@@ -125,6 +125,86 @@ test("binary clients batch 30 prediction steps into 15 packets and send releases
     transport.close();
   }
 });
+test("starts and sharp turns flush immediately while steady movement still batches", async () => {
+  const { ws, transport: t } = fixture({ responsiveInputs: true });
+  try {
+    const joining = t.connect("Turning", 0);
+    ws.open();
+    ws.message({
+      type: "welcome",
+      data: { id: "me", room: "arena", obstacles: [], protocol: PROTOCOL },
+    });
+    await joining;
+    const packets = () => ws.sent.filter((p) => p.type === "input-batch");
+    t.step({ x: 0, z: 0 });
+    const initial = packets().length;
+    t.step({ x: 1, z: 0 });
+    assert.equal(
+      packets().length,
+      initial + 1,
+      "start never waits for the second frame",
+    );
+    t.step({ x: 1, z: 0 });
+    assert.equal(packets().length, initial + 1);
+    t.step({ x: 0, z: 1 });
+    assert.equal(packets().length, initial + 2);
+    assert.deepEqual(
+      packets()
+        .at(-1)
+        .data.map((i) => i.seq),
+      [3, 4],
+    );
+    t.step({ x: 0, z: -1 });
+    assert.equal(packets().length, initial + 3, "reversal is immediate");
+    t.step({ x: 0.05, z: -0.99 });
+    assert.equal(
+      packets().length,
+      initial + 3,
+      "minor stick noise keeps normal batching",
+    );
+    t.step({ x: 0, z: 0 });
+    assert.deepEqual(
+      packets()
+        .flatMap((p) => p.data)
+        .map((i) => i.seq),
+      [1, 2, 3, 4, 5, 6, 7],
+    );
+  } finally {
+    t.close();
+  }
+});
+test("responsive packing preserves every decoded authority input and its order", async () => {
+  const outputs = [];
+  for (const responsiveInputs of [false, true]) {
+    const { ws, transport: t } = fixture({ responsiveInputs });
+    try {
+      const ready = t.connect("Compatibility", 0);
+      ws.open();
+      ws.message({
+        type: "welcome",
+        data: { id: "me", room: "arena", obstacles: [], protocol: PROTOCOL },
+      });
+      await ready;
+      for (let n = 0; n < 40; n++)
+        t.step({
+          x: n % 8 < 4 ? 1 : -1,
+          z: n % 5 === 0 ? 1 : 0,
+          charge: n % 3 === 0,
+          dash: n === 9,
+          heal: n === 17,
+          autoFire: true,
+          lockTarget: n === 22 ? "enemy" : undefined,
+        });
+      t.step({ x: 0, z: 0, charge: false, autoFire: false });
+      outputs.push(
+        ws.sent.filter((p) => p.type === "input-batch").flatMap((p) => p.data),
+      );
+    } finally {
+      t.close();
+    }
+  }
+  assert.deepEqual(outputs[1], outputs[0]);
+});
 test("quick matchmaking connects with a reserved seat and decodes binary snapshots", async () => {
   let requested;
   const f = fixture({

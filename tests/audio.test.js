@@ -54,6 +54,15 @@ function setup() {
   audio.enabled = true;
   return { audio, ctx, oscillators, gains };
 }
+test("healing has a separate finite sound and never leaves an active oscillator", () => {
+  const { audio, oscillators, gains } = setup();
+  audio.play("heal");
+  assert.equal(oscillators[0].frequency.values[0][0], 520);
+  assert.equal(oscillators[0].stopAt, 0.22);
+  oscillators[0].onended();
+  assert.equal(audio.voices.size, 0);
+  assert.equal(gains[0].disconnected, true);
+});
 test("burst hits create one short voice with a silent attack/release and disconnect when ended", () => {
   const { audio, oscillators, gains } = setup();
   for (let i = 0; i < 100; i++) audio.play("hit");

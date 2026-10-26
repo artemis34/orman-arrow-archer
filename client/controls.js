@@ -1,10 +1,12 @@
 import { selectTarget, aimedAngle, angleDelta } from "../shared/aim.js";
 import { RULES, clamp } from "../shared/config.js";
 import { TapDashDetector } from "./tap-dash.js";
+import { presentationTarget } from "./auto-target.js";
 import {
   OverpullDash,
   automaticHealReady,
   joystickCard,
+  matchAllowsInput,
 } from "./one-finger.js";
 /** A radial dead zone removes resting-thumb noise without snapping diagonals. */
 export function stickVector(dx, dz, radius) {
@@ -128,8 +130,8 @@ export class Controls {
       )
         e.preventDefault();
       this.keys.add(e.code);
-      if (e.code === "Space" && !e.repeat) this.dash = true;
-      if (e.code === "KeyE" && !e.repeat) this.heal = true;
+      if (this.canAct() && e.code === "Space" && !e.repeat) this.dash = true;
+      if (this.canAct() && e.code === "KeyE" && !e.repeat) this.heal = true;
     });
     addEventListener("keyup", (e) => this.keys.delete(e.code));
     canvas.addEventListener("pointermove", (e) => {
@@ -145,9 +147,9 @@ export class Controls {
       this.audio.unlock();
       if (e.button === 0) {
         this.charge = true;
-        this.audio.play("charge");
+        if (this.canAct()) this.audio.play("charge");
       }
-      if (e.button === 2) this.dash = true;
+      if (e.button === 2 && this.canAct()) this.dash = true;
     });
     addEventListener("pointerup", (e) => {
       if (e.pointerType === "mouse" && e.button === 0) this.charge = false;
@@ -184,7 +186,7 @@ export class Controls {
     document.getElementById("dash").addEventListener("pointerdown", (e) => {
       e.preventDefault();
       this.tapDash.reset();
-      if (this.active) {
+      if (this.canAct()) {
         this.audio.unlock();
         this.dash = true;
       }
@@ -192,7 +194,7 @@ export class Controls {
     document.getElementById("heal").addEventListener("pointerdown", (e) => {
       e.preventDefault();
       this.tapDash.reset();
-      if (this.active) {
+      if (this.canAct()) {
         this.audio.unlock();
         this.heal = true;
       }
@@ -242,6 +244,9 @@ export class Controls {
     for (const k of document.querySelectorAll(".stick-knob"))
       k.style.transform = "";
   }
+  canAct() {
+    return this.active && matchAllowsInput(this.latestState?.match);
+  }
   setAutoFire(enabled) {
     this.autoFire = enabled === true;
   }
@@ -257,6 +262,9 @@ export class Controls {
     this.reset();
     this.oneHanded = enabled === true;
     if (this.oneHanded) this.autoFire = true;
+  }
+  refreshUpgrade() {
+    for (const stick of this.floatingSticks) stick.syncOffer();
   }
   stick(id, aim) {
     const el = document.getElementById(id),
@@ -326,28 +334,43 @@ export class Controls {
       if (pointer !== null) measure();
     });
     sizeObserver.observe(el);
-    const update = (e) => {
-      lastX = e.clientX;
-      lastY = e.clientY;
+    const syncOffer = () => {
+      if (pointer === null || aim) return "";
       const offer = !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
       if (offer && offer !== upgradeGesture && offer !== committedOffer) {
         upgradeGesture = offer;
         clearSelectionTimer();
         selectedCard = -1;
-        startX = e.clientX;
-        startY = e.clientY;
+        startX = lastX;
+        startY = lastY;
         el.style.setProperty("--floating-x", `${startX}px`);
         el.style.setProperty("--floating-y", `${startY}px`);
         el.classList.add("card-picking");
         this.tapDash?.reset();
         overpull.reset();
         this.onDashTarget?.(null);
+        this.joy = { x: 0, z: 0 };
+        knob.style.transform = "";
       }
-      if (offer && offer === committedOffer) return;
       if (!offer && upgradeGesture) {
         upgradeGesture = "";
         previewCard(-1);
+        startX = lastX;
+        startY = lastY;
+        el.style.setProperty("--floating-x", `${startX}px`);
+        el.style.setProperty("--floating-y", `${startY}px`);
+        el.classList.remove("card-picking");
+        knob.style.transform = "";
+        this.joy = { x: 0, z: 0 };
+        overpull.reset();
       }
+      return offer;
+    };
+    const update = (e) => {
+      lastX = e.clientX;
+      lastY = e.clientY;
+      const offer = syncOffer();
+      if (offer && offer === committedOffer) return;
       const dx = e.clientX - startX,
         dz = e.clientY - startY,
         l = Math.hypot(dx, dz),
@@ -367,7 +390,7 @@ export class Controls {
         if (vector.x || vector.z) {
           this.aimJoy = vector;
           this.releasedAim = null;
-          if (!this.charge) this.audio.play("charge");
+          if (!this.charge && this.canAct()) this.audio.play("charge");
           this.charge = true;
         }
       } else {
@@ -386,7 +409,12 @@ export class Controls {
           // Consume a pull even during cooldown; holding the edge never queues
           // an unexpected dodge when the server's cooldown later expires.
           const me = this.latestMe;
-          if (me?.alive && me.dashCd <= 0 && !(me.levelGuard > 0)) {
+          if (
+            this.canAct() &&
+            me?.alive &&
+            me.dashCd <= 0 &&
+            !(me.levelGuard > 0)
+          ) {
             this.dash = true;
             this.dashVector = { ...vector };
           }
@@ -436,7 +464,7 @@ export class Controls {
       measure();
       update(e);
     };
-    this.floatingSticks.push({ begin });
+    this.floatingSticks.push({ begin, syncOffer });
     el.addEventListener("pointerdown", (e) => begin(e));
     addEventListener("pointermove", (e) => {
       if (e.pointerId === pointer) {
@@ -533,7 +561,8 @@ export class Controls {
   sample(me, state, obstacles = []) {
     this.latestMe = me;
     this.latestState = state;
-    const active = this.active && this.focused !== false;
+    const active =
+      this.active && this.focused !== false && matchAllowsInput(state?.match);
     const manualAim = this.charge ? this.aimJoy : this.releasedAim;
     let movement = this.joy;
     if (this.dash && this.dashVector && !(movement.x || movement.z))
@@ -580,12 +609,7 @@ export class Controls {
           );
         } else this.onNoTarget?.();
       } else if (automatic) {
-        const locked =
-          me.lockedTargetId &&
-          state.players.find((p) => p.id === me.lockedTargetId);
-        const target =
-          (locked && selectTarget(me, [locked], obstacles)) ||
-          selectTarget(me, state.players, obstacles);
+        const target = presentationTarget(me, state.players, obstacles);
         if (target)
           angle = this.angle = aimedAngle(
             me,

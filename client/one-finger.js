@@ -1,5 +1,12 @@
 /** Input helpers only: the authority still validates cooldowns and abilities. */
 export const AUTO_HEAL_FRACTION = 0.35;
+export const matchAllowsInput = (match) => !match || match.phase === "playing";
+export const cooldownText = (seconds, tenths = false) =>
+  !Number.isFinite(seconds) || seconds <= 0
+    ? ""
+    : tenths
+      ? (Math.ceil(seconds * 10) / 10).toFixed(1)
+      : String(Math.ceil(seconds));
 export function automaticHealReady(me) {
   return !!(
     me?.alive &&

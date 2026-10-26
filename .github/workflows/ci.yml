@@ -19,6 +19,7 @@ on:
         feature/royale-onehand-onboarding,
         feature/separate-royale-ratings,
         fix/upgrade-reading-window,
+        optimization/gameplay-stability-2026-10-26,
       ]
     paths-ignore: ["**/*.md"]
   pull_request:
@@ -206,9 +207,43 @@ jobs:
             /tmp/cloudflare-multiplayer.log
             /tmp/archer-validation/cloudflare-*.png
           if-no-files-found: ignore
+  gameplay-modes:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Play every mode with one-hand controls and desktop controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm start > /tmp/mode-gameplay.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health; then break; fi
+            sleep 1
+          done
+          node tests/gameplay-modes.browser.js
+          LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/gameplay-modes.browser.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: all-mode-gameplay
+          path: |
+            /tmp/archer-validation/stability-*.png
+            /tmp/archer-validation/stability-*.json
   static:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [validate, multiplayer]
+    needs: [validate, multiplayer, gameplay-modes]
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
@@ -273,7 +308,7 @@ jobs:
           if-no-files-found: ignore
   pages:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate.outputs.pages_enabled == 'true'
-    needs: [validate, multiplayer]
+    needs: [validate, multiplayer, gameplay-modes]
     runs-on: ubuntu-24.04
     permissions:
       pages: write
@@ -286,7 +321,7 @@ jobs:
         id: deployment
   cloudflare:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [validate, multiplayer]
+    needs: [validate, multiplayer, gameplay-modes]
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
