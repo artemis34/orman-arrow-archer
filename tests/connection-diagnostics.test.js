@@ -304,6 +304,10 @@ test("diagnosis cannot hide missing responses or latency spikes behind a low med
     diagnose([r("edge"), r("regional", 180), r("alternate", 35, 35, 10)]),
     /Eksik veya yanıtsız/,
   );
+  assert.match(
+    diagnose([r("edge"), { ...r("regional"), max: 511 }]),
+    /Tekil bir yüksek ping/,
+  );
 });
 
 test("late probe replies never become the next request's RTT and close clears outstanding timers", async (t) => {

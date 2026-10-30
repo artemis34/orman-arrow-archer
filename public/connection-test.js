@@ -49,6 +49,8 @@ export function diagnose(results) {
     return "Oda yolunda Cloudflare girişine göre daha büyük gecikme sıçramaları görülüyor. Yerleşim, iç ağ rotası ve işlem kuyrukları incelenmeli.";
   if (edge.median >= 100 || edge.p95 >= 200)
     return "Cloudflare girişine ulaşırken de gecikme yüksek veya değişken. Wi‑Fi / mobil veri ve alternatif sunucu aynı telefondan karşılaştırılmalı.";
+  if (results.some((r) => r.max >= 200 && r.max - r.median >= 100))
+    return "Tekil bir yüksek ping sıçraması kaydedildi. Medyan ve p95 düşük kalsa da en yüksek yanıt süresi raporda görülür; aynı ağda testi tekrarlayarak karşılaştır.";
   return "Bu kısa testte belirgin bir oda gecikmesi ayrışmadı. Maç içi takılma sürüyorsa yoğun veri akışı ve anlık sıçramalar ayrıca incelenmeli.";
 }
 
@@ -247,7 +249,7 @@ async function boot() {
         }
         $("rows").append(tr);
         lines.push(
-          `${names[r.target]}: medyan ${ms(r.median)}, p95 ${ms(r.p95)}, yanıt ${r.count}/20${r.error ? `, ${r.error}` : ""}`,
+          `${names[r.target]}: medyan ${ms(r.median)}, p95 ${ms(r.p95)}, en yüksek ${ms(r.max)}, yanıt ${r.count}/20${r.error ? `, ${r.error}` : ""}`,
         );
         if (typeof r.context?.humans === "number")
           lines.push(
