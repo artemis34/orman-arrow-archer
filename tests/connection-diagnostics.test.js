@@ -18,6 +18,7 @@ test("connection metadata is uncached, uses provider geography, and omits accoun
     country: "TR",
     ingress: "IST",
     region: "eeur",
+    alternateRegion: "weur",
     regionalMatchmaking: true,
   });
   const fallback = await worker.fetch(
@@ -29,6 +30,7 @@ test("connection metadata is uncached, uses provider geography, and omits accoun
     country: "",
     ingress: "",
     region: "",
+    alternateRegion: "",
     regionalMatchmaking: false,
   });
 });
@@ -46,22 +48,32 @@ test("probes route to the actual room or a bounded regional diagnostic object wi
       }),
     },
   };
-  const request = (query, origin = "https://game") => {
+  const request = (
+    query,
+    origin = "https://game",
+    cf = { country: "TR", continent: "AS" },
+  ) => {
     const r = new Request(`https://game/api/connection-probe?${query}`, {
       headers: { Upgrade: "websocket", Origin: origin },
     });
     Object.defineProperty(r, "cf", {
-      value: { country: "TR", continent: "AS" },
+      value: cf,
     });
     return r;
   };
   await worker.fetch(request("target=regional"), env);
+  await worker.fetch(request("target=alternate&region=wnam"), env);
   await worker.fetch(request("target=room&room=brduo-wildbow-wnam-1"), env);
   await worker.fetch(request("target=room&room=wildbow-1"), env);
   assert.deepEqual(calls, [
     {
       id: "network-probe:eeur",
       options: { locationHint: "eeur" },
+      path: "/connection-probe",
+    },
+    {
+      id: "network-probe:weur",
+      options: { locationHint: "weur" },
       path: "/connection-probe",
     },
     {
@@ -91,7 +103,19 @@ test("probes route to the actual room or a bounded regional diagnostic object wi
     ).status,
     426,
   );
-  assert.equal(calls.length, 3);
+  assert.equal(
+    (
+      await worker.fetch(
+        request("target=alternate", "https://game", {
+          continent: "NA",
+          longitude: "-118",
+        }),
+        env,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(calls.length, 4);
 });
 
 test("a room echo never starts, joins, mutates or advances a game; probes close and are bounded", async (t) => {
@@ -188,6 +212,19 @@ test("a room echo never starts, joins, mutates or advances a game; probes close 
     1000,
     "a client close is acknowledged instead of leaving a half-open probe",
   );
+  const edge = new Request("https://game/api/connection-probe?target=edge", {
+    headers: { Upgrade: "websocket" },
+  });
+  Object.defineProperty(edge, "cf", { value: { country: "TR", colo: "IST" } });
+  await worker.fetch(edge, {});
+  assert.deepEqual(servers[3].sent[0], {
+    type: "ready",
+    route: { kind: "edge", country: "TR", ingress: "IST", region: "eeur" },
+  });
+  assert.ok(
+    !("context" in servers[3].sent[0]),
+    "legacy diagnostic clients must not mistake edge geography for a game context",
+  );
 });
 
 test("connection comparison requires enough samples and distinguishes observed paths without claiming a city", () => {
@@ -198,6 +235,7 @@ test("connection comparison requires enough samples and distinguishes observed p
     max: 30,
   });
   assert.equal(summarize([]).median, null);
+  assert.equal(summarize([10, 20, 30, 40]).median, 25);
   const r = (target, median, p95 = median) => ({
     target,
     median,
@@ -223,6 +261,48 @@ test("connection comparison requires enough samples and distinguishes observed p
   assert.match(
     diagnose([{ ...r("edge", 20), count: 1 }, r("regional", 180)]),
     /yeterli yanıt/,
+  );
+});
+
+test("diagnosis cannot hide missing responses or latency spikes behind a low median", () => {
+  const r = (target, median = 20, p95 = median, count = 20) => ({
+    target,
+    median,
+    p95,
+    count,
+    expected: 20,
+  });
+  assert.match(
+    diagnose([r("edge"), r("regional", 20, 20, 5)]),
+    /Eksik veya yanıtsız/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional"), r("room", 20, 20, 19)]),
+    /Eksik veya yanıtsız/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional", 25, 500)]),
+    /Oda yolunda.*sıçramaları/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional"), r("room", 25, 500)]),
+    /Son oyun odasında.*sıçramaları/,
+  );
+  assert.match(
+    diagnose([r("edge", 25, 400), r("regional", 25, 400)]),
+    /girişine ulaşırken de/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional", 180), r("alternate", 35)]),
+    /Alternatif bölge/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional", 25, 500), r("alternate", 30, 40)]),
+    /Alternatif bölge/,
+  );
+  assert.match(
+    diagnose([r("edge"), r("regional", 180), r("alternate", 35, 35, 10)]),
+    /Eksik veya yanıtsız/,
   );
 });
 

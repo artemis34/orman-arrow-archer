@@ -1,5 +1,17 @@
 # Telefondan bağlantı teşhisi
 
+30 Ekim 2026 kontrolü: eksik/yanıtsız yoklamalar artık düşük medyanın arkasında
+gizlenmez; p95 sıçramaları ayrı değerlendirilir. Çift sayıda örnekte medyan iki
+orta değerin ortalamasıdır. Avrupa bağlantıları için mevcut bölgesel testin
+yanına diğer Avrupa bölgesi (EEUR ↔ WEUR) eklenmiştir; bu yalnızca teşhistir,
+oyuncuların eşleştirme bölgesi otomatik değiştirilmez. WebSocket girişinin kendi
+coğrafya bilgisi raporlanır; HTTP bilgi isteğinin giriş noktasıyla aynı olduğu
+varsayılmaz. Eski test istemcileri yeni `route` alanını güvenle yok sayar.
+Ayrıca profil yenilenirken Ayarlar ve sabit yetenek listesinin yeniden
+oluşturulması engellendi. Geciken profil yanıtı artık açık ayarları, odaklanılan
+seçeneği veya test bağlantısını yerinden kaldırmaz. Gecikmiş gerçek profil
+yanıtıyla bu durum tarayıcı testinde ayrıca sınanır.
+
 26 Ekim 2026: iPhone 14 Pro / Chrome görüntüsünde 60 FPS, kare p95 18 ms,
 511 ms ping ve 85 ms durum geliş düzensizliği; kullanıcı Wi‑Fi'da da değişken
 150–200 ms bildirdi. Bunlar yalnızca test makinesinde düşük ping ölçmenin
@@ -35,6 +47,9 @@ küçüktür; bant genişliği yükünü veya maç sırasında oluşan tüm tak�
 başına temsil etmez. Rapor, oda ölçülürken gerçek oyuncu sayısını ve simülasyonun
 açık olup olmadığını da içerir. Boş oda testi aktif 32 kişilik maç yükü değildir.
 Kısa örnekten istatistiksel kapasite veya kalıcı ping garantisi çıkarılmaz.
+Eksik yanıtlar TCP üzerinde uygulama zaman aşımıdır; doğrudan ağ paket kaybı
+yüzdesi olarak yorumlanmaz. Alternatif bölge için de tam yanıt alınmadan daha
+iyi bağlantı sonucu çıkarılmaz.
 
 ## Yorum ve sonraki karar
 

@@ -1,10 +1,12 @@
 name: Validate device connection diagnosis
 on:
   push:
-    branches: [main, fix/device-route-diagnostics]
+    branches:
+      [main, fix/device-route-diagnostics, fix/connection-review-2026-10-30]
     paths:
       - cloudflare/connection-probe.js
       - cloudflare/worker.js
+      - cloudflare/regions.js
       - client/performance-monitor.js
       - client/progression.js
       - public/connection-test.*

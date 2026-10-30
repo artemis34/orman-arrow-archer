@@ -2,6 +2,7 @@ import { ratingScaleFor } from "../shared/ranking.js";
 import { connectionProbe } from "./connection-probe.js";
 import {
   arenaStub,
+  alternateRegion,
   directoryName,
   located,
   publicRoom,
@@ -817,6 +818,7 @@ export default {
           country: request.cf?.country || "",
           ingress: request.cf?.colo || "",
           region: requestRegion(request.cf),
+          alternateRegion: alternateRegion(requestRegion(request.cf)),
           regionalMatchmaking: env.REGIONAL_MATCHMAKING !== "off",
         }),
       );
@@ -824,10 +826,21 @@ export default {
       if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
         return new Response("WebSocket connection required", { status: 426 });
       const target = url.searchParams.get("target");
-      if (target === "edge") return connectionProbe(request);
+      if (target === "edge")
+        return connectionProbe(request, {
+          kind: "edge",
+          country: request.cf?.country || "",
+          ingress: request.cf?.colo || "",
+          region: requestRegion(request.cf),
+        });
       let stub;
-      if (target === "regional") {
-        const region = requestRegion(request.cf);
+      if (target === "regional" || target === "alternate") {
+        const region =
+          target === "alternate"
+            ? alternateRegion(requestRegion(request.cf))
+            : requestRegion(request.cf);
+        if (target === "alternate" && !region)
+          return new Response("No alternate region", { status: 400 });
         stub = located(
           env.ARENAS,
           `network-probe:${region || "default"}`,

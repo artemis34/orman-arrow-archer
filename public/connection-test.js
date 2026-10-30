@@ -1,13 +1,16 @@
 const labels = {
   edge: "Cloudflare girişi",
   regional: "Bölgesel test",
+  alternate: "Alternatif bölge",
   room: "Son oyun odası",
 };
 export function summarize(values) {
   const a = values.filter(Number.isFinite).sort((x, y) => x - y);
   return {
     count: a.length,
-    median: a.length ? a[Math.floor((a.length - 1) * 0.5)] : null,
+    median: a.length
+      ? (a[Math.floor((a.length - 1) / 2)] + a[Math.floor(a.length / 2)]) / 2
+      : null,
     p95: a.length ? a[Math.ceil(a.length * 0.95) - 1] : null,
     max: a.length ? a.at(-1) : null,
   };
@@ -15,9 +18,21 @@ export function summarize(values) {
 export function diagnose(results) {
   const edge = results.find((r) => r.target === "edge"),
     regional = results.find((r) => r.target === "regional"),
-    room = results.find((r) => r.target === "room");
+    room = results.find((r) => r.target === "room"),
+    alternate = results.find((r) => r.target === "alternate");
   if (!(edge?.count >= 5) || !(regional?.count >= 5))
     return "Karşılaştırma için yeterli yanıt alınamadı. Sonucu paylaş; aynı ağda yeniden deneyebilirsin.";
+  const incomplete = results.filter(
+    (r) => r.error || r.count < (r.expected || 20),
+  );
+  if (incomplete.length)
+    return `Eksik veya yanıtsız yoklamalar var: ${incomplete.map((r) => `${labels[r.target]} ${r.count}/${r.expected || 20}`).join(", ")}. Düşük bir medyan, bu durumda bağlantının sorunsuz olduğunu göstermez. Aynı ağda testi tekrarlayıp sonucu paylaş.`;
+  if (
+    alternate?.count >= 5 &&
+    (regional.median - alternate.median > 60 ||
+      regional.p95 - alternate.p95 > 80)
+  )
+    return "Alternatif bölge bu kısa testte daha düşük ping veya daha az gecikme sıçraması verdi. Sunucu taşıma kararı öncesi Cloudflare bölgeleri aynı telefondan tekrar karşılaştırılmalı; tek test kesin neden göstermez.";
   if (room?.count >= 5 && room.median - regional.median > 60)
     return "Son oyun odasına erişim, bölgesel testten belirgin yavaş. Odanın yerleşimi veya iş yükü incelenmeli; bu fark tek başına kesin nedeni kanıtlamaz.";
   if (
@@ -25,6 +40,13 @@ export function diagnose(results) {
     (room?.count >= 5 && room.median - edge.median > 60)
   )
     return "Cloudflare girişi ile oda arasında ek gecikme görülüyor. Oda yerleşimi, iç ağ rotası ve işlem kuyruğu araştırılmalı.";
+  if (room?.count >= 5 && room.p95 - regional.p95 > 80)
+    return "Son oyun odasında, bölgesel testte görülmeyen gecikme sıçramaları var. Düşük medyan bu sıçramaları gizlememeli; oda yerleşimi ve yükü karşılaştırılmalı.";
+  if (
+    regional.p95 - edge.p95 > 80 ||
+    (room?.count >= 5 && room.p95 - edge.p95 > 80)
+  )
+    return "Oda yolunda Cloudflare girişine göre daha büyük gecikme sıçramaları görülüyor. Yerleşim, iç ağ rotası ve işlem kuyrukları incelenmeli.";
   if (edge.median >= 100 || edge.p95 >= 200)
     return "Cloudflare girişine ulaşırken de gecikme yüksek veya değişken. Wi‑Fi / mobil veri ve alternatif sunucu aynı telefondan karşılaştırılmalı.";
   return "Bu kısa testte belirgin bir oda gecikmesi ayrışmadı. Maç içi takılma sürüyorsa yoğun veri akışı ve anlık sıçramalar ayrıca incelenmeli.";
@@ -44,7 +66,8 @@ export async function probeSocket(
     resolveOpen,
     rejectOpen,
     timeouts = 0,
-    context = null;
+    context = null,
+    route = null;
   const endPending = (value) => {
     if (!pending) return;
     clearTimeout(pending.timer);
@@ -78,6 +101,7 @@ export async function probeSocket(
       if (packet.type === "ready" && !ready) {
         ready = true;
         context = packet.context || null;
+        route = packet.route || null;
         clearTimeout(openTimer);
         rejectOpen = null;
         resolveOpen();
@@ -127,6 +151,7 @@ export async function probeSocket(
       timeouts,
       incomplete: values.length < samples,
       context,
+      route,
     };
   } finally {
     signal?.removeEventListener("abort", stop);
@@ -168,6 +193,12 @@ async function boot() {
         throw new Error("Bağlantı testi sürümü henüz hazır değil");
       const room = new URL(location.href).searchParams.get("room");
       const targets = ["edge", "regional"];
+      const names = { ...labels };
+      if (info.region) names.regional += ` (${info.region.toUpperCase()})`;
+      if (["eeur", "weur"].includes(info.alternateRegion)) {
+        targets.push("alternate");
+        names.alternate += ` (${info.alternateRegion.toUpperCase()})`;
+      }
       if (room && /^[a-z0-9][a-z0-9-]{2,23}$/.test(room)) targets.push("room");
       $("location").textContent =
         `Ülke ${info.country || "—"} · Cloudflare girişi ${info.ingress || "—"} · Bölge hedefi ${info.region || "varsayılan"}${room ? ` · Oda ${room}` : " · Son oda belirtilmedi"}`;
@@ -205,7 +236,7 @@ async function boot() {
       for (const r of results) {
         const tr = document.createElement("tr");
         for (const value of [
-          labels[r.target],
+          names[r.target],
           ms(r.median),
           ms(r.p95),
           `${r.count}/20`,
@@ -216,11 +247,15 @@ async function boot() {
         }
         $("rows").append(tr);
         lines.push(
-          `${labels[r.target]}: medyan ${ms(r.median)}, p95 ${ms(r.p95)}, yanıt ${r.count}/20${r.error ? `, ${r.error}` : ""}`,
+          `${names[r.target]}: medyan ${ms(r.median)}, p95 ${ms(r.p95)}, yanıt ${r.count}/20${r.error ? `, ${r.error}` : ""}`,
         );
-        if (r.context)
+        if (typeof r.context?.humans === "number")
           lines.push(
             `${labels[r.target]} durumu: ${r.context.humans} oyuncu, simülasyon ${r.context.ticking ? "açık" : "kapalı"}`,
+          );
+        if (r.target === "edge" && r.route)
+          lines.push(
+            `WebSocket giriş yolu: ülke ${r.route.country || "—"}, giriş ${r.route.ingress || "—"}, bölge hedefi ${r.route.region || "varsayılan"}`,
           );
       }
       const diagnosis = diagnose(results);
@@ -231,8 +266,11 @@ async function boot() {
       );
       $("report").value = lines.join("\n");
       $("results").classList.remove("hidden");
-      $("status").textContent =
-        "Ölçüm tamamlandı. Sonucu kopyalayıp paylaşabilirsin.";
+      $("status").textContent = results.some(
+        (r) => r.count < (r.expected || 20),
+      )
+        ? "Ölçüm tamamlandı; bazı yollar eksik yanıt verdi. Sonucu paylaşabilirsin."
+        : "Ölçüm tamamlandı. Sonucu kopyalayıp paylaşabilirsin.";
     } catch (e) {
       $("status").textContent = run.signal.aborted
         ? "Ölçüm durduruldu. Sayfayı açık tutarak yeniden deneyebilirsin."

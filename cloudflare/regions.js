@@ -12,6 +12,8 @@ export const REGIONS = Object.freeze([
   "afr",
 ]);
 export const validRegion = (value) => (REGIONS.includes(value) ? value : "");
+export const alternateRegion = (region) =>
+  ({ eeur: "weur", weur: "eeur" })[region] || "";
 const eastern = new Set([
   "TR",
   "CY",

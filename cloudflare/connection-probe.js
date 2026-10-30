@@ -35,7 +35,14 @@ export function connectionProbe(request, context) {
   });
   server.accept();
   server.send(
-    JSON.stringify({ type: "ready", ...(context ? { context } : {}) }),
+    JSON.stringify({
+      type: "ready",
+      ...(context
+        ? context.kind === "edge"
+          ? { route: context }
+          : { context }
+        : {}),
+    }),
   );
   return new Response(null, { status: 101, webSocket: client });
 }

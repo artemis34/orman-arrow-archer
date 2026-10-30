@@ -78,7 +78,12 @@ export function setupProgression({ cloudflare, server, onSettings }) {
     profile = next;
     document.getElementById("collection-balance").textContent =
       `◇ ${profile.coins}`;
-    if (!root.classList.contains("hidden")) render();
+    if (
+      !root.classList.contains("hidden") &&
+      tab !== "settings" &&
+      tab !== "skills"
+    )
+      render();
   }
   async function refresh() {
     if (!cloudflare) return;
@@ -90,7 +95,7 @@ export function setupProgression({ cloudflare, server, onSettings }) {
       status.textContent =
         "Profil bağlantısı kurulamadı. Oynayabilir ve tekrar deneyebilirsin.";
     }
-    render();
+    if (tab !== "settings" && tab !== "skills") render();
   }
   function close() {
     root.classList.add("hidden");

@@ -54,7 +54,43 @@ try {
   await page.locator("#leaders-toggle").click();
   await page.locator("#exit").click();
   await expect(page.locator("#lobby")).toBeVisible();
+  let releaseProfile, notifyProfile;
+  const profileRequested = new Promise((resolve) => {
+    notifyProfile = resolve;
+  });
+  await page.route("**/api/profile", async (route) => {
+    await new Promise((release) => {
+      releaseProfile = release;
+      notifyProfile();
+    });
+    await route.continue();
+  });
   await page.locator("#collection-open").click();
+  await profileRequested;
+  const settingsNode = await page
+    .locator(".collection-content .settings-controls")
+    .elementHandle();
+  const fps = page.locator('[data-setting="performance"]');
+  await fps.selectOption("false");
+  const profileDone = page.waitForResponse(
+    (r) => new URL(r.url()).pathname === "/api/profile",
+  );
+  releaseProfile();
+  await (await profileDone).finished();
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  assert.equal(
+    await settingsNode.evaluate((node) => node.isConnected),
+    true,
+    "profile refresh cannot detach active settings",
+  );
+  await expect(fps).toHaveValue("false");
+  await fps.selectOption("true");
+  await page.unroute("**/api/profile");
   const link = page.locator("#connection-test-open");
   await expect(link).toBeVisible();
   assert.equal(
@@ -62,6 +98,7 @@ try {
     room,
   );
   mkdirSync("/tmp/archer-validation", { recursive: true });
+  await link.scrollIntoViewIfNeeded();
   await page.screenshot({
     path: `/tmp/archer-validation/connection-settings-${engine}.png`,
   });
@@ -71,6 +108,7 @@ try {
   await testPage.waitForLoadState();
   await page.close();
   page = testPage;
+  await expect(page.locator('[data-connection-version="2"]')).toBeVisible();
   page.on("pageerror", (e) => errors.push(e.message));
   const sockets = [],
     requests = [];
@@ -80,17 +118,24 @@ try {
     (await fetch(`${base}/api/rooms/${room}/status`)).json();
   const before = await status();
   assert.equal(before.humans, 1);
+  const infoRequest = page.waitForResponse(
+    (r) => new URL(r.url()).pathname === "/api/connection-info",
+  );
   await page.locator("#start").click();
+  const info = await (await infoRequest).json();
   await expect(page.locator("#status")).toContainText("Ölçüm tamamlandı", {
     timeout: 45000,
   });
-  await expect(page.locator("#rows tr")).toHaveCount(3);
-  assert.equal(sockets.length, 3);
+  const expectedPaths = info.alternateRegion ? 4 : 3;
+  await expect(page.locator("#rows tr")).toHaveCount(expectedPaths);
+  assert.equal(sockets.length, expectedPaths);
   for (const row of await page.locator("#rows tr").allTextContents())
     assert.match(row, /20\/20/);
   const report = await page.locator("#report").inputValue();
   assert.match(report, new RegExp(room));
   assert.match(report, /Cloudflare girişi/);
+  assert.match(report, /WebSocket giriş yolu/);
+  assert.ok(!report.includes("undefined"));
   assert.ok(
     !requests.some((p) => /matchmake|profile|presence|leaderboard/.test(p)),
     "diagnostics cannot join, award RP or write a profile",
@@ -108,6 +153,43 @@ try {
     path: `/tmp/archer-validation/connection-result-${engine}.png`,
     fullPage: true,
   });
+  if (["localhost", "127.0.0.1"].includes(new URL(base).hostname)) {
+    // EU capability rendering fixture only; the genuine provider path was tested above.
+    await page.route("**/api/connection-info", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        json: {
+          ...(await response.json()),
+          region: "eeur",
+          alternateRegion: "weur",
+        },
+      });
+    });
+    await page.routeWebSocket(
+      "**/api/connection-probe?target=alternate",
+      (ws) => {
+        ws.send(
+          JSON.stringify({
+            type: "ready",
+            context: { humans: 0, ticking: false, format: null },
+          }),
+        );
+        ws.onMessage((raw) => {
+          const packet = JSON.parse(raw);
+          ws.send(JSON.stringify({ type: "probe", id: packet.id }));
+        });
+      },
+    );
+    await page.locator("#start").click();
+    await expect(page.locator("#status")).toContainText("Ölçüm tamamlandı", {
+      timeout: 45000,
+    });
+    await expect(page.locator("#rows tr")).toHaveCount(4);
+    await expect(page.locator("#rows")).toContainText("WEUR");
+    await page.unroute("**/api/connection-info");
+    console.log(`CONNECTION_EU_UI_FIXTURE_OK ${engine}`);
+  }
   await page.locator("#start").click();
   await expect(page.locator("#start")).toHaveText("İptal et");
   await page.locator("#start").click();
