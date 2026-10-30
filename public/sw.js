@@ -1,4 +1,4 @@
-const CACHE = "wildbow-shell-v3";
+const CACHE = "wildbow-shell-v4";
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -58,18 +58,48 @@ self.addEventListener("fetch", (event) => {
   )
     return;
   if (event.request.mode === "navigate") {
+    const home = new URL("./", self.location.href);
+    const isGame =
+      url.pathname === home.pathname ||
+      url.pathname === new URL("index.html", home).pathname;
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && isGame) {
             const copy = response.clone();
             caches.open(CACHE).then((cache) => cache.put("./", copy));
           }
           return response;
         })
-        .catch(() => caches.match("./")),
+        .catch(() =>
+          isGame
+            ? caches.match("./")
+            : new Response(
+                "Bu sayfa internet bağlantısı gerektiriyor. Çevrimdışı antrenman için ana menüye dön.",
+                {
+                  status: 503,
+                  headers: { "Content-Type": "text/plain; charset=utf-8" },
+                },
+              ),
+        ),
     );
   } else if (/\.(js|css|woff2|svg)$/.test(url.pathname)) {
+    if (url.pathname.endsWith(".js") && !url.pathname.includes("/assets/")) {
+      event.respondWith(
+        fetch(event.request)
+          .then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches
+                .open(CACHE)
+                .then((cache) => cache.put(event.request, copy));
+            }
+            return response;
+          })
+          .catch(() => caches.match(event.request)),
+      );
+      return;
+    }
     event.respondWith(
       caches.match(event.request).then(
         (cached) =>

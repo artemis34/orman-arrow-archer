@@ -43,6 +43,9 @@ try {
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
+        // Controlled delayed-response fixtures must reach Playwright's router.
+        // The shipped Service Worker is covered by the separate offline test.
+        serviceWorkers: "block",
       });
       await context.addInitScript(() =>
         localStorage.setItem("wildbow-performance", "true"),

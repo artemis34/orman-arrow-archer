@@ -97,8 +97,11 @@ try {
     }),
     false,
   );
+  // A diagnostic navigation must not overwrite the cached game document.
+  await page.goto(new URL("/connection-test.html", base).href);
+  await expect(page.locator("[data-connection-version]")).toBeVisible();
   await context.setOffline(true);
-  await page.reload();
+  await page.goto(base);
   await expect(page.locator("#lobby")).toBeVisible();
   await page.locator("#practice-mode").tap();
   await page.locator("#match-format").selectOption("t8");
@@ -151,6 +154,10 @@ try {
   await page.locator("#exit").tap();
   await expect(page.locator("#lobby")).toBeVisible();
   assert.deepEqual(errors, []);
+  await page.goto(new URL("/connection-test.html", base).href);
+  await expect(page.locator("body")).toContainText(
+    "internet bağlantısı gerektiriyor",
+  );
   console.log(
     "PROFILE_BROWSER_OK real Cloudflare persistence, insufficient-balance rejection, SVG cosmetics, achievements and offline practice without caching API responses.",
   );
@@ -162,8 +169,8 @@ try {
           const element = document.querySelector(selector);
           return Boolean(
             element &&
-              element.getClientRects().length &&
-              getComputedStyle(element).visibility !== "hidden",
+            element.getClientRects().length &&
+            getComputedStyle(element).visibility !== "hidden",
           );
         };
         return {
@@ -180,7 +187,9 @@ try {
       .catch((diagnosticError) => ({ unavailable: String(diagnosticError) }));
     error.message += `\nProfile diagnostics: ${JSON.stringify({ url: page.url(), ...diagnostics, errors })}`;
     await page
-      .screenshot({ path: "/tmp/archer-validation/profile-cloudflare-failure.png" })
+      .screenshot({
+        path: "/tmp/archer-validation/profile-cloudflare-failure.png",
+      })
       .catch(() => {});
   }
   annotateFailure(error, "Cloudflare profile and offline practice browser");

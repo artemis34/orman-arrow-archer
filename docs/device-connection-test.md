@@ -11,6 +11,11 @@ Ayrıca profil yenilenirken Ayarlar ve sabit yetenek listesinin yeniden
 oluşturulması engellendi. Geciken profil yanıtı artık açık ayarları, odaklanılan
 seçeneği veya test bağlantısını yerinden kaldırmaz. Gecikmiş gerçek profil
 yanıtıyla bu durum tarayıcı testinde ayrıca sınanır.
+Bağlantı testi sayfasının çevrimdışı ana oyun belgesini ezmesi de düzeltildi.
+Oyun dışındaki sayfalar ana menü önbelleğine yazılmaz; sürümlenmemiş yardımcı
+JavaScript dosyaları önce ağdan yenilenir. Önbellek v4'e geçirilir, profil ve
+tercih verileri korunur. Service Worker açıkken test sayfasından çevrimdışı
+antrenmana dönüş ayrıca sınanır.
 
 26 Ekim 2026: iPhone 14 Pro / Chrome görüntüsünde 60 FPS, kare p95 18 ms,
 511 ms ping ve 85 ms durum geliş düzensizliği; kullanıcı Wi‑Fi'da da değişken

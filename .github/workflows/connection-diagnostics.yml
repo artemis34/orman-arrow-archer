@@ -10,6 +10,8 @@ on:
       - client/performance-monitor.js
       - client/progression.js
       - public/connection-test.*
+      - public/sw.js
+      - tests/profile.browser.js
       - tests/connection-diagnostics.*
       - .github/workflows/connection-diagnostics.yml
   workflow_dispatch:
@@ -53,6 +55,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit node tests/connection-diagnostics.browser.js
           npm run test:cloudflare:browser
           LIBGL_ALWAYS_SOFTWARE=1 PLAYWRIGHT_ENGINE=webkit npm run test:cloudflare:browser
+          npm run test:profile
       - name: Check the existing FPS settings and unobstructed HUD
         run: |
           node tests/performance-monitor.browser.js
