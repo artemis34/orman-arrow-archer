@@ -187,11 +187,14 @@ export class NetworkTransport {
     }
     this.onState(state);
   }
-  step(input) {
+  /** `at` is the tick's scheduled time. Presenting prediction against the
+   * schedule, not the (jittery) moment a timer happened to run, keeps the
+   * local archer's walking speed constant between ticks. */
+  step(input, at = performance.now()) {
     input = cleanInput({ ...input, seq: ++this.seq });
     this.send("input", input);
     this.lastInput = input;
-    this.inputAt = performance.now();
+    this.inputAt = at;
     this.pending.push(input);
     if (this.pending.length > 120) this.pending.shift();
     if (this.predicted?.alive && !this.frozen) {
