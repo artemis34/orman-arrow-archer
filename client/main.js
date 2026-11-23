@@ -1344,18 +1344,23 @@ async function startPresentation() {
   }
 }
 startPresentation();
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker
-    .register(new URL("sw.js", document.baseURI))
-    .then(() => navigator.serviceWorker.ready)
-    .then((registration) => {
-      registration.active?.postMessage({
-        type: "CACHE_ASSETS",
-        urls: performance
-          .getEntriesByType("resource")
-          .map((entry) => entry.name),
-      });
-    })
-    .catch(() => {});
+// Offline caching is optional. Sandboxed frames and app WebViews (a later
+// iOS/Android shell) can throw just from reading navigator.serviceWorker.
+try {
+  if ("serviceWorker" in navigator && import.meta.env.PROD)
+    navigator.serviceWorker
+      .register(new URL("sw.js", document.baseURI))
+      .then(() => navigator.serviceWorker.ready)
+      .then((registration) => {
+        registration.active?.postMessage({
+          type: "CACHE_ASSETS",
+          urls: performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name),
+        });
+      })
+      .catch(() => {});
+} catch {
+  /* Play without the offline cache. */
 }
 // Deliberately expose no mutable world or socket on window.
