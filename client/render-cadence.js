@@ -36,6 +36,14 @@ export class RenderCadence {
     return Math.max(1, Math.floor(refresh / rate + 0.2));
   }
 
+  /** Frame interval a healthy renderer should reach at `rate`. The fastest
+   * recent refresh bounds it, so a 30 FPS power-saving cap is not mistaken
+   * for a slow GPU, while a 60 Hz phone dropping frames still is. */
+  expectedInterval(rate = 60) {
+    const fastest = this.deltas.length >= 3 ? Math.min(...this.deltas) : 0;
+    return Math.max(1000 / rate, fastest);
+  }
+
   due(now, rate = 60) {
     if (!Number.isFinite(now) || !Number.isFinite(rate) || rate <= 0)
       return false;
