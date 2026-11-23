@@ -9,7 +9,7 @@ export class BowPose {
   }
   update(player, dt, automatic = false) {
     const step = Math.max(0, Math.min(0.1, dt));
-    if (!player.alive || player.levelGuard > 0) {
+    if (!player.alive) {
       this.draw = this.recoil = this.release = 0;
       this.previousCd = player.shotCd || 0;
       return this;

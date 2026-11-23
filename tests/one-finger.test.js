@@ -42,14 +42,13 @@ test("cooldowns never say zero before ready and all modes gate commands on live 
     assert.equal(matchAllowsInput({ phase }), false);
 });
 
-test("automatic healing uses relative HP and respects authoritative life, guard and cooldown", () => {
-  const me = { alive: true, hp: 52.5, maxHp: 150, healCd: 0, levelGuard: 0 };
+test("automatic healing uses relative HP and respects authoritative life and cooldown", () => {
+  const me = { alive: true, hp: 52.5, maxHp: 150, healCd: 0 };
   assert.equal(automaticHealReady(me), true);
   for (const change of [
     { hp: 52.6 },
     { hp: 0 },
     { alive: false },
-    { levelGuard: 0.1 },
     { healCd: 0.001 },
     { maxHp: 0 },
   ])

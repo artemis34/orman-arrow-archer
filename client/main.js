@@ -12,6 +12,7 @@ import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
 import { setupPerformanceMonitor } from "./performance-monitor.js";
 import { RenderCadence } from "./render-cadence.js";
+import { AdaptiveQuality } from "./adaptive-quality.js";
 import { presentationTarget } from "./auto-target.js";
 import { cooldownText, matchAllowsInput } from "./one-finger.js";
 import { controlModeFor, saveControlMode } from "./control-preferences.js";
@@ -95,13 +96,28 @@ let playing = false,
   joining = false,
   joiningTransport = null,
   tutorialReturn = null,
-  respawnRequestedAt = -Infinity,
-  guardWasActive = false;
+  respawnRequestedAt = -Infinity;
 const performanceMonitor = setupPerformanceMonitor({
   parent: document.querySelector(".arena-map"),
   enabled: preferences.get("wildbow-performance") === "true",
 });
 const renderCadence = new RenderCadence();
+// "Dengeli" graphics step down by themselves on phones that drop frames.
+const autoQuality = new AdaptiveQuality(
+  Number(preferences.get("wildbow-auto-quality")) || 0,
+);
+let qualityPreference = null;
+function applyQuality() {
+  const quality = preferences.get("wildbow-quality") || "balanced";
+  if (qualityPreference !== null && quality !== qualityPreference) {
+    // A manual choice starts the automatic steps over.
+    autoQuality.step = 0;
+    autoQuality.reset();
+    preferences.set("wildbow-auto-quality", "0");
+  }
+  qualityPreference = quality;
+  scene.setQuality(quality, quality === "balanced" ? autoQuality.step : 0);
+}
 const tutorial = new FirstGameTutorial({
   get: preferences.get,
   set: preferences.set,
@@ -162,7 +178,7 @@ const progression = setupProgression({
     performanceMonitor.setEnabled(
       preferences.get("wildbow-performance") === "true",
     );
-    scene.setQuality(preferences.get("wildbow-quality") || "balanced");
+    applyQuality();
     controls.setDoubleTapDash(preferences.get("wildbow-doubletap") !== "false");
     controls.setOneFingerAssists({
       overpull: preferences.get("wildbow-overpull") !== "false",
@@ -435,11 +451,7 @@ addEventListener("keydown", (e) => {
 controls.onDashTarget = (point) => {
   show(
     "dash-target",
-    !!point &&
-      playing &&
-      controls.oneHanded &&
-      matchAllowsInput(state?.match) &&
-      !(state?.players.find((p) => p.id === myId)?.levelGuard > 0),
+    !!point && playing && controls.oneHanded && matchAllowsInput(state?.match),
   );
   if (point) {
     text("dash-target", cooldownText(point.cooldown, true) || "ϟ");
@@ -461,16 +473,10 @@ function consume(next) {
   if (me) {
     controls.latestState = next;
     controls.latestMe = me;
-    const guarded = me.levelGuard > 0;
-    if (guarded && !guardWasActive) {
-      panels.close();
-      emotes.close();
-    }
     controls.active =
       me.alive &&
       (!next.match || next.match.phase !== "results") &&
       $("help").classList.contains("hidden");
-    guardWasActive = guarded;
   }
   for (const e of next.events || []) {
     if (e.type === "emote" && Object.hasOwn(EMOTES, e.key)) {
@@ -502,10 +508,6 @@ function consume(next) {
         if (e.target === myId && preferences.get("wildbow-haptics") !== "false")
           navigator.vibrate?.(18);
       }
-    } else if (e.type === "levelUp") {
-      const owner = next.players.find((p) => p.id === e.owner);
-      if (owner) scene.burst(owner.x, owner.z, 0xffd680, 16);
-      if (e.owner === myId) toast(`✧ SEVİYE ${e.level} · Kart seç`);
     } else if (e.type === "leech") {
       scene.feedback.show(e.owner, `+${e.amount.toFixed(1)}`, "heal");
     } else if (e.type === "lootDrop") {
@@ -662,6 +664,7 @@ async function join(isTutorial = false) {
     tutorial.stop();
     if (isTutorial) tutorial.start(controls.oneHanded, true, true);
     performanceMonitor.reset();
+    autoQuality.reset();
     resultKey = "";
     controls.active = true;
     controls.reset();
@@ -676,7 +679,6 @@ async function join(isTutorial = false) {
     document.body.classList.add("playing");
     text("connection", transport.online ? "ONLINE" : "YEREL");
     panels.close();
-    guardWasActive = false;
   } catch (error) {
     candidate?.close();
     text("join-status", error.message);
@@ -894,12 +896,11 @@ function updateHud(current) {
     controls.oneHanded && controls.autoHeal ? "OTO · +25" : "+25 CAN",
   );
   $("health-fill").classList.toggle("critical", me.hp < me.maxHp * 0.3);
-  const abilitiesAllowed =
-    me.alive && matchAllowsInput(current.match) && !(me.levelGuard > 0);
+  const abilitiesAllowed = me.alive && matchAllowsInput(current.match);
   $("dash").disabled = !abilitiesAllowed || me.dashCd > 0;
   $("heal").disabled = !abilitiesAllowed || me.healCd > 0 || me.hp >= me.maxHp;
   $("dash").title = !abilitiesAllowed
-    ? "Karşılaşma başladığında ve koruma bittiğinde atılabilirsin"
+    ? "Karşılaşma başladığında atılabilirsin"
     : me.dashCd > 0
       ? `Atılma ${cooldownText(me.dashCd, true)} sn sonra hazır`
       : "Atıl · Space / sağ tık";
@@ -909,7 +910,6 @@ function updateHud(current) {
       : me.healCd > 0
         ? `Can yenileme ${cooldownText(me.healCd)} sn sonra hazır`
         : "25'e kadar can yenile · E";
-  $("hud").classList.toggle("guarded", me.levelGuard > 0);
   const charge = Math.round(me.charge * 100);
   document
     .querySelector(".arena-charge")
@@ -936,19 +936,17 @@ function updateHud(current) {
   );
   text(
     "player-status",
-    me.levelGuard > 0
-      ? "SEÇİM KORUMASI"
-      : me.spawnShield > 0
-        ? "DOĞUŞ KALKANI"
-        : me.hidden
-          ? "ÇALIDA GİZLENDİN"
-          : buff
-            ? `${buff.icon} ${buff.description} · ${Math.ceil(me.buffTime)}s`
-            : controls.oneHanded && controls.autoHeal
-              ? me.healCd > 0
-                ? `CAN DESTEĞİ · ${cooldownText(me.healCd)} sn`
-                : "CAN DESTEĞİ HAZIR · %35'TE OTO"
-              : "İZİNİ BIRAK",
+    me.spawnShield > 0
+      ? "DOĞUŞ KALKANI"
+      : me.hidden
+        ? "ÇALIDA GİZLENDİN"
+        : buff
+          ? `${buff.icon} ${buff.description} · ${Math.ceil(me.buffTime)}s`
+          : controls.oneHanded && controls.autoHeal
+            ? me.healCd > 0
+              ? `CAN DESTEĞİ · ${cooldownText(me.healCd)} sn`
+              : "CAN DESTEĞİ HAZIR · %35'TE OTO"
+            : "İZİNİ BIRAK",
   );
   const measuredPing =
     Number.isFinite(transport.ping) &&
@@ -1041,7 +1039,7 @@ function updateHud(current) {
   }
   if (me.level > lastLevel) {
     audio.play("level");
-
+    if (me.choices.length) toast(`✧ SEVİYE ${me.level} · Kart seç`);
     lastLevel = me.level;
   }
   const ck =
@@ -1264,8 +1262,19 @@ function frame(now) {
   // second one) so motion never judders; the lobby idles near 30 FPS.
   // Input networking has its independent timer below.
   if (!renderCadence.due(now, playing ? 60 : 30)) return;
-  const dt = Math.max(0, Math.min((now - lastTime) / 1000, 0.1));
+  const elapsed = now - lastTime;
+  const dt = Math.max(0, Math.min(elapsed / 1000, 0.1));
   lastTime = now;
+  if (playing && qualityPreference === "balanced") {
+    const step = autoQuality.observe(
+      elapsed,
+      renderCadence.expectedInterval(60),
+    );
+    if (step !== null) {
+      preferences.set("wildbow-auto-quality", String(step));
+      applyQuality();
+    }
+  }
   // Background mobile tabs stop sending input, allowing abandoned Cloudflare
   // sessions to expire instead of leaving a bot arena running indefinitely.
   if (cloudflare && playing && transport?.online && document.hidden) return;
@@ -1281,6 +1290,7 @@ function frame(now) {
     }
     accumulator -= 1 / RULES.tick;
   }
+  pumpOnlineInput();
   const view =
     playing && transport
       ? transport.view(accumulator * RULES.tick) || state
@@ -1305,16 +1315,32 @@ function frame(now) {
 }
 document.addEventListener("visibilitychange", () => {
   performanceMonitor.reset();
+  autoQuality.reset();
   renderCadence.reset();
   lastTime = performance.now();
 });
-// Network input must keep its cadence even when rendering is slow. Otherwise a
-// busy mobile GPU can trigger the authority's stale-input watchdog mid-draw.
-setInterval(() => {
-  if (!playing || !transport?.online || document.hidden) return;
-  const me = transport.localPose() || state?.players.find((p) => p.id === myId);
-  transport.step(controls.sample(me, state, scene.obstacles));
-}, 1000 / RULES.tick);
+// Online input runs on a fixed 30 Hz schedule. Each frame (and a backup timer
+// for when a busy GPU delays frames) sends every tick that is due, stamped with
+// its scheduled time. Timer jitter therefore never changes the local archer's
+// on-screen speed, and slow rendering cannot trip the server's stale watchdog.
+const INPUT_INTERVAL = 1000 / RULES.tick;
+let inputDueAt = null;
+function pumpOnlineInput(now = performance.now()) {
+  if (!playing || !transport?.online || document.hidden) {
+    inputDueAt = null;
+    return;
+  }
+  // Start, or resynchronise after a stall instead of bursting old ticks.
+  if (inputDueAt === null || now - inputDueAt > 4 * INPUT_INTERVAL)
+    inputDueAt = now;
+  for (let sent = 0; now >= inputDueAt && sent < 3; sent++) {
+    const me =
+      transport.localPose() || state?.players.find((p) => p.id === myId);
+    transport.step(controls.sample(me, state, scene.obstacles), inputDueAt);
+    inputDueAt += INPUT_INTERVAL;
+  }
+}
+setInterval(pumpOnlineInput, INPUT_INTERVAL / 2);
 controls.onNoTarget = () => toast("Hedef yok");
 addEventListener("resize", () =>
   transport?.updateView?.(scene.networkRadius()),

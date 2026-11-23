@@ -415,7 +415,6 @@ export class World {
   }
   gain(p, amount) {
     if (this.mode.rules?.progression === false || !this.mode.combat) return;
-    const wasPending = p.pending > 0;
     p.xp += amount;
     p.score += amount;
     while (p.xp >= p.level * 55) {
@@ -424,11 +423,9 @@ export class World {
       p.pending++;
       if (p.alive) p.hp = Math.min(p.maxHp, p.hp + 18);
     }
+    // Levelling never freezes or shields the player: the cards stay on
+    // screen while the fight continues and are auto-picked if ignored.
     if (p.pending && !p.choices.length) this.offer(p);
-    // Levelling never freezes or shields the player any more: the cards stay
-    // on screen while the fight continues and are auto-picked if ignored.
-    if (!wasPending && p.pending && p.alive && !p.bot)
-      this.events.push({ type: "levelUp", owner: p.id, level: p.level });
   }
   damage(p, amount, owner, kind = "impact", critical = false) {
     if (

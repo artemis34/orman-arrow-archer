@@ -316,12 +316,7 @@ export class Controls {
           // Consume a pull even during cooldown; holding the edge never queues
           // an unexpected dodge when the server's cooldown later expires.
           const me = this.latestMe;
-          if (
-            this.canAct() &&
-            me?.alive &&
-            me.dashCd <= 0 &&
-            !(me.levelGuard > 0)
-          ) {
+          if (this.canAct() && me?.alive && me.dashCd <= 0) {
             this.dash = true;
             this.dashVector = { ...vector };
           }

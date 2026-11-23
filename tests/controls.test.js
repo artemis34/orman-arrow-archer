@@ -305,7 +305,7 @@ function touchControls() {
     },
   });
 }
-test("one-finger heal retries are bounded and classic/focus/help/guard never auto-heal", () => {
+test("one-finger heal retries are bounded and classic/focus/help never auto-heal", () => {
   const c = touchControls();
   c.oneHanded = c.autoHeal = true;
   c.autoHealAt = -Infinity;
@@ -338,7 +338,6 @@ test("one-finger heal retries are bounded and classic/focus/help/guard never aut
     active: true,
     autoHealAt: -Infinity,
   });
-  assert.equal(c.sample({ ...me, levelGuard: 2 }, null).heal, false);
   c.heal = true;
   c.autoHeal = false;
   assert.equal(c.sample(me, null).heal, true, "the manual button still works");
@@ -573,4 +572,3 @@ test("diagonal joystick directions match the tilted camera on portrait and lands
     [globalThis.innerWidth, globalThis.innerHeight] = previous;
   }
 });
-

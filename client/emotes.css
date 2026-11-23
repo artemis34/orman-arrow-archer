@@ -5,7 +5,6 @@
   pointer-events: auto;
   z-index: 9;
 }
-#hud.guarded #emote-controls,
 #hud.panel-open #emote-controls,
 #upgrades:not(.hidden) ~ #emote-controls {
   display: none;

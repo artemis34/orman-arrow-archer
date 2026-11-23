@@ -49,7 +49,6 @@ test("public duel earns cards without freezing the fight and auto-picks ignored 
   assert.equal(a.pending, 1);
   assert.equal(a.choices.length, 3);
   assert.equal(a.levelGuard, 0);
-  assert.ok(w.events.some((e) => e.type === "levelUp" && e.owner === a.id));
   // The archer stays in the fight: damage, movement and shots continue.
   const hp = a.hp;
   assert.ok(w.damage(a, 15, b.id) > 0);

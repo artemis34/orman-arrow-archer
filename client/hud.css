@@ -448,9 +448,6 @@
   pointer-events: auto;
   touch-action: pan-y;
 }
-.guarded .upgrade-dock {
-  border-color: #a1dbe16e;
-}
 .upgrade-dock-heading {
   display: flex;
   gap: 8px;

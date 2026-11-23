@@ -198,13 +198,6 @@ try {
         shadows: scene.renderer.shadowMap.enabled,
       };
       scene.setQuality("balanced");
-      state.players[0].levelGuard = 3;
-      scene.render(state, "local", 1 / 60, true);
-      const guard = scene.players.get(state.players[0].id);
-      const guardVisible =
-        guard.levelEffect.visible &&
-        guard.shield.visible &&
-        guard.guardSparks.length === 6;
       matrixPrototype.compose = compose;
       gl.bufferSubData = bufferSubData;
       return {
@@ -214,7 +207,6 @@ try {
         animation,
         settings,
         high,
-        guardVisible,
         before,
         after,
         steadyBuffers,
@@ -267,7 +259,6 @@ try {
       result.before.textures,
       "no label texture growth on re-equips/respawns",
     );
-    assert.equal(result.guardVisible, true);
     assert.equal(
       result.steadyBuffers,
       0,

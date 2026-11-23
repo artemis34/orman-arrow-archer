@@ -13,8 +13,7 @@ export function automaticHealReady(me) {
     me.maxHp > 0 &&
     me.hp > 0 &&
     me.hp <= me.maxHp * AUTO_HEAL_FRACTION &&
-    me.healCd <= 0 &&
-    !(me.levelGuard > 0)
+    me.healCd <= 0
   );
 }
 /** A target sits ahead of the thumb, in any direction; it never chases it outward. */
