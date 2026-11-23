@@ -81,7 +81,10 @@ test("1–2 ms timestamps and refresh jitter do not break the divisor", () => {
       run(120, 60, 20, (i) => (i % 2 ? 0.14 : -0.11), quantum),
       120,
     );
-    assert.ok(gaps.every((g) => g === 2), `${quantum} ms`);
+    assert.ok(
+      gaps.every((g) => g === 2),
+      `${quantum} ms`,
+    );
   }
   const jitter = [-0.18, 0.2, -0.12, 0.1, -0.07, 0.19];
   const gaps = refreshGaps(

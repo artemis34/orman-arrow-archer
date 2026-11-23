@@ -171,14 +171,9 @@ async function ready(client, touch = false) {
   const activate = (selector) =>
     client.page.locator(selector)[touch ? "tap" : "click"]();
   // This is a live arena: bots continue fighting while the other WebGL browser
-  // compiles shaders. Resume through the same death/respawn flow as a player.
+  // compiles shaders. A defeated archer returns automatically after the timer.
   if (!client.me()?.alive) {
-    await expect(client.page.locator("#death")).toBeVisible();
-    await expect(client.page.locator("#respawn")).toBeEnabled({
-      timeout: 6000,
-    });
-    await activate("#respawn");
-    await expect.poll(() => client.me()?.alive).toBe(true);
+    await expect.poll(() => client.me()?.alive, { timeout: 8000 }).toBe(true);
     await expect(client.page.locator("#death")).toBeHidden();
   }
   for (let n = 0; n < 4 && client.me()?.choices.length; n++) {

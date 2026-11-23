@@ -106,8 +106,10 @@ try {
   await expect.poll(() => shots).toBe(1);
   await expect.poll(() => target.hp).toBeLessThan(200);
   world.gain(actor, 60);
+  // Software renderers can be slower than the auto-pick timer.
+  actor.offerAt = Infinity;
   await expect(page.locator("#upgrades")).toBeVisible();
-  assert.ok(actor.levelGuard > 0);
+  assert.equal(actor.levelGuard, 0, "levelling keeps the archer in the fight");
   await page.locator("#upgrade-options button").first().tap();
   await expect(page.locator("#upgrades")).toBeHidden();
   assert.equal(actor.levelGuard, 0);
@@ -115,6 +117,7 @@ try {
   // The shortest supported phone landscape must leave the character unobscured.
   await page.setViewportSize({ width: 568, height: 320 });
   world.gain(actor, actor.level * 55 - actor.xp);
+  actor.offerAt = Infinity;
   await expect(page.locator("#upgrades")).toBeVisible();
   const dock = await page.locator("#upgrades").boundingBox();
   assert.ok(
@@ -181,9 +184,8 @@ try {
   }
   world.damage(actor, 999);
   await expect(page.locator("#death")).toBeVisible();
-  await expect(page.locator("#respawn")).toBeEnabled({ timeout: 6500 });
-  await press("#respawn");
-  await expect(page.locator("#death")).toBeHidden();
+  // The archer returns automatically once the respawn timer ends.
+  await expect(page.locator("#death")).toBeHidden({ timeout: 6500 });
   assert.ok(actor.alive);
   assert.equal(actor.maxHp, 150);
   if (cdp) {
@@ -206,7 +208,7 @@ try {
   if (cdp) await release();
   assert.deepEqual(errors, []);
   console.log(
-    `INTERACTION_OK ${engine}: WebGL, map, auto shot, early level selection, 568x320 readable cards, death/respawn, sound, exit${cdp ? " while a real joystick touch remains held" : " with mobile touch input"}.`,
+    `INTERACTION_OK ${engine}: WebGL, map, auto shot, non-blocking level cards, 568x320 readable cards, death/automatic respawn, sound, exit${cdp ? " while a real joystick touch remains held" : " with mobile touch input"}.`,
   );
 } catch (error) {
   for (const page of browser

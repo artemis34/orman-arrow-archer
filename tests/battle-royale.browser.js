@@ -90,6 +90,8 @@ try {
   await expect.poll(() => b.hp).toBeLessThan(b.maxHp);
   w.gain(a, 60);
   a.choices = ["multishot", "ricochet", "vitality"];
+  // Software renderers can be slower than the auto-pick timer.
+  a.offerAt = Infinity;
   await expect(mobile.locator("#upgrades")).toBeVisible();
   await expect(mobile.locator(".perk-value")).toHaveText([
     "+2 OK",
@@ -127,7 +129,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    `BATTLE_ROYALE_BROWSER_OK ${engine}: two human clients, solo safe-zone damage, compact cards, early guard release, survivor wins over kills, no respawn and unanimous rematch.`,
+    `BATTLE_ROYALE_BROWSER_OK ${engine}: two human clients, solo safe-zone damage, compact non-blocking cards, survivor wins over kills, no respawn and unanimous rematch.`,
   );
 } catch (error) {
   annotateFailure(error, "Battle Royale browser");
