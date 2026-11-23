@@ -1,26 +1,8 @@
 name: Validate and publish
 on:
   push:
-    branches:
-      [
-        main,
-        feature/cloudflare-arena-refresh,
-        feature/team-progression,
-        feature/render-performance,
-        optimization/platform-safe-2026-10-21,
-        fix/projectile-motion-bot-recovery,
-        feature/forest-ranked-social,
-        feature/bow-buff-effects,
-        feature/kill-streak,
-        feature/onehand-flow-performance,
-        optimization/frame-pacing-2026-10-23,
-        fix/live-frame-network-diagnostics,
-        feature/one-finger-controls,
-        feature/royale-onehand-onboarding,
-        feature/separate-royale-ratings,
-        fix/upgrade-reading-window,
-        optimization/gameplay-stability-2026-10-26,
-      ]
+    # The old feature branches no longer exist; validate main and review branches.
+    branches: [main, "claude/**"]
     paths-ignore: ["**/*.md"]
   pull_request:
   workflow_dispatch:
