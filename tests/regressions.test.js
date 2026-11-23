@@ -2,7 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World } from "../shared/world.js";
 import { RULES } from "../shared/config.js";
-import { ONLINE, pauseStaleInput } from "../shared/online.js";
+import {
+  ONLINE,
+  pauseStaleInput,
+  takeQueuedInput,
+  boundQueuedInputs,
+} from "../shared/online.js";
 const empty = () => {
   const w = new World({ bots: 0 });
   w.obstacles = [];
@@ -142,4 +147,48 @@ test("crowd pushes publish final velocities and rebuild the projectile collision
       for (const dz of [-RULES.radius + 0.01, RULES.radius - 0.01])
         assert.ok(w.grid.query(p.x + dx, p.z + dz, 0.01).has(p));
   }
+});
+
+test("a standing input backlog drains instead of adding permanent latency", () => {
+  const session = { inputs: [] };
+  let seq = 0;
+  const packet = (n) => {
+    for (let i = 0; i < n; i++) session.inputs.push({ seq: ++seq, x: 1 });
+  };
+  // A 200 ms stall delivers six inputs at once, then normal pairs resume.
+  packet(6);
+  const depth = [];
+  for (let tick = 0; tick < 120; tick++) {
+    if (tick % 2 === 0) packet(2);
+    takeQueuedInput(session, 30);
+    depth.push(session.inputs.length);
+  }
+  // Before: the queue stayed at five or six inputs (~180 ms) forever.
+  assert.ok(Math.max(...depth.slice(-30)) <= 2, JSON.stringify(depth));
+});
+
+test("ordinary paired packets and jitter never lose an input", () => {
+  const session = { inputs: [] };
+  let seq = 0,
+    taken = 0;
+  for (let tick = 0; tick < 300; tick++) {
+    // Pairs every other tick, occasionally a tick late.
+    if (tick % 2 === 0 && tick % 14 !== 0)
+      session.inputs.push({ seq: ++seq }, { seq: ++seq });
+    if (tick % 14 === 1) session.inputs.push({ seq: ++seq }, { seq: ++seq });
+    if (takeQueuedInput(session, 30)) taken++;
+  }
+  assert.equal(taken + session.inputs.length, seq);
+});
+
+test("skipped backlog inputs keep their dash and shot presses", () => {
+  const session = { inputs: [] };
+  session.inputs.push({ seq: 1, dash: true });
+  for (let i = 2; i <= 8; i++) session.inputs.push({ seq: i });
+  session.queueTicks = 29;
+  session.minQueue = 8;
+  const first = takeQueuedInput(session, 30);
+  assert.equal(first.dash, true);
+  boundQueuedInputs(session.inputs, 1);
+  assert.equal(session.inputs.length, 1);
 });

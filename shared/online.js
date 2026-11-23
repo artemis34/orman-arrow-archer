@@ -49,3 +49,36 @@ export function pauseStaleInput(player, age) {
     player.charge = 0;
   }
 }
+
+const EDGE_KEYS = ["dash", "heal", "quickShot", "cancelShot"];
+/** Fold a skipped input's one-shot actions into the one that follows it. */
+function mergeSkipped(skipped, next) {
+  for (const key of EDGE_KEYS) next[key] ||= skipped[key];
+  if (next.lockTarget === undefined) next.lockTarget = skipped.lockTarget;
+}
+/** Take this tick's input from a session's jitter buffer.
+ *
+ * Inputs arrive in bursts (two per packet, plus network jitter) and the
+ * authority consumes one per tick. A burst after a stall used to leave a
+ * standing queue of up to six ticks, i.e. ~200 ms of extra latency that never
+ * drained. Track the smallest queue seen over one second: in steady play it
+ * dips to one input before each packet arrives. Anything above two is standing
+ * latency, so the surplus is skipped at once (dash/heal/shot presses are kept).
+ * Short bursts that drain by themselves are left untouched.
+ */
+export function takeQueuedInput(session, tick = 30) {
+  const queue = (session.inputs ||= []);
+  session.minQueue = Math.min(session.minQueue ?? Infinity, queue.length);
+  session.queueTicks = (session.queueTicks || 0) + 1;
+  if (session.queueTicks >= tick) {
+    for (let surplus = session.minQueue - 2; surplus > 0; surplus--)
+      mergeSkipped(queue.shift(), queue[0]);
+    session.minQueue = Infinity;
+    session.queueTicks = 0;
+  }
+  return queue.shift();
+}
+/** Keep at most `limit` queued inputs; older ones fold into their successor. */
+export function boundQueuedInputs(queue, limit = 6) {
+  while (queue.length > limit) mergeSkipped(queue.shift(), queue[0]);
+}

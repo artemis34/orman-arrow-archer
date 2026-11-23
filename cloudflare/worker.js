@@ -17,6 +17,8 @@ import {
   roomCode,
   pauseStaleInput,
   populationFor,
+  takeQueuedInput,
+  boundQueuedInputs,
 } from "../shared/online.js";
 import { PROTOCOL, SnapshotEncoder, decodeInputs } from "../shared/protocol.js";
 import { FORMATS, formatKey, createMode } from "../shared/modes.js";
@@ -165,14 +167,7 @@ export class ArenaRoom {
           session.inputs.push(input);
         }
         // Bounded backlog preserves ordinary batches without accepting speed hacks.
-        while (session.inputs.length > 6) {
-          const skipped = session.inputs.shift(),
-            next = session.inputs[0];
-          for (const key of ["dash", "heal", "quickShot", "cancelShot"])
-            next[key] ||= skipped[key];
-          if (next.lockTarget === undefined)
-            next.lockTarget = skipped.lockTarget;
-        }
+        boundQueuedInputs(session.inputs);
         session.lastInput = now;
       } catch {}
       return;
@@ -357,8 +352,8 @@ export class ArenaRoom {
       }
       if (!this.world) return;
       const p = this.world.players.get(session.id);
-      if (p && session.inputs?.length)
-        this.world.setInput(session.id, session.inputs.shift());
+      const input = p && takeQueuedInput(session, RULES.tick);
+      if (input) this.world.setInput(session.id, input);
       if (p) pauseStaleInput(p, now - session.lastInput);
     }
     if (!this.world) return;
