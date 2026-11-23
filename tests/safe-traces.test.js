@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 import { traces } from "../benchmarks/conformance.js";
 const expected = JSON.parse(
   readFileSync(
-    new URL("./fixtures/onehand-flow-traces-2026-10-23.json", import.meta.url),
+    new URL("./fixtures/level-flow-traces-2026-11-23.json", import.meta.url),
   ),
 );
-test("authority, JSON, v2 bytes and presentation retain reviewed one-hand release traces", async () => {
+test("authority, JSON, v2 bytes and presentation retain reviewed level-flow traces", async () => {
   const actual = await traces(new URL("..", import.meta.url).pathname, {
     legacyRoster: true,
   });
@@ -15,9 +15,9 @@ test("authority, JSON, v2 bytes and presentation retain reviewed one-hand releas
     scenarios: expected.scenarios,
     clientViews: expected.clientViews,
   });
-  // This release intentionally changes selection protection, public pickup
-  // placements/bot goals and remote-player presentation. Historical fixtures
-  // remain untouched; protocol-conformance keeps production bytes/flags exact.
+  // This release intentionally removes the level-up freeze and lets the
+  // authority auto-pick ignored cards. Historical fixtures remain untouched;
+  // protocol-conformance keeps production bytes/flags exact.
   for (const result of actual.scenarios) {
     assert.ok(result.hits > 100);
     assert.ok(result.kills > 0);

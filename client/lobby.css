@@ -569,10 +569,6 @@ body.onehand .action-buttons {
   grid-template-columns: 54px;
   gap: 7px;
 }
-body.onehand .upgrade-dock,
-body.onehand .upgrade-reminder {
-  bottom: calc(245px + env(safe-area-inset-bottom));
-}
 @media (max-height: 500px) {
   body.onehand #move-stick {
     bottom: max(15px, env(safe-area-inset-bottom));
@@ -585,10 +581,6 @@ body.onehand .upgrade-reminder {
   }
   body.onehand .upgrade-dock {
     width: min(400px, calc(100vw - 32px));
-    bottom: auto;
-    top: max(62px, env(safe-area-inset-top));
-  }
-  body.onehand .upgrade-reminder {
     bottom: auto;
     top: max(62px, env(safe-area-inset-top));
   }

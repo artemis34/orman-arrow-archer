@@ -66,7 +66,7 @@ export class FirstGameTutorial {
           ],
           [
             "Bir yetenek seç",
-            "Kartları oku. Yeni yönde çekip bırakınca hemen seçersin; ilk 5 saniyeden sonra basılı tutarak da seçebilirsin. Merkeze dönmek iptal eder.",
+            "Kristal topla. Seviye atlayınca üstte çıkan kartlardan birine dokun; oyun durmaz, seçmezsen kart kendiliğinden seçilir.",
           ],
         ]
       : [
@@ -78,7 +78,7 @@ export class FirstGameTutorial {
           ],
           [
             "Bir yetenek seç",
-            "Kristalleri topla, seviye atla. Kartlara dokun veya 1/2/3 tuşlarıyla seç.",
+            "Kristalleri topla, seviye atla. Oyun durmaz: kartlara dokun veya 1/2/3 tuşlarıyla seç.",
           ],
         ];
     this.title.textContent = `${this.step + 1}/${this.total} · ${steps[this.step][0]}`;

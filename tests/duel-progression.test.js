@@ -42,28 +42,36 @@ test("public duel starts equal and supplies mirrored, bounded XP and neutral buf
     );
 });
 
-test("public duel earns cards, grants five seconds of protection and resumes immediately after choosing", () => {
+test("public duel earns cards without freezing the fight and auto-picks ignored cards", () => {
   const { w, a, b } = match();
   w.gain(a, 60);
   assert.equal(a.level, 2);
   assert.equal(a.pending, 1);
   assert.equal(a.choices.length, 3);
-  assert.equal(a.levelGuard, 5);
-  const hp = a.hp;
-  assert.equal(w.damage(a, 15, b.id), 0);
-  assert.equal(a.hp, hp);
-  const x = a.x;
-  w.setInput(a.id, { x: 1, charge: true, quickShot: true });
-  w.step();
-  assert.equal(a.x, x);
-  assert.equal(w.arrows.active.length, 0);
-  const choice = a.choices[0];
-  assert.equal(w.choose(a.id, choice), true);
   assert.equal(a.levelGuard, 0);
-  assert.equal(a.upgrades[choice], 1);
+  assert.ok(w.events.some((e) => e.type === "levelUp" && e.owner === a.id));
+  // The archer stays in the fight: damage, movement and shots continue.
+  const hp = a.hp;
+  assert.ok(w.damage(a, 15, b.id) > 0);
+  assert.ok(a.hp < hp);
+  const x = a.x;
   w.setInput(a.id, { x: 1 });
   w.step();
   assert.ok(a.x > x);
+  // An explicit tap chooses immediately.
+  const choice = a.choices[0];
+  assert.equal(w.choose(a.id, choice), true);
+  assert.equal(a.upgrades[choice], 1);
+  assert.equal(a.choices.length, 0);
+  // Ignored cards are chosen by the authority after the visible timer.
+  w.gain(a, a.level * 55);
+  assert.equal(a.choices.length, 3);
+  const offered = [...a.choices];
+  const steps = Math.ceil(RULES.upgradeAutoPick * RULES.tick) + 2;
+  for (let i = 0; i < steps; i++) w.step();
+  assert.equal(a.choices.length, 0);
+  assert.equal(a.pending, 0);
+  assert.ok(offered.some((k) => a.upgrades[k] > 0));
 });
 
 test("public duel elimination grants XP, drops crystals and respawns at equal level-one health", () => {
@@ -106,14 +114,14 @@ test("public duel parachutes are contested centrally, limited to one and grant o
   w.loot.tick(w);
   assert.equal(a.level, 2);
   assert.equal(a.xp, 0);
-  assert.equal(a.levelGuard, 5);
+  assert.equal(a.levelGuard, 0);
   assert.equal(w.loot.drops.length, 0);
   w.loot.tick(w);
   assert.equal(a.level, 2);
   const decoded = new SnapshotDecoder().decode(
     new SnapshotEncoder().encode(w.snapshot(a.id)),
   );
-  assert.equal(decoded.players.find((p) => p.id === a.id).levelGuard, 5);
+  assert.equal(decoded.players.find((p) => p.id === a.id).levelGuard, 0);
   assert.equal(decoded.players.find((p) => p.id === a.id).choices.length, 3);
 });
 

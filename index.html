@@ -288,21 +288,14 @@
           </button>
         </div>
       </div>
-      <button
-        id="upgrade-reminder"
-        class="upgrade-reminder hidden"
-        aria-controls="upgrades"
-      >
-        ✧ Yetenek <span id="reminder-time"></span>
-      </button>
       <section
         id="upgrades"
         class="upgrade-dock hidden"
         aria-label="Yetenek seçimi"
       >
         <div class="upgrade-dock-heading">
-          <span>✧ YETENEK SEÇ <small id="upgrade-count"></small></span
-          ><b id="guard-time"></b
+          <span>✧ YETENEK <small id="upgrade-count"></small></span>
+          <span id="upgrade-timer" class="upgrade-timer" aria-hidden="true"></span
           ><button
             id="reroll"
             class="reroll-button"
@@ -310,18 +303,10 @@
             aria-label="Kartları yenile · Maçta bir kez"
             title="Kartları yenile · Maçta bir kez"
           >
-            ↻</button
-          ><button
-            id="upgrades-collapse"
-            aria-label="Yetenek kartlarını küçült"
-          >
-            ⌄
+            ↻
           </button>
         </div>
         <div id="upgrade-options"></div>
-        <p id="joystick-card-hint">
-          ← 1 · ↑ 2 · 3 → <span>Çek, bırak · seç</span>
-        </p>
       </section>
       <div id="toast" class="hidden" aria-live="polite"></div>
       <div
@@ -525,18 +510,15 @@
           <div>
             <b>04 / GÜÇLEN</b>
             <p>
-              Tek el modunda parmağını kaldırmadan joystick’i sola (1), yukarı
-              (2) veya sağa (3) çek ve kısa bekle. Merkeze geri dönmek seçimi
-              iptal eder. Kristalleri topla, rakiplerini vur. Seviye atladığında
-              üç yetenekten birini alttaki kartlardan seç. İlk 5 saniye sabit ve
-              hasara karşı korumalı olursun; seçimleri bitirince hemen devam
-              edersin. Altın ışık ve azalan halka koruma bitene kadar yanar.
+              Kristalleri topla, rakiplerini vur. Seviye atladığında üstte üç
+              yetenek kartı çıkar; oyun durmaz. Birine dokun (bilgisayarda
+              1/2/3). Seçmezsen 8 saniye sonra kart kendiliğinden seçilir.
               Altın büyük kristaller nadirdir ve 60 XP verir.
             </p>
             <p>
               Mavi ϟ noktasından 15 saniye %30 atış hızı, turuncu ↑ noktasından
-              %20 ok hasarı alırsın. Noktalar 45 saniyede yeniden dolar.
-              Korumalıyken veya başka bir buff aktifken yenisi alınmaz.
+              %20 ok hasarı alırsın. Noktalar 45 saniyede yeniden dolar. Başka
+              bir buff aktifken yenisi alınmaz.
             </p>
           </div>
           <div>

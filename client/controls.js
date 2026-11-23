@@ -5,7 +5,6 @@ import { presentationTarget } from "./auto-target.js";
 import {
   OverpullDash,
   automaticHealReady,
-  joystickCard,
   matchAllowsInput,
 } from "./one-finger.js";
 /** A radial dead zone removes resting-thumb noise without snapping diagonals. */
@@ -263,9 +262,6 @@ export class Controls {
     this.oneHanded = enabled === true;
     if (this.oneHanded) this.autoFire = true;
   }
-  refreshUpgrade() {
-    for (const stick of this.floatingSticks) stick.syncOffer();
-  }
   stick(id, aim) {
     const el = document.getElementById(id),
       knob = el.querySelector(".stick-knob");
@@ -277,52 +273,6 @@ export class Controls {
       radius = 0;
     let captureTarget = el;
     const overpull = new OverpullDash();
-    let upgradeGesture = "",
-      selectedCard = -1,
-      selectionTimer = null,
-      committedOffer = "",
-      lastX = 0,
-      lastY = 0;
-    const clearSelectionTimer = () => {
-      clearTimeout(selectionTimer);
-      selectionTimer = null;
-    };
-    const commit = () => {
-      if (
-        !upgradeGesture ||
-        selectedCard < 0 ||
-        !this.active ||
-        this.focused === false ||
-        this.upgradeChoices?.() !== upgradeGesture
-      )
-        return;
-      const index = selectedCard;
-      committedOffer = upgradeGesture;
-      upgradeGesture = "";
-      clearSelectionTimer();
-      this.joy = { x: 0, z: 0 };
-      startX = lastX;
-      startY = lastY;
-      el.style.setProperty("--floating-x", `${startX}px`);
-      el.style.setProperty("--floating-y", `${startY}px`);
-      el.classList.remove("card-picking");
-      overpull.reset();
-      this.onDashTarget?.(null);
-      knob.style.transform = "";
-      this.onUpgradeChoose?.(index);
-      previewCard(-1);
-    };
-    const previewCard = (index) => {
-      if (selectedCard === index) return;
-      clearSelectionTimer();
-      selectedCard = index;
-      this.onUpgradePreview?.(index);
-      if (index >= 0)
-        selectionTimer = setTimeout(
-          commit,
-          Math.max(600, this.upgradeReadRemaining?.() || 0),
-        );
-    };
     // Pointer moves can arrive faster than animation frames. Read layout only
     // when a gesture starts or the pad's actual size changes, never after each
     // knob/HUD write. Size observation also covers rotation and stick settings.
@@ -334,58 +284,15 @@ export class Controls {
       if (pointer !== null) measure();
     });
     sizeObserver.observe(el);
-    const syncOffer = () => {
-      if (pointer === null || aim) return "";
-      const offer = !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
-      if (offer && offer !== upgradeGesture && offer !== committedOffer) {
-        upgradeGesture = offer;
-        clearSelectionTimer();
-        selectedCard = -1;
-        startX = lastX;
-        startY = lastY;
-        el.style.setProperty("--floating-x", `${startX}px`);
-        el.style.setProperty("--floating-y", `${startY}px`);
-        el.classList.add("card-picking");
-        this.tapDash?.reset();
-        overpull.reset();
-        this.onDashTarget?.(null);
-        this.joy = { x: 0, z: 0 };
-        knob.style.transform = "";
-      }
-      if (!offer && upgradeGesture) {
-        upgradeGesture = "";
-        previewCard(-1);
-        startX = lastX;
-        startY = lastY;
-        el.style.setProperty("--floating-x", `${startX}px`);
-        el.style.setProperty("--floating-y", `${startY}px`);
-        el.classList.remove("card-picking");
-        knob.style.transform = "";
-        this.joy = { x: 0, z: 0 };
-        overpull.reset();
-      }
-      return offer;
-    };
+    // Upgrade cards are tapped like any button. The walking thumb is never
+    // repurposed for card selection, so a level-up cannot interrupt movement.
     const update = (e) => {
-      lastX = e.clientX;
-      lastY = e.clientY;
-      const offer = syncOffer();
-      if (offer && offer === committedOffer) return;
       const dx = e.clientX - startX,
         dz = e.clientY - startY,
         l = Math.hypot(dx, dz),
         scale = l > radius ? radius / l : 1;
       const vector = stickVector(dx, dz, radius);
       knob.style.transform = `translate(${dx * scale}px,${dz * scale}px)`;
-      if (upgradeGesture) {
-        this.joy = { x: 0, z: 0 };
-        previewCard(
-          this.upgradeChoices?.() === upgradeGesture
-            ? joystickCard(dx, dz, radius)
-            : -1,
-        );
-        return;
-      }
       if (aim) {
         if (vector.x || vector.z) {
           this.aimJoy = vector;
@@ -442,16 +349,7 @@ export class Controls {
       this.audio.unlock();
       this.isTouch = true;
       dragged = false;
-      committedOffer = "";
-      clearSelectionTimer();
       overpull.reset();
-      upgradeGesture =
-        !aim && this.oneHanded ? this.upgradeChoices?.() || "" : "";
-      if (upgradeGesture) {
-        el.classList.add("card-picking");
-        this.tapDash?.reset();
-      }
-      selectedCard = -1;
       pressedAt = e.timeStamp;
       startX = e.clientX;
       startY = e.clientY;
@@ -464,7 +362,7 @@ export class Controls {
       measure();
       update(e);
     };
-    this.floatingSticks.push({ begin, syncOffer });
+    this.floatingSticks.push({ begin });
     el.addEventListener("pointerdown", (e) => begin(e));
     addEventListener("pointermove", (e) => {
       if (e.pointerId === pointer) {
@@ -476,16 +374,11 @@ export class Controls {
     const release = () => {
       const captured = pointer;
       pointer = null;
-      upgradeGesture = "";
-      committedOffer = "";
-      clearSelectionTimer();
       this.onDashTarget?.(null);
       overpull.reset();
-      previewCard(-1);
       if (captured !== null && captureTarget.hasPointerCapture(captured))
         captureTarget.releasePointerCapture(captured);
       el.classList.remove("floating-origin");
-      el.classList.remove("card-picking");
       knob.style.transform = "";
       if (aim) {
         this.charge = false;
@@ -495,28 +388,7 @@ export class Controls {
     this.stickResets.push(release);
     const end = (e) => {
       if (pointer === e.pointerId) {
-        const selecting = !!upgradeGesture;
-        // Cancellation/lost capture never confirms. Re-evaluate the release
-        // position and key so a changed/rerolled offer cannot select old cards.
         if (
-          selecting &&
-          e.type === "pointerup" &&
-          this.active &&
-          this.focused !== false &&
-          this.upgradeChoices?.() === upgradeGesture
-        ) {
-          const card = joystickCard(
-            e.clientX - startX,
-            e.clientY - startY,
-            radius,
-          );
-          if (card >= 0) {
-            previewCard(card);
-            commit();
-          }
-        }
-        if (
-          !selecting &&
           !aim &&
           this.oneHanded &&
           this.doubleTapDash &&

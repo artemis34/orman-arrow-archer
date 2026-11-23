@@ -1,0 +1,55 @@
+{
+  "baseline": "f3a411ae42e49f6afcb603ec15aabda67d4c75a1 + non-blocking level-up",
+  "purpose": "Levelling no longer freezes or shields the archer and ignored cards are auto-picked by the authority, so authority/JSON/v2 traces intentionally differ from the one-hand release. Protocol bytes and flags stay covered by protocol-conformance.",
+  "scenarios": [
+    {
+      "id": "arena-8",
+      "physics": "452101f5b09bd3486f8ecbfa30f14fdc00c8bffa97071cfca5c01607ac993ca9",
+      "json": "44909219ff39a915896a3193568dac4918beca9ec1ff7d4bb00daaaa1369fe0c",
+      "wire": "4139e1a74b05596bd0c7ea2b72f636a594b6e5e1c05c65272934423a352dd591",
+      "decoded": "dfcd590aff138f575cec2e340779cbb642c6698d8c84aae2521cd1c63a9d8912",
+      "inputWire": "c2fa0372796b5c928a5a35ad662dc9017937f402c429ab72095830c14379449e",
+      "bytes": 4354939,
+      "messages": 3600,
+      "legacyBytes": 55211010,
+      "inputBytes": 186122,
+      "inputMessages": 3688,
+      "hits": 130,
+      "kills": 8,
+      "shots": 292
+    },
+    {
+      "id": "team-16",
+      "physics": "d94e807c889a915d103f8bc9cb20cf7225b56647499134644f8c2c96cf12d3b9",
+      "json": "1ee37fd6a1837e95d94fc5ee29004ae8d758ab320d2b940a6f03ba2d1b56a161",
+      "wire": "c5490e5621e72a0e57e24c6b653ec7055a2faae28a1e4e67a46aabdb69db40cf",
+      "decoded": "50bbe99f20c666ff74e3b39114c06afc4166dc3d7b7c3ef5356f36d77fe219eb",
+      "inputWire": "ca61142e85a7ac18a8c23f8287235a6ca9d50f4f45c2e027b0670dd4a5ab62cd",
+      "bytes": 17918397,
+      "messages": 7200,
+      "legacyBytes": 165002454,
+      "inputBytes": 372673,
+      "inputMessages": 7375,
+      "hits": 227,
+      "kills": 14,
+      "shots": 590
+    },
+    {
+      "id": "team-bots",
+      "physics": "adfecef985a2060651daf09dbc6d846028c16688d3155fe9afd6136e7698170b",
+      "json": "245f94e883221c25e35ab98b268722fb77a176f8b2682476b315cf87c6c3011c",
+      "wire": "e0ff33c5067afba01dd768d5eaceef50056fced749b1d66c8cdcc892a3b2975e",
+      "decoded": "d8c3694f411bcb726b2bb4731f76f99401cf8792817519277b9c215d64d9ef9a",
+      "inputWire": "e0e725ad7445a486482cfe0f049f973078529f70f716c1ef5520347dce9c2e5b",
+      "bytes": 1047833,
+      "messages": 450,
+      "legacyBytes": 8969132,
+      "inputBytes": 23189,
+      "inputMessages": 460,
+      "hits": 915,
+      "kills": 5,
+      "shots": 280
+    }
+  ],
+  "clientViews": "791efc8a0e7e155a17897bac6c14f9f1479db572deef4987326163915f523649"
+}

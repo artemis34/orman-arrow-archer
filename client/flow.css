@@ -1,0 +1,138 @@
+/* Level-up strip: compact cards above the action that never pause the fight.
+   Loaded last so it replaces the older full-height card dock in every layout. */
+#hud .upgrade-dock,
+body.onehand #hud .upgrade-dock {
+  top: calc(max(12px, env(safe-area-inset-top)) + 100px);
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(460px, calc(100vw - 24px));
+  max-height: none;
+  overflow: visible;
+  padding: 5px;
+  border-radius: 12px;
+  background: #10271fd6;
+  border-color: #d4f39440;
+  animation: upgrade-dock-in 160ms ease-out;
+}
+@keyframes upgrade-dock-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+#hud .upgrade-dock-heading {
+  gap: 8px;
+  padding: 0 3px 4px;
+  font-size: 9px;
+  letter-spacing: 0.4px;
+}
+#hud #upgrade-count {
+  color: #ffd680;
+  font-size: 9px;
+}
+.upgrade-timer {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #ffffff1c;
+  overflow: hidden;
+}
+.upgrade-timer i {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transform-origin: left center;
+  animation-name: upgrade-timer;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes upgrade-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+#hud #upgrade-options {
+  gap: 5px;
+}
+#hud #upgrade-options button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 6px;
+  align-items: center;
+  min-height: 0;
+  padding: 7px 8px;
+  border-radius: 9px;
+}
+#hud #upgrade-options button:active {
+  background: #446431;
+  border-color: #e2ff9c;
+}
+#hud .perk-icon {
+  display: block;
+  grid-row: 1 / span 2;
+  font-size: 20px;
+  line-height: 1;
+}
+#hud .perk-name {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#hud .perk-value {
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+/* The full description stays in each card's label and the Yetenekler tab. */
+#hud .perk-note {
+  display: none;
+}
+#hud .perk-key {
+  display: none;
+}
+@media (pointer: fine) {
+  #hud .perk-key {
+    display: block;
+    top: 4px;
+    right: 6px;
+    font-size: 9px;
+  }
+}
+/* Desktop and tablets: just under the match status, wider cards. */
+@media (min-width: 700px) and (min-height: 501px) {
+  #hud .upgrade-dock,
+  body.onehand #hud .upgrade-dock {
+    top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+    width: min(520px, calc(100vw - 280px));
+  }
+  #hud .perk-name {
+    font-size: 12px;
+  }
+  #hud .perk-value {
+    font-size: 13px;
+  }
+}
+/* Landscape phones: the top band between the map and the menu is free. */
+@media (max-height: 500px) {
+  #hud .upgrade-dock,
+  body.onehand #hud .upgrade-dock {
+    top: max(8px, env(safe-area-inset-top));
+    width: min(440px, calc(100vw - 250px));
+  }
+  #hud .perk-icon {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #hud .upgrade-dock {
+    animation: none;
+  }
+}

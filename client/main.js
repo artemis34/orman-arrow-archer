@@ -12,7 +12,6 @@ import { POWERUPS } from "../shared/powerups.js";
 import { preferences } from "./preferences.js";
 import { setupPerformanceMonitor } from "./performance-monitor.js";
 import { RenderCadence } from "./render-cadence.js";
-import { UpgradeReadingWindow } from "./upgrade-reading.js";
 import { presentationTarget } from "./auto-target.js";
 import { cooldownText, matchAllowsInput } from "./one-finger.js";
 import { controlModeFor, saveControlMode } from "./control-preferences.js";
@@ -38,6 +37,7 @@ import "./compact-ui.css";
 import "./performance-monitor.css";
 import "./emotes.css";
 import "./one-finger.css";
+import "./flow.css";
 import { ArenaScene } from "./scene.js";
 import { AudioEngine } from "./audio.js";
 import { Controls } from "./controls.js";
@@ -46,7 +46,6 @@ import { WebSocketTransport } from "./websocket.js";
 import { roomCode, practiceBots } from "../shared/online.js";
 import { World } from "../shared/world.js";
 import { SKINS, UPGRADES, RULES } from "../shared/config.js";
-const upgradeReading = new UpgradeReadingWindow();
 const $ = (id) => document.getElementById(id),
   show = (id, visible) => $(id).classList.toggle("hidden", !visible),
   text = (id, value) => {
@@ -91,12 +90,12 @@ let playing = false,
   accumulator = 0,
   hudAt = 0,
   choicesKey = "",
-  upgradesCollapsed = false,
   lastLevel = 1,
   toastTimer,
   joining = false,
   joiningTransport = null,
   tutorialReturn = null,
+  respawnRequestedAt = -Infinity,
   guardWasActive = false;
 const performanceMonitor = setupPerformanceMonitor({
   parent: document.querySelector(".arena-map"),
@@ -433,40 +432,6 @@ addEventListener("keydown", (e) => {
     b?.click();
   }
 });
-bindAction($("upgrades-collapse"), () => {
-  upgradesCollapsed = true;
-  show("upgrades", false);
-  show("upgrade-reminder", !!choicesKey);
-  upgradeReading.pause();
-  controls.refreshUpgrade();
-});
-bindAction($("upgrade-reminder"), () => {
-  upgradesCollapsed = !upgradesCollapsed;
-  show("upgrades", !upgradesCollapsed);
-  show("upgrade-reminder", upgradesCollapsed && !!choicesKey);
-  if (!upgradesCollapsed) upgradeReading.start();
-  else upgradeReading.pause();
-  controls.refreshUpgrade();
-});
-// UI actions use the same upgrade request as a card tap; no protocol change.
-controls.upgradeChoices = () => {
-  const me = state?.players.find((p) => p.id === myId);
-  return playing &&
-    choicesKey &&
-    !upgradesCollapsed &&
-    me?.alive &&
-    me.choices.length
-    ? `${choicesKey}:${me.level}:${state.match?.round || 0}`
-    : "";
-};
-// Start from visible cards, not the older authority timestamp: network delay
-// must not consume the player's reading time. Explicit selections stay instant.
-controls.upgradeReadRemaining = () =>
-  choicesKey ? upgradeReading.remaining() : 0;
-controls.onUpgradePreview = (index) => {
-  for (const [i, card] of [...$("upgrade-options").children].entries())
-    card.classList.toggle("stick-selected", i === index);
-};
 controls.onDashTarget = (point) => {
   show(
     "dash-target",
@@ -483,8 +448,6 @@ controls.onDashTarget = (point) => {
     $("dash-target").style.top = `${point.y}px`;
   }
 };
-controls.onUpgradeChoose = (index) =>
-  $("upgrade-options").children[index]?.click();
 function toast(message) {
   text("toast", message);
   show("toast", true);
@@ -539,6 +502,10 @@ function consume(next) {
         if (e.target === myId && preferences.get("wildbow-haptics") !== "false")
           navigator.vibrate?.(18);
       }
+    } else if (e.type === "levelUp") {
+      const owner = next.players.find((p) => p.id === e.owner);
+      if (owner) scene.burst(owner.x, owner.z, 0xffd680, 16);
+      if (e.owner === myId) toast(`✧ SEVİYE ${e.level} · Kart seç`);
     } else if (e.type === "leech") {
       scene.feedback.show(e.owner, `+${e.amount.toFixed(1)}`, "heal");
     } else if (e.type === "lootDrop") {
@@ -702,7 +669,6 @@ async function join(isTutorial = false) {
     syncAutoFire();
     lastLevel = 1;
     choicesKey = "";
-    upgradesCollapsed = false;
     accumulator = 0;
     state = transport.online ? null : transport.world.snapshot(myId);
     show("lobby", false);
@@ -758,14 +724,7 @@ function leave() {
   panels.close();
   state = atHome.snapshot();
   scene.setMap(atHome.obstacles);
-  for (const id of [
-    "hud",
-    "death",
-    "upgrades",
-    "help",
-    "upgrade-reminder",
-    "round-results",
-  ])
+  for (const id of ["hud", "death", "upgrades", "help", "round-results"])
     show(id, false);
   show("lobby", true);
   document.body.classList.remove("playing");
@@ -951,14 +910,6 @@ function updateHud(current) {
         ? `Can yenileme ${cooldownText(me.healCd)} sn sonra hazır`
         : "25'e kadar can yenile · E";
   $("hud").classList.toggle("guarded", me.levelGuard > 0);
-  text(
-    "guard-time",
-    me.levelGuard > 0 ? `KORUMA ${me.levelGuard.toFixed(1)}s` : "",
-  );
-  text(
-    "reminder-time",
-    me.levelGuard > 0 ? `${Math.ceil(me.levelGuard)}s` : "",
-  );
   const charge = Math.round(me.charge * 100);
   document
     .querySelector(".arena-charge")
@@ -1095,25 +1046,24 @@ function updateHud(current) {
   }
   const ck =
     me.alive && me.choices.length
-      ? `${me.level}:${me.pending}:${controls.oneHanded}:${me.choices.join(",")}`
+      ? `${me.level}:${me.pending}:${me.choices.join(",")}`
       : "";
   if (ck !== choicesKey) {
     choicesKey = ck;
-    text("upgrade-count", me.pending > 1 ? `· ${me.pending} bekliyor` : "");
-    upgradesCollapsed = false;
+    text("upgrade-count", me.pending > 1 ? `+${me.pending - 1}` : "");
     show("upgrades", !!ck);
-    show("upgrade-reminder", false);
+    // Cards never pause the fight. A shrinking bar shows when the authority
+    // will pick the first card for a player who keeps on fighting instead.
+    const timer = document.createElement("i");
+    timer.style.animationDuration = `${RULES.upgradeAutoPick}s`;
+    $("upgrade-timer").replaceChildren(timer);
     $("upgrade-options").replaceChildren(
       ...me.choices.map((key, i) => {
         const u = UPGRADES[key],
           b = document.createElement("button");
         for (const [tag, cls, value] of [
           ["span", "perk-icon", u.icon],
-          [
-            "span",
-            "perk-key",
-            controls.oneHanded ? ["←", "↑", "→"][i] : `${i + 1}`,
-          ],
+          ["span", "perk-key", `${i + 1}`],
           ["strong", "perk-name", u.name],
           ["span", "perk-value", PERK_SUMMARY[key][0]],
           ["small", "perk-note", PERK_SUMMARY[key][1]],
@@ -1125,13 +1075,14 @@ function updateHud(current) {
         }
         b.setAttribute("aria-label", u.name + ": " + u.description);
         b.title = u.description;
-        bindAction(b, () => transport.choose(key));
+        bindAction(b, () => {
+          transport.choose(key);
+          // Hide at once; the next snapshot brings any queued offer back.
+          show("upgrades", false);
+        });
         return b;
       }),
     );
-    if (ck) upgradeReading.start();
-    else upgradeReading.clear();
-    controls.refreshUpgrade();
   }
   show("death", !me.alive && !finished);
   if (!me.alive) {
@@ -1150,9 +1101,22 @@ function updateHud(current) {
           ? "Takım elendi · Yeni turu bekle "
           : "Elendin · Yeni turu bekle "
       : me.respawnIn > 0.05
-        ? `Yeniden doğuş: ${Math.ceil(me.respawnIn)}s `
+        ? `${Math.ceil(me.respawnIn)} sn sonra arenaya dönüyorsun `
         : "Yeniden doğ ";
-  }
+    // Keep the loop flowing: return automatically as soon as the authority
+    // allows it. Retry once a second in case an online request crossed the
+    // timer boundary; "Ana menüye dön" stays available meanwhile.
+    if (
+      !finished &&
+      !match?.zone &&
+      me.respawnIn <= 0.05 &&
+      performance.now() - respawnRequestedAt > 1000
+    ) {
+      respawnRequestedAt = performance.now();
+      transport.respawn();
+      controls.reset();
+    }
+  } else respawnRequestedAt = -Infinity;
   const ctx = $("minimap").getContext("2d"),
     size = 160,
     scale = size / RULES.size;
@@ -1296,8 +1260,9 @@ function frame(now) {
     lastTime = now;
     return;
   }
-  // Keep full visual quality without submitting 120/144 GPU frames for the
-  // same 30 Hz world. Input networking has its independent timer below.
+  // Draw on whole display refreshes (90 Hz: every frame, 120/144 Hz: every
+  // second one) so motion never judders; the lobby idles near 30 FPS.
+  // Input networking has its independent timer below.
   if (!renderCadence.due(now, playing ? 60 : 30)) return;
   const dt = Math.max(0, Math.min((now - lastTime) / 1000, 0.1));
   lastTime = now;
@@ -1339,8 +1304,6 @@ function frame(now) {
   }
 }
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) upgradeReading.pause();
-  else if (!upgradesCollapsed) upgradeReading.resume();
   performanceMonitor.reset();
   renderCadence.reset();
   lastTime = performance.now();

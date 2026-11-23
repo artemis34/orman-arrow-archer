@@ -256,6 +256,23 @@ export class ArenaScene {
     }
     this.scene.add(this.reticle);
     this.reticle.visible = false;
+    // Tall canopies can hide the local archer. This ring ignores depth so the
+    // player always knows where they stand, even while walking under trees.
+    this.selfRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.78, 0.9, 40),
+      new THREE.MeshBasicMaterial({
+        color: 0xd4f394,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.55,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    this.selfRing.rotation.x = -Math.PI / 2;
+    this.selfRing.renderOrder = 20;
+    this.selfRing.visible = false;
+    this.scene.add(this.selfRing);
     this.aimLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(),
@@ -1053,8 +1070,10 @@ export class ArenaScene {
       this.lockRing.scale.setScalar(1 + Math.sin(this.time * 3) * 0.04);
     }
     this.reticle.visible = this.aimLine.visible = !!(me?.alive && playing);
+    this.selfRing.visible = !!(me?.alive && playing);
     if (me?.alive && playing) {
       const origin = this.players.get(myId)?.root.position || me;
+      this.selfRing.position.set(origin.x, 0.05, origin.z);
       const distance = 4 + me.charge * 10,
         tx = origin.x + Math.cos(me.angle) * distance,
         tz = origin.z + Math.sin(me.angle) * distance;

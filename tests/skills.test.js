@@ -22,61 +22,46 @@ const shoot = (w, p, skills = {}) => {
   Object.assign(p, { upgrades: skills, angle: 0, charge: 1, shotCd: 0 });
   w.fire(p);
 };
-test("level-up grants a five-second freeze visible to enemies, blocks damage and actions, then resumes", () => {
+test("level-up keeps the archer moving, fighting and hittable while cards wait", () => {
   const w = empty(),
     p = add(w, "p", 0, 0),
     enemy = add(w, "e", 8, 0);
   p.hp = 80;
-  p.hidden = true;
   w.gain(p, 60);
-  assert.equal(p.levelGuard, RULES.levelGuardDuration);
-  assert.equal(p.hidden, false);
+  assert.equal(p.level, 2);
+  assert.equal(p.levelGuard, 0);
+  assert.equal(p.hp, 98);
   assert.equal(
     w.snapshot(enemy.id).players.find((v) => v.id === p.id).levelGuard,
-    RULES.levelGuardDuration,
+    0,
   );
-  const hp = p.hp;
-  w.damage(p, 999, enemy.id);
-  assert.equal(p.hp, hp);
-  w.setInput(p.id, {
-    x: 1,
-    dash: true,
-    heal: true,
-    charge: true,
-    quickShot: true,
-  });
+  assert.ok(w.damage(p, 10, enemy.id) > 0);
+  w.setInput(p.id, { x: 1, dash: true });
   run(w, 30);
-  assert.equal(p.x, 0);
-  assert.equal(p.z, 0);
-  assert.equal(p.dashTime, 0);
-  assert.equal(p.healCd, 0);
-  assert.equal(w.arrows.active.length, 0);
-  assert.ok(p.levelGuard > 3.9 && p.levelGuard <= 4.01);
-  run(w, 122);
-  assert.equal(p.levelGuard, 0);
   assert.ok(p.x > 0);
+  assert.ok(p.dashCd > 0);
   assert.ok(p.choices.length > 0);
-  assert.equal(w.damage(p, 1, enemy.id), 1);
 });
-test("queued choices retain protection without refreshing it, and the final choice resumes play immediately", () => {
+test("queued choices are offered in turn and each ignored offer is auto-picked", () => {
   const w = empty(),
     p = add(w, "p", 0, 0);
   w.gain(p, 200);
-  run(w, 15);
-  const remaining = p.levelGuard;
+  assert.equal(p.pending, 2);
   w.choose(p.id, p.choices[0]);
   assert.equal(p.pending, 1);
-  assert.equal(p.levelGuard, remaining);
-  w.gain(p, 1);
-  assert.equal(p.levelGuard, remaining);
-  w.choose(p.id, p.choices[0]);
-  assert.equal(p.levelGuard, 0);
+  assert.equal(p.choices.length, 3);
+  const almost = Math.floor(RULES.upgradeAutoPick * RULES.tick) - 2;
+  run(w, almost);
+  assert.equal(p.pending, 1);
+  run(w, 4);
   assert.equal(p.pending, 0);
-  w.setInput(p.id, { x: 1 });
-  w.step();
-  assert.ok(p.x > 0);
+  assert.equal(p.choices.length, 0);
+  assert.equal(
+    Object.values(p.upgrades).reduce((a, b) => a + b, 0),
+    2,
+  );
 });
-test("a protected archer cannot attack through old arrows, poison, collision pushing or XP farming", () => {
+test("levelling up mid-fight keeps in-flight arrows, poison and pickups running", () => {
   const w = empty(),
     p = add(w, "p", 0, 0),
     e = add(w, "e", 4, 0);
@@ -85,14 +70,17 @@ test("a protected archer cannot attack through old arrows, poison, collision pus
   e.poisonDps = 1;
   e.poisonOwner = p.id;
   w.gain(p, 60);
-  assert.equal(e.poison, 0);
-  w.spawnOrb(0, 0, 60);
+  assert.equal(e.poison, 3);
+  assert.ok(w.arrows.active.length > 0);
+  w.spawnOrb(0.2, 0, 12);
   const xp = p.xp;
-  w.setInput(e.id, { x: -1 });
-  run(w, 15);
-  assert.equal(p.x, 0);
-  assert.equal(p.xp, xp);
-  assert.equal(w.arrows.active.length, 0);
+  run(w, 2);
+  assert.ok(p.xp > xp);
+});
+test("the legacy protection state still blocks attacks when set explicitly", () => {
+  const w = empty(),
+    p = add(w, "p", 0, 0);
+  p.levelGuard = 2;
   p.charge = 1;
   assert.equal(w.fire(p), false);
   assert.equal(w.quickShot(p), false);

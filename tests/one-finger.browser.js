@@ -19,7 +19,6 @@ const http = createServer(),
 let actor,
   joins = 0;
 const actions = [];
-const upgrades = [];
 io.on("connection", (socket) => {
   socket.on("join", (data) => {
     joins++;
@@ -32,10 +31,7 @@ io.on("connection", (socket) => {
       actions.push({ dash: input.dash, heal: input.heal });
     world.setInput(socket.id, input);
   });
-  socket.on("upgrade", (key) => {
-    if (world.choose(socket.id, key))
-      upgrades.push({ key, at: performance.now() });
-  });
+  socket.on("upgrade", (key) => world.choose(socket.id, key));
   socket.on("latency", (cb) => cb());
   socket.on("disconnect", () => world.removePlayer(socket.id));
 });
@@ -128,7 +124,6 @@ try {
     } else await page.mouse.up();
   };
   const offer = async () => {
-    const offeredAt = performance.now();
     world.gain(actor, actor.level * 55 - actor.xp);
     actor.choices = ["speed", "draw", "vitality"];
     await expect(page.locator("#upgrades")).toBeVisible();
@@ -136,7 +131,6 @@ try {
     await expect(page.locator("#upgrade-options button").first()).toContainText(
       "Rüzgâr adımı",
     );
-    return offeredAt;
   };
   // A normal walk is not a dodge; crossing the outer threshold is exactly one.
   actor.spawnShield = 0;
@@ -155,23 +149,22 @@ try {
   await page.waitForTimeout(180);
   assert.equal(actions.filter((a) => a.dash).length, 1);
   await end();
-  // Begin walking first, then level up. That held gesture must not choose.
+  // Begin walking, then level up. The held finger keeps walking: cards never
+  // take over the stick, and dragging toward them never picks one.
   await start();
   await move(230);
-  const offeredAt = await offer();
-  await move(235); // rebase the already held finger into selection
-  await move(235, 665);
-  await expect.poll(() => actor.upgrades.draw || 0, { timeout: 8000 }).toBe(1);
-  assert.ok(
-    upgrades.at(-1).at - offeredAt >= 5000,
-    "cards provide at least five seconds before automatic stick confirmation",
-  );
-  await expect(page.locator("#upgrades")).toBeHidden();
-  await move(250, 665); // same captured finger resumes movement
-  await expect.poll(() => actor.input.x).toBeGreaterThan(0);
-  await end();
   await offer();
+  // Software renderers can be slower than the auto-pick timer; it is covered
+  // separately below with a fresh offer.
+  actor.offerAt = Infinity;
+  const walking = actor.x;
+  await move(250);
+  await expect.poll(() => actor.x - walking).toBeGreaterThan(0.3);
+  await move(235, 665);
+  await page.waitForTimeout(300);
   assert.equal(actor.pending, 1);
+  assert.equal(actor.levelGuard, 0, "levelling never freezes the archer");
+  await end();
   for (const [width, height] of [
     [390, 844],
     [375, 667],
@@ -179,11 +172,7 @@ try {
     [568, 320],
   ]) {
     await page.setViewportSize({ width, height });
-    for (const selector of [
-      "#upgrades",
-      "#joystick-card-hint",
-      "#move-stick",
-    ]) {
+    for (const selector of ["#upgrades", "#move-stick"]) {
       const box = await page.locator(selector).boundingBox();
       assert.ok(
         box.x >= 0 &&
@@ -195,79 +184,19 @@ try {
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  // Cancellation is one synchronous browser turn: a slow software renderer
-  // must not turn a deliberately quick cancellation into a valid 600 ms hold.
-  for (const cancelled of [false, true]) {
-    await page.evaluate(() =>
-      addEventListener(
-        "pointerdown",
-        (e) =>
-          (window.__gestureFixture = { id: e.pointerId, type: e.pointerType }),
-        { once: true, capture: true },
-      ),
-    );
-    await start();
-    const highlighted = await page.evaluate((cancelled) => {
-      const p = window.__gestureFixture;
-      const move = (type, x) =>
-        dispatchEvent(
-          new PointerEvent(type, {
-            pointerId: p.id,
-            pointerType: p.type,
-            clientX: x,
-            clientY: 720,
-            bubbles: true,
-          }),
-        );
-      move("pointermove", 150);
-      const highlighted = document
-        .querySelector("#upgrade-options button")
-        ?.classList.contains("stick-selected");
-      move(cancelled ? "pointercancel" : "pointermove", cancelled ? 150 : 195);
-      delete window.__gestureFixture;
-      return highlighted;
-    }, cancelled);
-    assert.equal(highlighted, true);
-    await end(cancelled);
-    assert.equal(actor.pending, 1);
-  }
-  for (const [index, x, y] of [
-    [0, 150, 720],
-    [1, 195, 670],
-    [2, 240, 720],
-  ]) {
-    if (index) await offer();
-    const keys = ["speed", "draw", "vitality"];
-    const old = actor.upgrades[keys[index]] || 0;
-    await start();
-    await move(x, y);
-    await expect
-      .poll(
-        async () =>
-          actor.upgrades[keys[index]] === old + 1 ||
-          (await page.evaluate(
-            (index) =>
-              document
-                .querySelectorAll("#upgrade-options button")
-                [index]?.classList.contains("stick-selected"),
-            index,
-          )),
-      )
-      .toBeTruthy();
-    if (index === 0 && actor.pending)
-      await page.screenshot({
-        path: `/tmp/archer-validation/one-finger-${engine}-selection.png`,
-      });
-    const releasedAt = performance.now();
-    await end();
-    await expect.poll(() => actor.upgrades[keys[index]]).toBe(old + 1);
-    assert.ok(
-      upgrades.at(-1).at - releasedAt < 1500,
-      "explicit choice is not held until the reading window expires",
-    );
-    await expect(page.locator("#upgrades")).toBeHidden();
-    assert.equal(actor.levelGuard, 0, "selection ends protection immediately");
-  }
+  await page.screenshot({
+    path: `/tmp/archer-validation/one-finger-${engine}-selection.png`,
+  });
+  // A tap on a card chooses it at once.
+  await page.locator("#upgrade-options button").nth(1).tap();
+  await expect.poll(() => actor.upgrades.draw || 0).toBe(1);
+  await expect(page.locator("#upgrades")).toBeHidden();
+  // Ignored cards are picked automatically after the visible timer.
+  await offer();
+  await expect
+    .poll(() => actor.pending, { timeout: (RULES.upgradeAutoPick + 3) * 1000 })
+    .toBe(0);
+  await expect(page.locator("#upgrades")).toBeHidden();
   // HP just above the threshold does not spend healing; at 35% it is automatic.
   actor.hp = actor.maxHp * 0.35 + 1;
   actor.healCd = 0;
@@ -368,10 +297,9 @@ try {
   await selectControlMode(page, "classic");
   await page.locator("#play").tap();
   await expect(page.locator("#aim-stick")).toBeVisible();
-  await expect(page.locator("#joystick-card-hint")).toBeHidden();
   assert.deepEqual(errors, []);
   console.log(
-    `ONE_FINGER_OK ${engine}: overpull once, cooldown hold, held-walk level, card preview/cancel/three directions, authoritative heal, saved settings and classic fallback.`,
+    `ONE_FINGER_OK ${engine}: overpull once, cooldown hold, walking through level-up, tapped and automatic cards, authoritative heal, saved settings and classic fallback.`,
   );
 } catch (error) {
   error.message += `\nActor: ${JSON.stringify(actor && { hp: actor.hp, maxHp: actor.maxHp, healCd: actor.healCd, levelGuard: actor.levelGuard, pending: actor.pending, input: actor.input })}; actions: ${JSON.stringify(actions)}`;

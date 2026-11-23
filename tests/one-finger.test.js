@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   OverpullDash,
   automaticHealReady,
-  joystickCard,
   matchAllowsInput,
   cooldownText,
 } from "../client/one-finger.js";
@@ -41,24 +40,6 @@ test("cooldowns never say zero before ready and all modes gate commands on live 
   assert.equal(matchAllowsInput({ phase: "playing" }), true);
   for (const phase of ["waiting", "results"])
     assert.equal(matchAllowsInput({ phase }), false);
-});
-
-test("card directions map left, up, right and allow centre/downward cancellation", () => {
-  for (const [x, y, expected] of [
-    [-40, 0, 0],
-    [0, -40, 1],
-    [40, 0, 2],
-    [-40, -15, 0],
-    [40, -15, 2],
-    [15, -40, 1],
-    [0, 0, -1],
-    [15, 0, -1],
-    [0, 40, -1],
-    [15, 40, -1],
-  ])
-    assert.equal(joystickCard(x, y, 40), expected);
-  assert.equal(joystickCard(NaN, 0, 40), -1);
-  assert.equal(joystickCard(40, 0, 0), -1);
 });
 
 test("automatic healing uses relative HP and respects authoritative life, guard and cooldown", () => {

@@ -101,7 +101,7 @@ test("loot preserves terrain/XP, announces before landing, then grants exactly o
   assert.equal(p.level, 2);
   assert.equal(p.xp, 0);
   assert.equal(w.loot.drops.length, 0);
-  assert.equal(p.levelGuard, RULES.levelGuardDuration);
+  assert.equal(p.levelGuard, 0);
   w.loot.tick(w);
   assert.equal(p.level, 2);
   assert.equal(w.events.filter((e) => e.type === "lootClaim").length, 1);

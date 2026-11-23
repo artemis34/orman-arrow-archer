@@ -86,14 +86,20 @@ try {
     // Always cover the longest new description instead of depending on which
     // three random perks happen to be offered on this viewport.
     world.players.get(id).choices = ["lifesteal", "returning", "ricochet"];
+    // Software-rendered CI browsers can take longer than the auto-pick timer
+    // to measure every card; that timer is covered separately below.
+    world.players.get(id).offerAt = Infinity;
     world.players.get(id).hp = 35;
     await expect(page.locator("#upgrades")).toBeVisible();
     await expect(page.locator("#upgrade-options button")).toHaveCount(3);
-    await expect(page.locator("#upgrade-count")).toContainText("2");
+    await expect(page.locator("#upgrade-count")).toContainText("+1");
     const dock = await page.locator("#upgrades").boundingBox();
-    assert.ok(dock.y > height / 2, `${label}: cards stay below the character`);
     assert.ok(
-      dock.height < height * 0.36,
+      dock.y + dock.height < height / 2,
+      `${label}: cards stay above the character and out of the thumb area`,
+    );
+    assert.ok(
+      dock.height < height * 0.25,
       `${label}: compact cards (${dock.height}px)`,
     );
     for (const card of await page.locator("#upgrade-options button").all()) {
@@ -115,6 +121,7 @@ try {
     );
     await activate("#upgrade-options button:first-child");
     await expect.poll(() => world.players.get(id).pending).toBe(1);
+    world.players.get(id).offerAt = Infinity;
     await activate("#upgrade-options button:first-child");
     await expect(page.locator("#upgrades")).toBeHidden();
     // The final card ends the guard immediately; no remaining timer to wait for.
@@ -203,11 +210,14 @@ try {
     });
     const p = world.players.get(id);
     world.gain(p, p.level * 55 - p.xp);
-    await expect(page.locator("#guard-time")).toContainText("KORUMA");
-    await expect(page.locator("#dash")).toBeDisabled();
+    p.offerAt = Infinity;
+    await expect(page.locator("#upgrades")).toBeVisible();
+    // Levelling never pauses the fight: abilities stay ready and hits land.
+    await expect(page.locator("#dash")).toBeEnabled();
+    assert.equal(p.levelGuard, 0);
     const before = { x: p.x, z: p.z, hp: p.hp };
-    world.damage(p, 50);
-    assert.equal(p.hp, before.hp);
+    world.damage(p, 5);
+    assert.ok(p.hp < before.hp, `${label}: hits still land while cards show`);
     let cd, move;
     if (touch) {
       cd = await context.newCDPSession(page);
@@ -222,43 +232,12 @@ try {
         touchPoints: [move],
       });
     } else await page.keyboard.down("KeyD");
-    await page.waitForTimeout(160);
-    assert.equal(p.x, before.x);
-    assert.equal(p.z, before.z);
-    assert.equal(p.charge, 0);
-    if (touch)
-      await cd.send("Input.dispatchTouchEvent", {
-        type: "touchEnd",
-        touchPoints: [],
-      });
-    else await page.keyboard.up("KeyD");
+    // Walking continues with the cards on screen.
+    await expect.poll(() => p.x - before.x).toBeGreaterThan(0.3);
     await page.screenshot({
-      path: `/tmp/archer-validation/guard-${label}.png`,
+      path: `/tmp/archer-validation/cards-${label}.png`,
     });
-    await activate("#upgrades-collapse");
-    await expect(page.locator("#upgrades")).toBeHidden();
-    await expect(page.locator("#upgrade-reminder")).toBeVisible();
-    await activate("#upgrade-reminder");
-    await expect(page.locator("#upgrades")).toBeVisible();
-    await expect(page.locator("#upgrade-reminder")).toBeHidden();
-    await page.waitForTimeout(160);
-    assert.equal(
-      p.pending,
-      1,
-      "opening cards must not select the newly revealed card",
-    );
-    // Hold movement through the end of protection: no need to lift/repress.
-    const start = p.x;
-    if (touch)
-      await cd.send("Input.dispatchTouchEvent", {
-        type: "touchStart",
-        touchPoints: [move],
-      });
-    else await page.keyboard.down("KeyD");
-    await expect.poll(() => p.levelGuard, { timeout: 6500 }).toBe(0);
-    await expect(page.locator("#dash")).toBeEnabled();
     if (touch) {
-      await expect.poll(() => p.x - start).toBeGreaterThan(0.3);
       const box = await page
         .locator("#upgrade-options button")
         .first()
@@ -284,7 +263,6 @@ try {
         touchPoints: [],
       });
     } else {
-      await expect.poll(() => p.x - start).toBeGreaterThan(0.3);
       await page.keyboard.press("Digit1");
       await page.keyboard.up("KeyD");
       await expect.poll(() => p.pending).toBe(0);
@@ -294,7 +272,13 @@ try {
       await page.mouse.up();
     }
     await expect(page.locator("#upgrades")).toBeHidden();
-    await expect(page.locator("#upgrade-reminder")).toBeHidden();
+    // Ignored cards are picked by the authority after the visible timer.
+    world.gain(p, p.level * 55 - p.xp);
+    await expect(page.locator("#upgrades")).toBeVisible();
+    await expect
+      .poll(() => p.pending, { timeout: (RULES.upgradeAutoPick + 3) * 1000 })
+      .toBe(0);
+    await expect(page.locator("#upgrades")).toBeHidden();
     assert.equal(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -303,7 +287,7 @@ try {
     );
     await context.close();
     console.log(
-      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, actual map enlargement, ghost-click protection, five-second selection, expiry, resumed input, queued picks.`,
+      `HUD_OK ${label}: ${((area / width / height) * 100).toFixed(1)}% idle HUD, actual map enlargement, ghost-click protection, non-blocking cards, walking while choosing, queued and automatic picks.`,
     );
   }
   assert.deepEqual(errors, []);
@@ -315,7 +299,7 @@ try {
     await page
       .screenshot({ path: `/tmp/archer-validation/hud-failure-${i}.png` })
       .catch(() => {});
-  annotateFailure(error, "Protected selection and folded HUD");
+  annotateFailure(error, "Non-blocking selection and folded HUD");
   throw error;
 } finally {
   await browser.close();

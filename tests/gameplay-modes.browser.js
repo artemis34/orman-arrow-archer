@@ -214,21 +214,23 @@ try {
       }
       r.grant(p, p.level * 55 - p.xp);
       p.choices = ["speed", "draw", "vitality"];
+      // Software renderers can be slower than the auto-pick timer.
+      p.offerAt = Infinity;
       await expect(page.locator("#upgrades")).toBeVisible();
-      const hp = p.hp;
-      r.world.damage(p, 1000);
-      assert.equal(p.hp, hp, "selection guard remains authoritative");
+      assert.equal(p.levelGuard, 0, "levelling keeps the archer in the fight");
       if (touch) {
-        // The first new pull after the cards appear must select, without a second rebase move.
-        await move(175);
-        await expect(
-          page.locator("#upgrade-options button").first(),
-        ).toHaveClass(/stick-selected/);
+        // The held walking finger keeps moving; the card is simply tapped.
+        const walking = { x: p.x, z: p.z };
+        await move(250);
+        await expect
+          .poll(() => Math.hypot(p.x - walking.x, p.z - walking.z))
+          .toBeGreaterThan(0.2);
         if (format === "brduo")
           await page.screenshot({
             path: `/tmp/archer-validation/stability-cards-${engine}.png`,
           });
         await up();
+        await page.locator("#upgrade-options button").first().tap();
       } else await page.keyboard.press("1");
       await expect(page.locator("#upgrades")).toBeHidden();
       assert.equal(p.levelGuard, 0);

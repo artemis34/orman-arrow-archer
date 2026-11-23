@@ -7,7 +7,11 @@ export const RULES = Object.freeze({
   playerHealth: 150,
   botHealth: 100,
   playerShield: 4,
+  // Legacy level-up shield. Levelling no longer freezes the player; the field
+  // stays in snapshots (always 0) to keep the v2 protocol contract stable.
   levelGuardDuration: 5,
+  // Ignored upgrade cards are chosen automatically so the fight never waits.
+  upgradeAutoPick: 8,
   frostDuration: 0.65,
   frostImmunity: 2.2,
   frostSlow: 0.18,

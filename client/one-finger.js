@@ -83,10 +83,3 @@ export class OverpullDash {
     return false;
   }
 }
-export function joystickCard(dx, dy, radius) {
-  if (![dx, dy, radius].every(Number.isFinite) || radius <= 0) return -1;
-  if (Math.hypot(dx, dy) < Math.max(26, radius * 0.85)) return -1;
-  if (dy > Math.abs(dx) * 0.8) return -1;
-  if (Math.abs(dx) >= Math.abs(dy) * 0.8) return dx < 0 ? 0 : 2;
-  return dy < 0 ? 1 : -1;
-}

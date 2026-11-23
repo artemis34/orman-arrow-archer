@@ -411,6 +411,7 @@ export class World {
             .map((a) => a.k)
         : [];
     if (!p.choices.length) p.pending = 0;
+    p.offerAt = this.time;
   }
   gain(p, amount) {
     if (this.mode.rules?.progression === false || !this.mode.combat) return;
@@ -424,21 +425,10 @@ export class World {
       if (p.alive) p.hp = Math.min(p.maxHp, p.hp + 18);
     }
     if (p.pending && !p.choices.length) this.offer(p);
-    if (!wasPending && p.pending && p.alive && !p.bot && p.levelGuard <= 0) {
-      p.levelGuard = RULES.levelGuardDuration;
-      p.hidden = false;
-      p.revealUntil = this.time + RULES.levelGuardDuration;
-      p.charge = p.dashTime = p.vx = p.vz = 0;
-      p.input.charge = p.input.dash = p.input.heal = p.input.quickShot = false;
-      // Cancel without releasing during a swept-hit iteration over this pool.
-      for (const arrow of this.arrows.active)
-        if (arrow.owner === p.id) arrow.cancelled = true;
-      for (const target of this.players.values())
-        if (target.poisonOwner === p.id) {
-          target.poison = target.poisonDps = 0;
-          target.poisonOwner = null;
-        }
-    }
+    // Levelling never freezes or shields the player any more: the cards stay
+    // on screen while the fight continues and are auto-picked if ignored.
+    if (!wasPending && p.pending && p.alive && !p.bot)
+      this.events.push({ type: "levelUp", owner: p.id, level: p.level });
   }
   damage(p, amount, owner, kind = "impact", critical = false) {
     if (
@@ -887,6 +877,11 @@ export class World {
         oldZ = p.z;
       starts.set(p, { x: oldX, z: oldZ });
       if (p.bot) this.botInput(p, dt);
+      else if (
+        p.choices.length &&
+        this.time - (p.offerAt ?? this.time) >= RULES.upgradeAutoPick
+      )
+        this.choose(p.id, p.choices[0]);
       p.shotCd = Math.max(0, p.shotCd - dt);
       p.spawnShield = Math.max(0, p.spawnShield - dt);
       p.healCd = Math.max(0, p.healCd - dt);
